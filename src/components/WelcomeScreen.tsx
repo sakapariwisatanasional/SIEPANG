@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   Sparkles,
@@ -40,6 +40,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [showMascotDetail, setShowMascotDetail] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [mascotUrl]);
 
   const handleEnter = () => {
     if (onDismissForever && dontShowAgain) {

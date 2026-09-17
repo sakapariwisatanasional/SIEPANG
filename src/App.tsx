@@ -35,6 +35,7 @@ import {
   postAwardPointsToGAS,
 } from './services/gasSyncService';
 import { soundEffects } from './utils/audioNotify';
+import { normalizeMascotUrl } from './utils/mediaUtils';
 import { Header } from './components/Header';
 import { BannerSlider } from './components/BannerSlider';
 import { SponsorSection } from './components/SponsorSection';
@@ -285,12 +286,18 @@ export default function App() {
   // Mascot Philosophy Modal & Dynamic Mascot URL
   const [showMascotDetail, setShowMascotDetail] = useState(false);
   const [mascotUrl, setMascotUrl] = useState<string>(() => {
-    return localStorage.getItem('siepang_mascot_url') || '/MASKOT.png';
+    const saved = localStorage.getItem('siepang_mascot_url');
+    return saved ? normalizeMascotUrl(saved) : '/MASKOT.png';
   });
 
   const handleUpdateMascotUrl = (newUrl: string) => {
-    setMascotUrl(newUrl);
-    localStorage.setItem('siepang_mascot_url', newUrl);
+    const cleanUrl = normalizeMascotUrl(newUrl);
+    setMascotUrl(cleanUrl);
+    try {
+      localStorage.setItem('siepang_mascot_url', cleanUrl);
+    } catch (e) {
+      console.warn('LocalStorage save error for mascot URL:', e);
+    }
   };
 
   // Enforce Access Control: If admin dashboard is triggered while not an admin, immediately dismiss and alert
@@ -617,7 +624,7 @@ export default function App() {
     soundEffects.play('success');
     setToastAlert({
       title: 'Mode SuperAdmin Aktif',
-      message: 'Kembali ke akun Master SuperAdmin (siepang). Seluruh otoritas pusat aktif.',
+      message: 'Kembali ke akun Master SuperAdmin. Seluruh otoritas pusat aktif.',
     });
   };
 
@@ -683,7 +690,7 @@ export default function App() {
               onClick={handleSwitchBackToSuperAdmin}
               className="px-3 py-1 rounded-lg bg-amber-400 text-red-950 hover:bg-amber-300 font-black text-[11px] shadow transition"
             >
-              Kembali ke SuperAdmin (siepang)
+              Kembali ke SuperAdmin
             </button>
           </div>
         </div>

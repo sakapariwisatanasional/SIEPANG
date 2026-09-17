@@ -431,7 +431,7 @@ export const Header: React.FC<HeaderProps> = ({
                         <span>Kembali ke SuperAdmin</span>
                       </span>
                       <span className="text-[10px] bg-amber-400 text-red-950 px-1.5 py-0.5 rounded font-black">
-                        siepang
+                        Master
                       </span>
                     </button>
                   )}

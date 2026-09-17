@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Sparkles, Compass, Shield, Smartphone, Heart, Award, ArrowRight, Lock, CheckCircle2 } from 'lucide-react';
 import { CurrentUser } from '../types';
+import { normalizeMascotUrl } from '../utils/mediaUtils';
 
 interface MascotDetailModalProps {
   isOpen: boolean;
@@ -38,8 +39,10 @@ export const MascotDetailModal: React.FC<MascotDetailModalProps> = ({
       return;
     }
     if (!customLinkInput.trim()) return;
+    const cleanUrl = normalizeMascotUrl(customLinkInput);
+    setCustomLinkInput(cleanUrl);
     if (onUpdateMascotUrl) {
-      onUpdateMascotUrl(customLinkInput.trim());
+      onUpdateMascotUrl(cleanUrl);
       setLinkSavedMsg('Tautan gambar maskot berhasil diperbarui & disimpan oleh ' + (currentUser?.name || 'Admin') + '!');
       setPreviewTestUrl(null);
       setTimeout(() => setLinkSavedMsg(null), 3500);

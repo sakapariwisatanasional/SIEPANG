@@ -149,7 +149,7 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
                   className="inline-flex items-center gap-2 rounded-2xl bg-red-800 px-5 py-2.5 text-xs font-black text-white hover:bg-red-700 shadow-md transition"
                 >
                   <Shield className="h-4 w-4 text-amber-400" />
-                  <span>Login Master SuperAdmin (siepang)</span>
+                  <span>Login Master SuperAdmin</span>
                 </button>
               </div>
             </div>
@@ -180,7 +180,7 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-black text-slate-900">Master SuperAdmin (siepang)</h4>
+                          <h4 className="text-sm font-black text-slate-900">Master SuperAdmin</h4>
                           <span className="rounded bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-800 border border-red-200">
                             Akses Master Penuh
                           </span>
@@ -206,7 +206,7 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
                     <div className="mt-3 pt-3 border-t border-red-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
                       <div className="text-emerald-700 font-semibold text-[11px] flex items-center gap-1.5">
                         <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Akun Master Terverifikasi: <strong>siepang</strong></span>
+                        <span>Akun Master Terverifikasi: <strong>SuperAdmin</strong></span>
                       </div>
 
                       <button

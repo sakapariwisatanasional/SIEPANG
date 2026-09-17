@@ -558,29 +558,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
 
               {loginRole === 'admin' && (
-                <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3 text-xs text-amber-950">
-                  <div className="flex items-center justify-between gap-2 mb-1.5">
-                    <div className="flex items-center gap-1.5 font-bold text-red-950">
-                      <Shield className="h-4 w-4 text-amber-600" />
-                      <span>Akun Master SuperAdmin Tunggal</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLoginIdentifier('siepang');
-                        setLoginPassword('siepang#2026!');
-                        setErrorMessage('');
-                      }}
-                      className="text-[11px] font-bold text-red-800 hover:text-red-950 bg-white px-2 py-0.5 rounded-lg border border-amber-300 shadow-xs transition"
-                    >
-                      Isi Otomatis
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-amber-900 leading-relaxed">
-                    Username: <code className="bg-amber-100/80 px-1 py-0.5 rounded font-mono font-bold text-red-950">siepang</code> &bull; Password: <code className="bg-amber-100/80 px-1 py-0.5 rounded font-mono font-bold text-red-950">siepang#2026!</code>
-                  </p>
-                  <p className="text-[10px] text-amber-800 mt-1 font-medium italic">
-                    * Sesuai ketentuan, tidak ada akun lain yang tersedia untuk level superadmin dan admin.
+                <div className="rounded-xl border border-red-950/20 bg-red-900/5 p-3 text-xs text-red-950 flex items-center gap-2.5">
+                  <Shield className="h-4 w-4 text-red-800 shrink-0" />
+                  <p className="text-[11px] text-slate-700 leading-relaxed">
+                    Portal otentikasi resmi SuperAdmin SIEPANG. Masukkan akun berwenang untuk mengakses panel kendali.
                   </p>
                 </div>
               )}
@@ -600,7 +581,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       onChange={(e) => setLoginIdentifier(e.target.value)}
                       placeholder={
                         loginRole === 'admin'
-                          ? 'siepang'
+                          ? 'Masukkan username SuperAdmin'
                           : 'peserta@pramuka.id atau JAM-P-001'
                       }
                       className="w-full rounded-xl border border-slate-300 p-2.5 pl-9 text-xs focus:border-red-700 focus:ring-1 focus:ring-red-700 focus:outline-none"
@@ -620,7 +601,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder={
                         loginRole === 'admin'
-                          ? 'Masukkan password: siepang#2026!'
+                          ? 'Masukkan kata sandi'
                           : 'Masukkan kata sandi akun Anda'
                       }
                       className="w-full rounded-xl border border-slate-300 p-2.5 pl-9 pr-9 text-xs focus:border-red-700 focus:ring-1 focus:ring-red-700 focus:outline-none"

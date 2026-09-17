@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import { DocumentationItem, Banner, ScheduleItem, Sponsor, HomeContent, ActivityPost } from '../types';
-import { parseMediaUrl } from '../utils/mediaUtils';
+import { parseMediaUrl, normalizeMascotUrl } from '../utils/mediaUtils';
 import { LOCAL_STORAGE_KEYS } from '../services/gasSyncService';
 import {
   Shield,
@@ -100,6 +100,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Mascot Edit State
   const [mascotInput, setMascotInput] = useState(mascotUrl);
   const [mascotPreviewUrl, setMascotPreviewUrl] = useState<string | null>(null);
+  const [mascotVerifyStatus, setMascotVerifyStatus] = useState<'idle' | 'testing' | 'valid' | 'invalid'>('idle');
+  const [mascotVerifyMsg, setMascotVerifyMsg] = useState<string>('');
 
   useEffect(() => {
     setMascotInput(mascotUrl);
@@ -686,13 +688,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     showSavedNotification(`Poin pos "${targetPost?.title || ''}" diubah menjadi ${newPts} Poin!`);
   };
 
-  const handleSaveMascotUrl = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifyAndTestMascot = (testUrl: string) => {
+    if (!testUrl.trim()) {
+      showSavedNotification('Silakan ketik atau tempelkan URL gambar maskot terlebih dahulu.');
+      return;
+    }
+    const clean = normalizeMascotUrl(testUrl);
+    setMascotInput(clean);
+    setMascotVerifyStatus('testing');
+    setMascotVerifyMsg('Sedang memverifikasi sumber gambar maskot...');
+    setMascotPreviewUrl(clean);
+
+    const testImg = new Image();
+    testImg.referrerPolicy = 'no-referrer';
+    testImg.onload = () => {
+      setMascotVerifyStatus('valid');
+      setMascotVerifyMsg('✓ Gambar maskot berhasil dimuat dan siap diterapkan!');
+      showSavedNotification('Pratinjau gambar maskot berhasil dimuat!');
+    };
+    testImg.onerror = () => {
+      setMascotVerifyStatus('invalid');
+      setMascotVerifyMsg('Peringatan: Gagal memuat file gambar dari URL ini. Pastikan link langsung (.png/.webp/.jpg) atau dapat diakses publik.');
+    };
+    testImg.src = clean;
+  };
+
+  const handleSaveMascotUrl = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!mascotInput.trim()) return;
+    const cleanUrl = normalizeMascotUrl(mascotInput);
+    setMascotInput(cleanUrl);
+    setMascotPreviewUrl(null);
+    setMascotVerifyStatus('valid');
     if (onUpdateMascotUrl) {
-      onUpdateMascotUrl(mascotInput.trim());
-      setMascotPreviewUrl(null);
-      showSavedNotification('Tautan URL Maskot SIEPANG berhasil diperbarui & disimpan!');
+      onUpdateMascotUrl(cleanUrl);
+      showSavedNotification('Tautan URL Maskot SIEPANG berhasil diperbarui & disimpan di seluruh aplikasi!');
     }
   };
 
@@ -700,10 +730,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     const def = '/MASKOT.png';
     setMascotInput(def);
     setMascotPreviewUrl(null);
+    setMascotVerifyStatus('valid');
+    setMascotVerifyMsg('');
     if (onUpdateMascotUrl) {
       onUpdateMascotUrl(def);
       showSavedNotification('Tautan Maskot dikembalikan ke gambar resmi default (/MASKOT.png)');
     }
+  };
+
+  const handleMascotDirectUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Ukuran file foto maksimal 5 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        const dataUrl = event.target.result as string;
+        setMascotInput(dataUrl);
+        setMascotPreviewUrl(dataUrl);
+        setMascotVerifyStatus('valid');
+        setMascotVerifyMsg('✓ File lokal siap diterapkan sebagai maskot!');
+        showSavedNotification('File foto maskot lokal dimuat! Klik "Simpan & Terapkan Maskot".');
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   // Helper file upload handler
@@ -1627,17 +1680,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 {/* Visual Preview Card */}
                 <div className="lg:col-span-5 rounded-3xl bg-white p-5 border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
-                    Tampilan Maskot Saat Ini
-                  </span>
+                  <div className="w-full flex items-center justify-between mb-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      Tampilan Maskot Saat Ini
+                    </span>
+                    {mascotVerifyStatus === 'valid' && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                        <Check className="h-3 w-3" /> Valid
+                      </span>
+                    )}
+                    {mascotVerifyStatus === 'testing' && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-bold text-blue-800">
+                        <RefreshCw className="h-3 w-3 animate-spin" /> Verifikasi
+                      </span>
+                    )}
+                    {mascotVerifyStatus === 'invalid' && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-800">
+                        <AlertCircle className="h-3 w-3" /> URL Eror
+                      </span>
+                    )}
+                  </div>
 
                   <div className="relative group my-3 flex items-center justify-center h-64 w-64 rounded-3xl bg-radial from-amber-100/60 via-red-50/40 to-slate-100 p-4 border border-amber-200 shadow-inner overflow-hidden">
                     <img
                       src={mascotPreviewUrl || mascotUrl || '/MASKOT.png'}
                       alt="Maskot SIEPANG"
+                      referrerPolicy="no-referrer"
                       className="h-full w-full object-contain filter drop-shadow-xl transition-transform duration-300 group-hover:scale-105"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/MASKOT.png';
+                        const target = e.target as HTMLImageElement;
+                        if (!target.src.endsWith('/MASKOT.png')) {
+                          target.src = '/MASKOT.png';
+                        }
                       }}
                     />
                     {mascotPreviewUrl && (
@@ -1646,6 +1720,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </div>
                     )}
                   </div>
+
+                  {mascotVerifyMsg && (
+                    <div className={`text-xs px-3 py-1.5 rounded-xl mb-2 font-medium w-full text-center ${
+                      mascotVerifyStatus === 'valid'
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                        : mascotVerifyStatus === 'invalid'
+                        ? 'bg-red-50 text-red-800 border border-red-200'
+                        : 'bg-blue-50 text-blue-800 border border-blue-200'
+                    }`}>
+                      {mascotVerifyMsg}
+                    </div>
+                  )}
 
                   <h4 className="font-black text-slate-900 text-sm">
                     SIEPANG (Elang Pandu Penggalang)
@@ -1671,25 +1757,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       Ubah Tautan / Sumber URL Maskot
                     </h4>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      Masukkan URL gambar baru (mendukung HTTPS, Google Drive direct link, Cloudinary, Imgur, dsb.)
+                      Masukkan URL gambar baru (mendukung HTTPS langsung, link Google Drive yang otomatis dikonversi, Dropbox, Cloudinary, Imgur, atau unggah file foto dari perangkat).
                     </p>
                   </div>
 
                   <form onSubmit={handleSaveMascotUrl} className="space-y-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                        Alamat URL Gambar Maskot
-                      </label>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Alamat URL Gambar Maskot
+                        </label>
+                        <span className="text-[11px] text-slate-400">
+                          Format PNG Transparan / WebP
+                        </span>
+                      </div>
                       <div className="relative">
                         <input
-                          type="url"
+                          type="text"
                           required
                           value={mascotInput}
                           onChange={(e) => {
                             setMascotInput(e.target.value);
-                            setMascotPreviewUrl(null);
+                            setMascotVerifyStatus('idle');
                           }}
-                          placeholder="https://example.com/maskot-siepang.png"
+                          placeholder="https://example.com/maskot.png atau link Google Drive"
                           className="w-full rounded-xl border border-slate-300 p-3 text-xs font-mono focus:border-red-700 focus:outline-none focus:ring-2 focus:ring-red-100"
                         />
                         {mascotInput && (
@@ -1698,6 +1789,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             onClick={() => {
                               setMascotInput('');
                               setMascotPreviewUrl(null);
+                              setMascotVerifyStatus('idle');
+                              setMascotVerifyMsg('');
                             }}
                             className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-xs"
                           >
@@ -1706,7 +1799,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                         )}
                       </div>
                       <p className="text-[11px] text-slate-500 mt-1">
-                        Disarankan format PNG transparan atau WebP berkualitas tinggi agar menyatu dengan latar belakang aplikasi.
+                        * Tautan Google Drive publik otomatis diterjemahkan ke direct stream endpoint (<code className="bg-slate-100 px-1 rounded text-slate-700">lh3.googleusercontent.com/d/ID</code>).
                       </p>
                     </div>
 
@@ -1714,17 +1807,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <div className="flex flex-wrap items-center gap-2 pt-2">
                       <button
                         type="button"
-                        onClick={() => {
-                          if (mascotInput.trim()) {
-                            setMascotPreviewUrl(mascotInput.trim());
-                            showSavedNotification('Pratinjau gambar maskot ditampilkan di kartu kiri.');
-                          }
-                        }}
-                        className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-xs flex items-center gap-1.5"
+                        onClick={() => handleVerifyAndTestMascot(mascotInput)}
+                        className="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-xs flex items-center gap-1.5"
                       >
                         <Eye className="h-4 w-4 text-amber-600" />
-                        <span>Tes Pratinjau URL</span>
+                        <span>Tes &amp; Pratinjau URL</span>
                       </button>
+
+                      <label className="rounded-xl border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+                        <Upload className="h-4 w-4 text-slate-500" />
+                        <span>Unggah Berkas Gambar</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                          className="hidden"
+                          onChange={handleMascotDirectUpload}
+                        />
+                      </label>
 
                       <button
                         type="submit"
@@ -1744,6 +1843,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       </button>
                     </div>
                   </form>
+
+                  {/* Quick Preset Options */}
+                  <div className="rounded-2xl bg-slate-50 p-3.5 border border-slate-200">
+                    <div className="text-[11px] font-bold text-slate-600 mb-2">
+                      Pilihan Cepat Sumber Maskot:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMascotInput('/MASKOT.png');
+                          handleVerifyAndTestMascot('/MASKOT.png');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 hover:border-red-500 hover:text-red-700 transition"
+                      >
+                        Default: /MASKOT.png
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMascotInput('/Maskot.png');
+                          handleVerifyAndTestMascot('/Maskot.png');
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-700 hover:border-red-500 hover:text-red-700 transition"
+                      >
+                        Alternatif: /Maskot.png
+                      </button>
+                    </div>
+                  </div>
 
                   {/* Implementation Scope Info */}
                   <div className="rounded-2xl bg-amber-50/70 p-4 border border-amber-200/80 space-y-2 text-xs">

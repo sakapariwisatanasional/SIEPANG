@@ -148,3 +148,48 @@ export function parseMediaUrl(url: string, explicitType?: 'photo' | 'video' | 'd
     label: isVideoDirect ? 'Video Langsung (MP4)' : 'Foto / Berkas Langsung',
   };
 }
+
+/**
+ * Normalizes any mascot URL (Google Drive, Dropbox, Imgur, direct URL, Base64) into an immediately renderable image URL.
+ */
+export function normalizeMascotUrl(rawUrl?: string | null): string {
+  if (!rawUrl) return '/MASKOT.png';
+  let url = rawUrl.trim();
+  if (!url) return '/MASKOT.png';
+
+  // If local path or data URL, return directly
+  if (url.startsWith('data:image/') || url.startsWith('/') || url.startsWith('./')) {
+    return url;
+  }
+
+  // Strip accidental quotes or brackets
+  url = url.replace(/^[<"']+|[>"']+$/g, '');
+
+  // Google Drive sharing link conversion
+  const driveInfo = extractGoogleDriveId(url);
+  if (driveInfo && !driveInfo.isFolder) {
+    return `https://lh3.googleusercontent.com/d/${driveInfo.id}`;
+  }
+
+  // Dropbox direct image conversion
+  if (url.includes('dropbox.com')) {
+    return url.replace('?dl=0', '?raw=1').replace('&dl=0', '&raw=1');
+  }
+
+  // Imgur gallery/page to direct image
+  if (url.includes('imgur.com') && !url.includes('i.imgur.com')) {
+    const parts = url.split('/');
+    const lastPart = parts[parts.length - 1].split('?')[0];
+    if (lastPart && !lastPart.includes('.')) {
+      return `https://i.imgur.com/${lastPart}.png`;
+    }
+  }
+
+  // Add https if missing protocol
+  if (!/^https?:\/\//i.test(url) && !url.startsWith('/')) {
+    url = `https://${url}`;
+  }
+
+  return url;
+}
+
