@@ -420,7 +420,7 @@ export const VisitorRegistrationModal: React.FC<VisitorRegistrationModalProps> =
                     <div className="flex items-center justify-center gap-2 mb-1">
                       <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                       <span className="text-[10px] font-black tracking-widest text-amber-300">
-                        Si-EPANG - JAMBORE
+                        SIEPANG - JAMBORE
                       </span>
                     </div>
                     <h3 className="text-lg font-black tracking-tight">

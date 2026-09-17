@@ -74,7 +74,7 @@ export const MascotDetailModal: React.FC<MascotDetailModalProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h3 className="text-base font-black tracking-tight text-white">
-                    Maskot Resmi Si-EPANG
+                    Maskot Resmi SIEPANG
                   </h3>
                   <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[9px] font-black uppercase text-red-950">
                     Official
@@ -104,7 +104,7 @@ export const MascotDetailModal: React.FC<MascotDetailModalProps> = ({
               <div className="absolute inset-0 rounded-2xl bg-amber-400/10 blur-md" />
               <img
                 src={mascotUrl}
-                alt="Maskot Resmi Si-EPANG"
+                alt="Maskot Resmi SIEPANG"
                 referrerPolicy="no-referrer"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -126,10 +126,10 @@ export const MascotDetailModal: React.FC<MascotDetailModalProps> = ({
                 Sahabat Elektronik Penggalang
               </span>
               <h4 className="text-xl font-black text-white">
-                Si-EPANG si Pandu Cilik Berwawasan Digital
+                SIEPANG si Pandu Cilik Berwawasan Digital
               </h4>
               <p className="text-xs text-stone-300 leading-relaxed">
-                Si-EPANG adalah personifikasi karakter Pramuka Penggalang yang riang, tangkas, berbudi luhur, dan adaptif terhadap kemajuan era teknologi digital perkemahan modern tanpa melupakan nilai Tri Satya dan Dasa Darma.
+                SIEPANG adalah personifikasi karakter Pramuka Penggalang yang riang, tangkas, berbudi luhur, dan adaptif terhadap kemajuan era teknologi digital perkemahan modern tanpa melupakan nilai Tri Satya dan Dasa Darma.
               </p>
               <div className="pt-2 flex flex-wrap gap-2 justify-center sm:justify-start">
                 <span className="rounded-lg bg-stone-800 px-2.5 py-1 text-[11px] text-amber-200 border border-stone-700">
@@ -187,7 +187,7 @@ export const MascotDetailModal: React.FC<MascotDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* 3. Smartphone Aplikasi Si-EPANG */}
+              {/* 3. Smartphone Aplikasi SIEPANG (SiEpangApps) */}
               <div className="rounded-2xl border border-stone-800 bg-stone-950/70 p-3.5 hover:border-amber-500/40 transition">
                 <div className="flex items-start gap-3">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold text-base">

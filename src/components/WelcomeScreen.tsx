@@ -77,10 +77,10 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
           </div>
 
           <h2 className="mt-2.5 text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm">
-            Selamat Datang di <span className="text-amber-400">Si-EPANG</span>
+            Selamat Datang di <span className="text-amber-400">SIEPANG</span>
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-red-200 font-medium">
-            Sistem Informasi Terpadu Kegiatan Jambore Penggalang
+            Sistem Informasi Terpadu (SiEpangApps) Kegiatan Jambore Penggalang
           </p>
         </div>
 
@@ -94,7 +94,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               transition={{ duration: 0.5 }}
               className="relative flex shrink-0 flex-col items-center cursor-pointer group"
               onClick={() => setShowMascotDetail(true)}
-              title="Klik untuk melihat filosofi lengkap Maskot Resmi Si-EPANG"
+              title="Klik untuk melihat filosofi lengkap Maskot Resmi SIEPANG"
             >
               <div className="relative flex h-60 w-44 sm:h-72 sm:w-48 items-center justify-center rounded-3xl bg-gradient-to-b from-stone-900/90 via-stone-800 to-black p-2 shadow-xl border-2 border-amber-500/50 group-hover:border-amber-400 transition-all duration-300 group-hover:shadow-[0_0_25px_rgba(245,158,11,0.3)]">
                 {/* Floating Glow */}
@@ -103,7 +103,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                 {!imgError ? (
                   <img
                     src={mascotUrl}
-                    alt="Maskot Resmi Si-EPANG Jambore Penggalang"
+                    alt="Maskot Resmi SIEPANG Jambore Penggalang"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -123,7 +123,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                       🦋
                     </div>
                     <span className="mt-2 text-xs font-bold text-amber-300">
-                      Maskot Si-EPANG
+                      Maskot SIEPANG
                     </span>
                     <span className="text-[10px] text-stone-400">Jambore Penggalang</span>
                   </div>
@@ -138,7 +138,7 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
               <div className="mt-4 text-center">
                 <span className="text-xs font-bold text-amber-300 flex items-center justify-center gap-1">
-                  <span>Si-EPANG Pandu Tangkas</span>
+                  <span>SIEPANG Pandu Tangkas</span>
                   <Info className="h-3.5 w-3.5 text-amber-400 group-hover:scale-110 transition" />
                 </span>
                 <p className="text-[10px] text-amber-200/70 underline underline-offset-2 mt-0.5 group-hover:text-amber-300 transition">

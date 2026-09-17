@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import QRCode from 'qrcode';
 import { DocumentationItem, Banner, ScheduleItem, Sponsor, HomeContent, ActivityPost } from '../types';
 import { parseMediaUrl } from '../utils/mediaUtils';
+import { LOCAL_STORAGE_KEYS } from '../services/gasSyncService';
 import {
   Shield,
   Edit3,
@@ -34,6 +36,16 @@ import {
   QrCode,
   Award,
   ShieldCheck,
+  Wifi,
+  Server,
+  Laptop,
+  Copy,
+  Download,
+  Printer,
+  Terminal,
+  Database,
+  Radio,
+  Share2,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -43,7 +55,7 @@ interface AdminDashboardProps {
   sponsors: Sponsor[];
   homeContent: HomeContent;
   activityPosts?: ActivityPost[];
-  initialTab?: 'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot';
+  initialTab?: 'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot' | 'localhost';
   targetBannerToEdit?: Banner | null;
   mascotUrl?: string;
   onUpdateMascotUrl?: (url: string) => void;
@@ -81,9 +93,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenGASModal,
   onClose,
 }) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot'>(
-    initialTab
-  );
+  const [activeAdminTab, setActiveAdminTab] = useState<
+    'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot' | 'localhost'
+  >(initialTab);
 
   // Mascot Edit State
   const [mascotInput, setMascotInput] = useState(mascotUrl);
@@ -92,6 +104,151 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   useEffect(() => {
     setMascotInput(mascotUrl);
   }, [mascotUrl]);
+
+  // Local Host / Offline Camp Setup State
+  const [localHostIp, setLocalHostIp] = useState<string>(() => {
+    const saved = localStorage.getItem('siepang_localhost_ip');
+    if (saved) return saved;
+    if (typeof window !== 'undefined') {
+      const hn = window.location.hostname;
+      if (hn && hn !== 'localhost' && hn !== '127.0.0.1' && !hn.includes('run.app') && !hn.includes('github.dev')) {
+        return hn;
+      }
+    }
+    return '192.168.1.100';
+  });
+
+  const [localHostPort, setLocalHostPort] = useState<string>(() => {
+    const saved = localStorage.getItem('siepang_localhost_port');
+    if (saved) return saved;
+    if (typeof window !== 'undefined' && window.location.port) {
+      return window.location.port;
+    }
+    return '3000';
+  });
+
+  const [localHostProtocol, setLocalHostProtocol] = useState<'http' | 'https'>('http');
+
+  const [localWifiSsid, setLocalWifiSsid] = useState<string>(() => {
+    return localStorage.getItem('siepang_wifi_ssid') || 'JAMBORE-PRAMUKA-WIFI';
+  });
+
+  const [localWifiPass, setLocalWifiPass] = useState<string>(() => {
+    return localStorage.getItem('siepang_wifi_pass') || 'pramukasiap';
+  });
+
+  const [localQrDataUrl, setLocalQrDataUrl] = useState<string>('');
+  const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [showStandeePrint, setShowStandeePrint] = useState<boolean>(false);
+
+  // Auto-generate QR code whenever IP, port, or protocol changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('siepang_localhost_ip', localHostIp);
+      localStorage.setItem('siepang_localhost_port', localHostPort);
+      localStorage.setItem('siepang_wifi_ssid', localWifiSsid);
+      localStorage.setItem('siepang_wifi_pass', localWifiPass);
+    } catch {}
+
+    const portPart =
+      localHostPort && localHostPort !== '80' && localHostPort !== '443' ? `:${localHostPort.trim()}` : '';
+    const cleanIp = localHostIp.trim() || '192.168.1.100';
+    const targetUrl = `${localHostProtocol}://${cleanIp}${portPart}`;
+
+    QRCode.toDataURL(targetUrl, {
+      width: 400,
+      margin: 2,
+      color: {
+        dark: '#1e1b4b',
+        light: '#ffffff',
+      },
+    })
+      .then((url) => setLocalQrDataUrl(url))
+      .catch((err) => console.error('Gagal generate QR Local Host:', err));
+  }, [localHostIp, localHostPort, localHostProtocol, localWifiSsid, localWifiPass]);
+
+  // Copy local URL helper
+  const handleCopyUrl = (url: string) => {
+    navigator.clipboard.writeText(url);
+    setCopyFeedback('URL berhasil disalin!');
+    setTimeout(() => setCopyFeedback(null), 2500);
+    showSavedNotification('Tautan jaringan lokal berhasil disalin ke clipboard!');
+  };
+
+  // Export Local Database to JSON
+  const handleExportLocalDatabase = () => {
+    try {
+      const fullBackup: Record<string, any> = {
+        exportDate: new Date().toISOString(),
+        system: 'SIEPANG - SiEpangApps (Jambore Digital)',
+        version: '1.0.0',
+        platform: 'Localhost / Offline Camp Network',
+        data: {},
+      };
+
+      Object.entries(LOCAL_STORAGE_KEYS).forEach(([keyName, storageKey]) => {
+        const raw = localStorage.getItem(storageKey);
+        if (raw) {
+          try {
+            fullBackup.data[keyName] = JSON.parse(raw);
+          } catch {
+            fullBackup.data[keyName] = raw;
+          }
+        }
+      });
+
+      const blob = new Blob([JSON.stringify(fullBackup, null, 2)], { type: 'application/json' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `backup-siepang-camp-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(downloadUrl);
+      showSavedNotification('Database perkemahan berhasil diunduh ke file backup (.json)!');
+    } catch (err) {
+      console.error(err);
+      alert('Gagal mengekspor database lokal.');
+    }
+  };
+
+  // Import Local Database from JSON
+  const handleImportLocalDatabase = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (!parsed.data) {
+          throw new Error('Format file backup tidak valid (data tidak ditemukan)');
+        }
+        if (
+          window.confirm(
+            'Apakah Anda yakin ingin memulihkan database dari file ini? Seluruh data yang ada di browser saat ini akan diperbarui dengan data file backup.'
+          )
+        ) {
+          Object.entries(LOCAL_STORAGE_KEYS).forEach(([keyName, storageKey]) => {
+            if (parsed.data[keyName] !== undefined) {
+              const val = parsed.data[keyName];
+              localStorage.setItem(
+                storageKey,
+                typeof val === 'string' ? val : JSON.stringify(val)
+              );
+            }
+          });
+          showSavedNotification('Database berhasil dipulihkan! Memuat ulang halaman...');
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
+        }
+      } catch (err: any) {
+        alert('Gagal mengimpor file: ' + (err.message || 'Format JSON tidak cocok'));
+      }
+    };
+    reader.readAsText(file);
+  };
 
   // Success alert message inside dashboard
   const [saveAlert, setSaveAlert] = useState<string | null>(null);
@@ -535,7 +692,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     if (onUpdateMascotUrl) {
       onUpdateMascotUrl(mascotInput.trim());
       setMascotPreviewUrl(null);
-      showSavedNotification('Tautan URL Maskot Si-EPANG berhasil diperbarui & disimpan!');
+      showSavedNotification('Tautan URL Maskot SIEPANG berhasil diperbarui & disimpan!');
     }
   };
 
@@ -691,7 +848,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             }`}
           >
             <Sparkles className="h-4 w-4 text-amber-500" />
-            <span>Maskot Resmi Si-EPANG</span>
+            <span>Maskot Resmi SIEPANG</span>
+          </button>
+
+          <button
+            onClick={() => setActiveAdminTab('localhost')}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 transition whitespace-nowrap ${
+              activeAdminTab === 'localhost'
+                ? 'border-emerald-600 text-emerald-950 bg-white rounded-t-xl shadow-xs font-bold'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Wifi className="h-4 w-4 text-emerald-600" />
+            <span>Mode Local Host</span>
           </button>
         </div>
 
@@ -1428,7 +1597,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
           {/* ========================================================= */}
-          {/* TAB 6: KELOLA MASKOT RESMI SI-EPANG                       */}
+          {/* TAB 6: KELOLA MASKOT RESMI SIEPANG                        */}
           {/* ========================================================= */}
           {activeAdminTab === 'mascot' && (
             <div className="space-y-6">
@@ -1439,7 +1608,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                   <div>
                     <h3 className="text-base font-black text-slate-900">
-                      Pengaturan Maskot Resmi (Si-EPANG)
+                      Pengaturan Maskot Resmi (SIEPANG)
                     </h3>
                     <p className="text-xs text-slate-600">
                       Hak akses eksklusif SuperAdmin / Admin Panitia untuk mengubah tautan URL gambar maskot resmi
@@ -1465,7 +1634,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="relative group my-3 flex items-center justify-center h-64 w-64 rounded-3xl bg-radial from-amber-100/60 via-red-50/40 to-slate-100 p-4 border border-amber-200 shadow-inner overflow-hidden">
                     <img
                       src={mascotPreviewUrl || mascotUrl || '/MASKOT.png'}
-                      alt="Maskot Si-EPANG"
+                      alt="Maskot SIEPANG"
                       className="h-full w-full object-contain filter drop-shadow-xl transition-transform duration-300 group-hover:scale-105"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/MASKOT.png';
@@ -1479,7 +1648,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
 
                   <h4 className="font-black text-slate-900 text-sm">
-                    SI-EPANG (Elang Pandu Penggalang)
+                    SIEPANG (Elang Pandu Penggalang)
                   </h4>
                   <p className="text-xs text-slate-500 mt-1 max-w-xs">
                     Karakter Burung Elang Bondol lincah berbalut seragam Pramuka Penggalang dengan atribut kepanduan lengkap.
@@ -1520,7 +1689,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                             setMascotInput(e.target.value);
                             setMascotPreviewUrl(null);
                           }}
-                          placeholder="https://example.com/maskot-si-epang.png"
+                          placeholder="https://example.com/maskot-siepang.png"
                           className="w-full rounded-xl border border-slate-300 p-3 text-xs font-mono focus:border-red-700 focus:outline-none focus:ring-2 focus:ring-red-100"
                         />
                         {mascotInput && (
@@ -1580,15 +1749,464 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <div className="rounded-2xl bg-amber-50/70 p-4 border border-amber-200/80 space-y-2 text-xs">
                     <div className="font-bold text-amber-950 flex items-center gap-1.5">
                       <Sparkles className="h-4 w-4 text-amber-600" />
-                      <span>Lokasi Penayangan Maskot Si-EPANG di Aplikasi:</span>
+                      <span>Lokasi Penayangan Maskot SIEPANG di Aplikasi:</span>
                     </div>
                     <ul className="list-disc list-inside space-y-1 text-amber-900 text-[11px]">
                       <li><strong>Layar Sambutan (Welcome Modal):</strong> Maskot menyapa seluruh pengguna pertama kali membuka aplikasi.</li>
-                      <li><strong>Header Navigasi Utama:</strong> Avatar interaktif Si-EPANG di sudut kanan atas.</li>
-                      <li><strong>Banner Interaktif Beranda:</strong> Card maskot yang dapat diklik untuk membaca filosofi Si-EPANG.</li>
+                      <li><strong>Header Navigasi Utama:</strong> Avatar interaktif SIEPANG di sudut kanan atas.</li>
+                      <li><strong>Banner Interaktif Beranda:</strong> Card maskot yang dapat diklik untuk membaca filosofi SIEPANG.</li>
                       <li><strong>Modal Filosofi &amp; Filosofi Karakter:</strong> Detail sayap batik, hasduk merah putih, kacu, dan gawai kepanduan.</li>
                     </ul>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB 7: MODE LOCAL HOST & JARINGAN WIFI PERKEMAHAN         */}
+          {/* ========================================================= */}
+          {activeAdminTab === 'localhost' && (
+            <div className="space-y-5 animate-fadeIn">
+              {/* Header Banner */}
+              <div className="rounded-3xl border border-emerald-300 bg-gradient-to-br from-emerald-950 via-slate-900 to-slate-950 p-5 sm:p-6 text-white shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 -mt-8 -mr-8 h-48 w-48 rounded-full bg-emerald-600/10 blur-3xl pointer-events-none" />
+                <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1.5 max-w-2xl">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 px-3 py-0.5 text-[11px] font-bold text-emerald-300">
+                        <Wifi className="h-3.5 w-3.5 text-emerald-400" />
+                        <span>Zero-Internet Ready (Offline Camp)</span>
+                      </span>
+                      <span className="rounded-full bg-white/10 px-2.5 py-0.5 text-[10px] font-mono text-slate-300 border border-white/10">
+                        Host Mode: 0.0.0.0
+                      </span>
+                    </div>
+
+                    <h3 className="text-lg sm:text-xl font-black tracking-tight text-white flex items-center gap-2">
+                      <Server className="h-5 w-5 text-emerald-400 shrink-0" />
+                      <span>Mode Local Host &amp; Jaringan WiFi Lapangan</span>
+                    </h3>
+
+                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                      Jalankan aplikasi SIEPANG (SiEpangApps) secara mandiri di Laptop Panitia dan distribusikan akses ke seluruh tenda peserta melalui router/hotspot WiFi lokal tanpa memerlukan kuota internet publik.
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 rounded-2xl bg-white/10 backdrop-blur-md p-3.5 border border-white/10 text-xs space-y-1.5 min-w-[220px]">
+                    <div className="text-[10px] uppercase tracking-wider text-emerald-300 font-bold flex items-center gap-1">
+                      <Radio className="h-3.5 w-3.5 text-emerald-400 animate-pulse" />
+                      <span>Lingkungan Server Saat Ini:</span>
+                    </div>
+                    <div className="font-mono text-[11px] font-bold text-white break-all">
+                      {typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}
+                    </div>
+                    <div className="text-[10px] text-slate-300 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3 text-emerald-400" />
+                      <span>PWA Cache &amp; Storage Lokal Aktif</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Grid: Konfigurasi Akses IP & QR Code Quick Connect */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                {/* Kolom 1: Konfigurasi IP & Port (7 Kolom) */}
+                <div className="lg:col-span-7 space-y-4">
+                  <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                    <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                          <Laptop className="h-4 w-4 text-emerald-600" />
+                          <span>1. Pengaturan Alamat Server Laptop Panitia</span>
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Tentukan alamat IP lokal Laptop Server di jaringan router/hotspot perkemahan.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
+                      {/* IP Address */}
+                      <div className="sm:col-span-8 space-y-1">
+                        <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                          <span>Alamat IP Laptop Server (IPv4)</span>
+                          <span className="text-[10px] text-slate-400">Contoh: 192.168.1.100</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={localHostIp}
+                          onChange={(e) => setLocalHostIp(e.target.value)}
+                          placeholder="192.168.1.100"
+                          className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-xs font-mono text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+
+                      {/* Port */}
+                      <div className="sm:col-span-4 space-y-1">
+                        <label className="text-xs font-bold text-slate-700">Port Aplikasi</label>
+                        <input
+                          type="text"
+                          value={localHostPort}
+                          onChange={(e) => setLocalHostPort(e.target.value)}
+                          placeholder="3000"
+                          className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-xs font-mono text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+
+                      {/* Quick IP Presets */}
+                      <div className="sm:col-span-12 space-y-1.5">
+                        <span className="text-[11px] font-semibold text-slate-600">Preset Cepat Jaringan:</span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setLocalHostIp('192.168.1.100')}
+                            className="rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1 text-[11px] font-mono text-slate-700 transition"
+                          >
+                            192.168.1.100 (Router)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLocalHostIp('192.168.43.1')}
+                            className="rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1 text-[11px] font-mono text-slate-700 transition"
+                          >
+                            192.168.43.1 (Hotspot HP Android)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLocalHostIp('172.20.10.1')}
+                            className="rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1 text-[11px] font-mono text-slate-700 transition"
+                          >
+                            172.20.10.1 (Hotspot iPhone)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setLocalHostIp('localhost')}
+                            className="rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1 text-[11px] font-mono text-slate-700 transition"
+                          >
+                            localhost (Laptop Saja)
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* WiFi SSID */}
+                      <div className="sm:col-span-6 space-y-1">
+                        <label className="text-xs font-bold text-slate-700">Nama WiFi / SSID Lapangan</label>
+                        <input
+                          type="text"
+                          value={localWifiSsid}
+                          onChange={(e) => setLocalWifiSsid(e.target.value)}
+                          placeholder="JAMBORE-PRAMUKA-WIFI"
+                          className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-xs text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+
+                      {/* WiFi Password */}
+                      <div className="sm:col-span-6 space-y-1">
+                        <label className="text-xs font-bold text-slate-700">Sandi WiFi (Opsional)</label>
+                        <input
+                          type="text"
+                          value={localWifiPass}
+                          onChange={(e) => setLocalWifiPass(e.target.value)}
+                          placeholder="Kosongkan jika tanpa sandi"
+                          className="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-xs font-mono text-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Resulting Full Access URL */}
+                    <div className="rounded-2xl bg-emerald-50/80 p-4 border border-emerald-200 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-emerald-950">
+                        <span className="flex items-center gap-1.5">
+                          <Radio className="h-4 w-4 text-emerald-700" />
+                          <span>Tautan Akses Jaringan Lokal (URL HP Peserta):</span>
+                        </span>
+                        {copyFeedback && (
+                          <span className="text-emerald-700 font-bold text-[11px] animate-fadeIn">
+                            {copyFeedback}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <div className="flex-1 rounded-xl bg-white px-3.5 py-2.5 border border-emerald-300 font-mono text-xs sm:text-sm font-black text-slate-900 select-all break-all">
+                          {`${localHostProtocol}://${localHostIp.trim()}${
+                            localHostPort && localHostPort !== '80' && localHostPort !== '443'
+                              ? `:${localHostPort.trim()}`
+                              : ''
+                          }`}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopyUrl(
+                                `${localHostProtocol}://${localHostIp.trim()}${
+                                  localHostPort && localHostPort !== '80' && localHostPort !== '443'
+                                    ? `:${localHostPort.trim()}`
+                                    : ''
+                                }`
+                              )
+                            }
+                            className="rounded-xl bg-emerald-700 hover:bg-emerald-800 px-3.5 py-2.5 text-xs font-bold text-white transition flex items-center gap-1.5 shadow-sm active:scale-95"
+                            title="Salin tautan ke clipboard"
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                            <span>Salin URL</span>
+                          </button>
+
+                          <a
+                            href={`${localHostProtocol}://${localHostIp.trim()}${
+                              localHostPort && localHostPort !== '80' && localHostPort !== '443'
+                                ? `:${localHostPort.trim()}`
+                                : ''
+                            }`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-xl bg-white hover:bg-slate-50 border border-slate-300 px-3 py-2.5 text-xs font-bold text-slate-700 transition flex items-center gap-1 shadow-xs"
+                            title="Uji buka tautan di tab baru"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5 text-slate-500" />
+                            <span className="hidden sm:inline">Uji Buka</span>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Kolom 2: Generator QR Code Akses Cepat (5 Kolom) */}
+                <div className="lg:col-span-5 space-y-4">
+                  <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm flex flex-col items-center text-center space-y-3.5">
+                    <div className="w-full flex items-center justify-between border-b border-slate-100 pb-2.5 text-left">
+                      <div>
+                        <h4 className="text-sm font-black text-slate-900 flex items-center gap-1.5">
+                          <QrCode className="h-4 w-4 text-emerald-600" />
+                          <span>2. QR Code Akses Cepat</span>
+                        </h4>
+                        <p className="text-[11px] text-slate-500">Scan via kamera HP peserta/pembina</p>
+                      </div>
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                        Auto-Update
+                      </span>
+                    </div>
+
+                    {/* QR Display */}
+                    <div className="p-3 bg-gradient-to-b from-slate-50 to-emerald-50/40 rounded-2xl border border-slate-200 shadow-inner flex flex-col items-center">
+                      {localQrDataUrl ? (
+                        <img
+                          src={localQrDataUrl}
+                          alt="QR Akses Server Lokal"
+                          className="w-52 h-52 sm:w-60 sm:h-60 rounded-xl shadow-xs border border-white"
+                        />
+                      ) : (
+                        <div className="w-52 h-52 flex items-center justify-center text-slate-400 text-xs">
+                          Menyiapkan QR Code...
+                        </div>
+                      )}
+                      <div className="mt-2 text-[11px] font-mono text-slate-600 font-bold break-all">
+                        {`${localHostProtocol}://${localHostIp.trim()}${
+                          localHostPort !== '80' && localHostPort !== '443' ? `:${localHostPort}` : ''
+                        }`}
+                      </div>
+                    </div>
+
+                    {/* WiFi Info Banner */}
+                    <div className="w-full rounded-xl bg-slate-50 p-2.5 border border-slate-200 text-left text-xs space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-500 font-medium">SSID WiFi:</span>
+                        <span className="font-bold text-slate-900">{localWifiSsid || 'JAMBORE-WIFI'}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-500 font-medium">Sandi WiFi:</span>
+                        <span className="font-mono font-bold text-slate-900">
+                          {localWifiPass || '(Tanpa Sandi / Terbuka)'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons for QR */}
+                    <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <a
+                        href={localQrDataUrl}
+                        download={`qr-akses-jambore-wifi-${localHostIp}.png`}
+                        className="rounded-xl border border-slate-300 bg-white hover:bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 transition flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <Download className="h-3.5 w-3.5 text-emerald-600" />
+                        <span>Unduh QR (.PNG)</span>
+                      </a>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowStandeePrint(true)}
+                        className="rounded-xl bg-slate-900 hover:bg-black px-3 py-2 text-xs font-bold text-white transition flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <Printer className="h-3.5 w-3.5 text-amber-300" />
+                        <span>Cetak Standee Tenda</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Panduan Eksekusi Terminal di Komputer Server */}
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                      <Terminal className="h-4 w-4 text-red-700" />
+                      <span>3. Panduan Menjalankan di Laptop Panitia (Command Line)</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Langkah-langkah menjalankan aplikasi pada laptop server panitia di bumi perkemahan.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText('npm run dev -- --host 0.0.0.0 --port 3000');
+                      showSavedNotification('Perintah terminal berhasil disalin!');
+                    }}
+                    className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 text-xs font-bold text-slate-700 transition"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-slate-600" />
+                    <span>Salin Perintah CLI</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Langkah 1 */}
+                  <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200 space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-700 text-white font-black text-xs">
+                        1
+                      </span>
+                      <span className="font-bold text-slate-900">Install Dependensi</span>
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                      Ekstrak folder hasil export proyek di laptop panitia, buka Terminal / CMD, lalu ketik:
+                    </p>
+                    <div className="rounded-xl bg-slate-950 p-2.5 font-mono text-[11px] text-emerald-400">
+                      npm install
+                    </div>
+                  </div>
+
+                  {/* Langkah 2 */}
+                  <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200 space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-700 text-white font-black text-xs">
+                        2
+                      </span>
+                      <span className="font-bold text-slate-900">Jalankan Host Jaringan</span>
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                      Jalankan perintah dengan parameter <code>--host 0.0.0.0</code> agar bisa diakses oleh gawai lain:
+                    </p>
+                    <div className="rounded-xl bg-slate-950 p-2.5 font-mono text-[11px] text-emerald-400 break-all">
+                      npm run dev -- --host 0.0.0.0 --port 3000
+                    </div>
+                  </div>
+
+                  {/* Langkah 3 */}
+                  <div className="rounded-2xl bg-slate-50 p-4 border border-slate-200 space-y-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-red-700 text-white font-black text-xs">
+                        3
+                      </span>
+                      <span className="font-bold text-slate-900">Cek IP &amp; Pajang QR</span>
+                    </div>
+                    <p className="text-slate-600 text-[11px] leading-relaxed">
+                      Cek IP di Windows (<code>ipconfig</code>) atau Mac (<code>ifconfig</code>), masukkan ke kolom di atas, lalu tampilkan QR Code ke peserta.
+                    </p>
+                    <div className="rounded-xl bg-emerald-50 p-2 border border-emerald-200 text-[10px] font-semibold text-emerald-900">
+                      Semua HP di WiFi yang sama dapat membuka aplikasi tanpa internet.
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Manajemen Database Offline: Ekspor & Impor Data (.JSON) */}
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 shadow-sm space-y-4">
+                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
+                      <Database className="h-4 w-4 text-blue-600" />
+                      <span>4. Cadangan &amp; Sinkronisasi Data Offline (Local Database Hub)</span>
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Amankan data presensi pos, akumulasi nilai regu, dan pendaftaran peserta perkemahan ke dalam berkas lokal.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Ekspor Backup */}
+                  <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 space-y-3 flex flex-col justify-between">
+                    <div className="space-y-1.5 text-xs">
+                      <div className="font-bold text-blue-950 flex items-center gap-1.5">
+                        <Download className="h-4 w-4 text-blue-700" />
+                        <span>Ekspor Cadangan Database Lokal (.JSON)</span>
+                      </div>
+                      <p className="text-blue-900/80 text-[11px] leading-relaxed">
+                        Unduh seluruh rekaman data (peserta terdaftar, kehadiran regu, penilaian pos giat, log scanner, jadwal, dan banner) ke dalam file <code>.json</code> di laptop panitia.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleExportLocalDatabase}
+                      className="w-full rounded-xl bg-blue-700 hover:bg-blue-800 py-2.5 px-4 text-xs font-bold text-white transition shadow-sm flex items-center justify-center gap-2 active:scale-98"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Unduh File Backup Database (.JSON)</span>
+                    </button>
+                  </div>
+
+                  {/* Impor Restore */}
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3 flex flex-col justify-between">
+                    <div className="space-y-1.5 text-xs">
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <Upload className="h-4 w-4 text-slate-700" />
+                        <span>Pulihkan / Impor Database (.JSON)</span>
+                      </div>
+                      <p className="text-slate-600 text-[11px] leading-relaxed">
+                        Pindahkan data perkemahan ke laptop panitia lain atau pulihkan kembali database dari file backup yang pernah Anda unduh sebelumnya.
+                      </p>
+                    </div>
+
+                    <label className="w-full cursor-pointer rounded-xl border border-slate-300 bg-white hover:bg-slate-100 py-2.5 px-4 text-xs font-bold text-slate-700 transition shadow-xs flex items-center justify-center gap-2">
+                      <Upload className="h-3.5 w-3.5 text-slate-600" />
+                      <span>Pilih File Backup &amp; Pulihkan</span>
+                      <input
+                        type="file"
+                        accept=".json"
+                        onChange={handleImportLocalDatabase}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Cloud Sync Reminder */}
+                <div className="rounded-2xl bg-amber-50 p-3.5 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-0.5 text-amber-950">
+                    <div className="font-bold flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-amber-600" />
+                      <span>Sinkronisasi Google Sheets (Saat Terhubung Internet)</span>
+                    </div>
+                    <p className="text-[11px] text-amber-900/80">
+                      Bila laptop kembali mendapatkan sinyal internet, Anda dapat menekan tombol Sinkronisasi Google Sheets untuk mengirim seluruh data ke Spreadsheet Kwartir.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={onOpenGASModal}
+                    className="shrink-0 rounded-xl bg-amber-600 hover:bg-amber-500 px-4 py-2 text-xs font-bold text-white transition shadow-xs"
+                  >
+                    Buka Panel Google Sheets
+                  </button>
                 </div>
               </div>
             </div>
@@ -2276,6 +2894,96 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* MODAL: CETAK STANDEE QR AKSES WIFI & LOCALHOST            */}
+        {/* ========================================================= */}
+        {showStandeePrint && (
+          <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/80 p-3 sm:p-5 backdrop-blur-sm animate-fadeIn">
+            <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border-4 border-amber-400 space-y-4 max-h-[95vh] overflow-y-auto print:max-w-none print:border-none print:shadow-none print:p-0">
+              {/* Header Standee */}
+              <div className="text-center space-y-1 border-b-2 border-slate-100 pb-3">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-red-900 flex items-center justify-center text-white font-black text-xs">
+                    GP
+                  </div>
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-red-900">
+                    Gerakan Pramuka Indonesia
+                  </span>
+                </div>
+                <h3 className="text-base font-black text-slate-900 tracking-tight">
+                  JAMBORE PENGGALANG PRAMUKA
+                </h3>
+                <p className="text-[11px] font-bold text-amber-700 uppercase tracking-widest">
+                  PORTAL APLIKASI RESMI SIEPANG (SiEpangApps - OFFLINE CAMP)
+                </p>
+              </div>
+
+              {/* QR Code Container */}
+              <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border border-slate-200 shadow-inner">
+                {localQrDataUrl && (
+                  <img
+                    src={localQrDataUrl}
+                    alt="Standee QR Code Akses"
+                    className="w-56 h-56 rounded-xl border-2 border-white shadow-md"
+                  />
+                )}
+                <div className="mt-3 font-mono text-xs font-black text-slate-800 bg-white px-3 py-1 rounded-lg border border-slate-200">
+                  {`${localHostProtocol}://${localHostIp.trim()}${
+                    localHostPort !== '80' && localHostPort !== '443' ? `:${localHostPort}` : ''
+                  }`}
+                </div>
+              </div>
+
+              {/* WiFi Information Box */}
+              <div className="rounded-2xl bg-amber-50/80 p-3.5 border-2 border-amber-300/80 text-xs space-y-2">
+                <div className="font-bold text-amber-950 flex items-center gap-1.5">
+                  <Wifi className="h-4 w-4 text-amber-700" />
+                  <span>Petunjuk Sambungan WiFi Perkemahan:</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[11px]">
+                  <div className="rounded-xl bg-white p-2 border border-amber-200">
+                    <span className="text-slate-500 block text-[10px]">Nama WiFi (SSID):</span>
+                    <strong className="text-slate-900 font-bold break-all">
+                      {localWifiSsid || 'JAMBORE-WIFI'}
+                    </strong>
+                  </div>
+                  <div className="rounded-xl bg-white p-2 border border-amber-200">
+                    <span className="text-slate-500 block text-[10px]">Sandi WiFi:</span>
+                    <strong className="text-slate-900 font-mono font-bold break-all">
+                      {localWifiPass || '(Tanpa Sandi)'}
+                    </strong>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-amber-900 leading-tight">
+                  *Arahkan kamera smartphone ke QR Code di atas setelah terhubung ke WiFi untuk membuka absensi pos, poin regu, dan jadwal giat tanpa kuota internet.
+                </p>
+              </div>
+
+              {/* Print & Close Controls */}
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 print:hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowStandeePrint(false)}
+                  className="rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  Tutup
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex-1 rounded-xl bg-red-900 hover:bg-black px-4 py-2 text-xs font-bold text-amber-300 shadow transition flex items-center justify-center gap-1.5"
+                >
+                  <Printer className="h-4 w-4 text-amber-400" />
+                  <span>Cetak Standee Sekarang</span>
+                </button>
+              </div>
             </div>
           </div>
         )}

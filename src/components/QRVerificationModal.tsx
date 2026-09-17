@@ -201,7 +201,7 @@ export const QRVerificationModal: React.FC<QRVerificationModalProps> = ({
     if (targetId.includes('?') && (targetId.includes('pos=') || targetId.includes('ticket=') || targetId.includes('reg='))) {
       try {
         // Support relative or absolute URLs
-        const dummyBase = 'https://jamboapp.local';
+        const dummyBase = 'https://siepangapps.local';
         const parsedUrl = new URL(targetId.startsWith('http') ? targetId : `${dummyBase}/${targetId.startsWith('/') ? targetId.slice(1) : targetId}`);
         const posParam = parsedUrl.searchParams.get('pos') || parsedUrl.searchParams.get('scan');
         const ticketParam = parsedUrl.searchParams.get('ticket');

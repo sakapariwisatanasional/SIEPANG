@@ -70,7 +70,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [loginPassword, setLoginPassword] = useState('');
 
   // Register Form States
-  const [registerType, setRegisterType] = useState<'peserta' | 'pembina' | 'admin'>('peserta');
+  const [registerType, setRegisterType] = useState<'peserta' | 'pembina'>('peserta');
   const [regName, setRegName] = useState('');
   const [regNickname, setRegNickname] = useState('');
   const [regSchool, setRegSchool] = useState('');
@@ -81,16 +81,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
-  const [regDivision, setRegDivision] = useState('Sekretariat & IT');
-  const [adminSecretCode, setAdminSecretCode] = useState('');
 
   if (!isOpen) return null;
 
-  // Load custom registered accounts from localStorage
+  // Load custom registered accounts from localStorage (Strictly enforce no admin accounts in custom storage)
   const getRegisteredAccounts = (): StoredAccount[] => {
     try {
       const raw = localStorage.getItem(LOCAL_STORAGE_KEYS.AUTH_ACCOUNTS);
-      return raw ? JSON.parse(raw) : [];
+      if (!raw) return [];
+      const accounts: StoredAccount[] = JSON.parse(raw);
+      // Ensure no custom admin accounts exist in storage
+      return accounts.filter((acc) => acc.role !== 'admin');
     } catch {
       return [];
     }
@@ -211,23 +212,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    // 2. Check predefined demo credentials
+    // 2. Check Admin / SuperAdmin credentials (Master Password Enforced)
     if (loginRole === 'admin') {
-      if (
-        identifier === 'superadmin@pramuka.id' ||
-        identifier === 'superadmin' ||
-        identifier === 'super-adm' ||
-        identifier.includes('superadmin')
-      ) {
+      const isUsernameMatch =
+        identifier === 'siepang' ||
+        identifier === 'siepang@pramuka.id' ||
+        identifier === 'siepang@siepang.id';
+      const isPasswordMatch = password === 'siepang#2026!';
+
+      if (isUsernameMatch && isPasswordMatch) {
         const superAdminUser: CurrentUser = {
           role: 'admin',
           adminLevel: 'superadmin',
-          id: 'SUPERADM-001',
-          name: 'Kak Dr. H. Adhyaksa (SuperAdmin Pusat)',
-          organization: 'Kwartir Nasional Gerakan Pramuka',
+          id: 'SUPERADM-SIEPANG',
+          name: 'SuperAdmin SIEPANG',
+          organization: 'Kwarcab Gerakan Pramuka',
+          isSuperAdminSession: true,
+          isSimulating: false,
         };
         triggerCelebration();
-        setSuccessMessage('Login SuperAdmin Panitia Pusat Berhasil!');
+        setSuccessMessage('Login Master SuperAdmin Berhasil! Hak akses penuh dan level akses aktif.');
         setTimeout(() => {
           onLoginSuccess(superAdminUser);
           onClose();
@@ -235,28 +239,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         return;
       }
 
-      if (
-        identifier === 'admin@pramuka.id' ||
-        identifier === 'admin' ||
-        identifier === 'adm-001' ||
-        identifier.includes('panitia')
-      ) {
-        // Any password accepted in demo or 'admin123'
-        const adminUser: CurrentUser = {
-          role: 'admin',
-          adminLevel: 'admin',
-          id: 'ADM-001',
-          name: 'Kak H. Budi Santoso, M.Pd (Admin Panitia)',
-          organization: 'Kwartir Cabang Gerakan Pramuka',
-        };
-        triggerCelebration();
-        setSuccessMessage('Login Admin Panitia Berhasil!');
-        setTimeout(() => {
-          onLoginSuccess(adminUser);
-          onClose();
-        }, 700);
-        return;
-      }
+      setErrorMessage(
+        'Akses Ditolak: Username atau kata sandi SuperAdmin salah. Tidak ada akun lain yang tersedia untuk level superadmin/admin.'
+      );
+      return;
     }
 
     // 3. Check existing participant data
@@ -312,11 +298,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    // Fallback: If not strictly matched, allow login if valid format or give friendly hint
-    if (password.length >= 4) {
+    // Fallback: If not strictly matched, allow login for member role only
+    if (loginRole === 'member' && password.length >= 4) {
       const fallbackUser: CurrentUser = {
-        role: loginRole === 'admin' ? 'admin' : 'member',
-        id: (loginRole === 'admin' ? 'ADM-' : 'JAM-') + Math.floor(Math.random() * 800 + 100),
+        role: 'member',
+        id: 'JAM-' + Math.floor(Math.random() * 800 + 100),
         name: loginIdentifier.split('@')[0],
         organization: 'Gudep Pangkalan Pramuka',
       };
@@ -328,12 +314,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }, 700);
     } else {
       setErrorMessage(
-        'Akun tidak ditemukan. Anda dapat menggunakan tombol "Login Instan Demo" di bawah atau klik "Daftar Akun Baru".'
+        'Akun tidak ditemukan. Silakan periksa kembali Email/ID Registrasi atau daftar akun baru.'
       );
     }
   };
 
-  // Submit Registration
+  // Submit Registration (Strictly for Member: Peserta & Pembina)
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -349,25 +335,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    // Admin Verification Code check
-    if (registerType === 'admin') {
-      const validCodes = ['PANITIA2026', 'JAMBORE2026', 'PRAMUKA2026', 'ADMIN2026'];
-      if (!adminSecretCode.trim() || !validCodes.includes(adminSecretCode.trim().toUpperCase())) {
-        setErrorMessage(
-          'Kode Rahasia Panitia tidak valid! Gunakan kode resmi panitia: "PANITIA2026" atau "JAMBORE2026".'
-        );
-        return;
-      }
-    }
-
     const newId =
-      registerType === 'admin'
-        ? `ADM-${Math.floor(100 + Math.random() * 900)}`
-        : registerType === 'peserta'
+      registerType === 'peserta'
         ? `JAM-P-${Math.floor(100 + Math.random() * 900)}`
         : `JAM-B-${Math.floor(100 + Math.random() * 900)}`;
 
-    const userRole: UserRole = registerType === 'admin' ? 'admin' : 'member';
+    const userRole: UserRole = 'member';
 
     // Store in accounts list
     const newAccount: StoredAccount = {
@@ -379,7 +352,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       identifierNumber: newId,
       organization: regSchool.trim() || regKwarcab,
       regu: registerType === 'peserta' ? regRegu : undefined,
-      division: registerType === 'admin' ? regDivision : undefined,
       registeredAt: new Date().toLocaleDateString('id-ID'),
     };
 
@@ -476,7 +448,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
               <div>
                 <h3 className="text-base font-black tracking-tight text-white flex items-center gap-1.5">
-                  <span>Autentikasi Si-EPANG</span>
+                  <span>Autentikasi SIEPANG</span>
                 </h3>
                 <p className="text-[11px] text-red-200">
                   Jambore Penggalang Gerakan Pramuka 2026
@@ -554,37 +526,71 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200">
                   <button
                     type="button"
-                    onClick={() => setLoginRole('member')}
+                    onClick={() => {
+                      setLoginRole('member');
+                      setErrorMessage('');
+                    }}
                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                       loginRole === 'member'
-                        ? 'bg-white text-red-900 shadow-xs border border-slate-200'
+                        ? 'bg-white text-emerald-900 shadow-xs border border-slate-200'
                         : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
-                    <User className="h-3.5 w-3.5" />
+                    <User className="h-3.5 w-3.5 text-emerald-600" />
                     <span>Member (Peserta / Pembina)</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setLoginRole('admin')}
+                    onClick={() => {
+                      setLoginRole('admin');
+                      setErrorMessage('');
+                    }}
                     className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                       loginRole === 'admin'
                         ? 'bg-red-900 text-white shadow-xs'
                         : 'text-slate-500 hover:text-slate-900'
                     }`}
                   >
-                    <Shield className="h-3.5 w-3.5" />
-                    <span>Admin Panitia</span>
+                    <Shield className="h-3.5 w-3.5 text-amber-400" />
+                    <span>SuperAdmin (Master)</span>
                   </button>
                 </div>
               </div>
+
+              {loginRole === 'admin' && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3 text-xs text-amber-950">
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <div className="flex items-center gap-1.5 font-bold text-red-950">
+                      <Shield className="h-4 w-4 text-amber-600" />
+                      <span>Akun Master SuperAdmin Tunggal</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginIdentifier('siepang');
+                        setLoginPassword('siepang#2026!');
+                        setErrorMessage('');
+                      }}
+                      className="text-[11px] font-bold text-red-800 hover:text-red-950 bg-white px-2 py-0.5 rounded-lg border border-amber-300 shadow-xs transition"
+                    >
+                      Isi Otomatis
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-amber-900 leading-relaxed">
+                    Username: <code className="bg-amber-100/80 px-1 py-0.5 rounded font-mono font-bold text-red-950">siepang</code> &bull; Password: <code className="bg-amber-100/80 px-1 py-0.5 rounded font-mono font-bold text-red-950">siepang#2026!</code>
+                  </p>
+                  <p className="text-[10px] text-amber-800 mt-1 font-medium italic">
+                    * Sesuai ketentuan, tidak ada akun lain yang tersedia untuk level superadmin dan admin.
+                  </p>
+                </div>
+              )}
 
               {/* Login Form */}
               <form onSubmit={handleLoginSubmit} className="space-y-3.5">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     {loginRole === 'admin'
-                      ? 'Email Panitia / ID Admin / NTA'
+                      ? 'Username SuperAdmin'
                       : 'Email / ID Registrasi (JAM-P-xxx) / NTA Pramuka'}
                   </label>
                   <div className="relative">
@@ -594,7 +600,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       onChange={(e) => setLoginIdentifier(e.target.value)}
                       placeholder={
                         loginRole === 'admin'
-                          ? 'admin@pramuka.id atau ADM-001'
+                          ? 'siepang'
                           : 'peserta@pramuka.id atau JAM-P-001'
                       }
                       className="w-full rounded-xl border border-slate-300 p-2.5 pl-9 text-xs focus:border-red-700 focus:ring-1 focus:ring-red-700 focus:outline-none"
@@ -605,14 +611,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Kata Sandi / PIN
+                    {loginRole === 'admin' ? 'Master Password SuperAdmin' : 'Kata Sandi Akun'}
                   </label>
                   <div className="relative">
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="Masukkan kata sandi akun Anda"
+                      placeholder={
+                        loginRole === 'admin'
+                          ? 'Masukkan password: siepang#2026!'
+                          : 'Masukkan kata sandi akun Anda'
+                      }
                       className="w-full rounded-xl border border-slate-300 p-2.5 pl-9 pr-9 text-xs focus:border-red-700 focus:ring-1 focus:ring-red-700 focus:outline-none"
                     />
                     <KeyRound className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -624,16 +634,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
-                  <div className="mt-1 flex items-center justify-between text-[11px] text-slate-400">
-                    <span>Sandi demo umum: <code>admin123</code> / <code>pramuka123</code></span>
-                    <button
-                      type="button"
-                      onClick={() => setLoginPassword(loginRole === 'admin' ? 'admin123' : 'pramuka123')}
-                      className="text-red-700 font-medium hover:underline"
-                    >
-                      Isi Sandi Demo
-                    </button>
-                  </div>
+                  {loginRole === 'member' && (
+                    <div className="mt-1 flex items-center justify-between text-[11px] text-slate-400">
+                      <span>ID Contoh: <code>JAM-P-001</code> / Sandi: <code>pramuka123</code></span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginIdentifier('JAM-P-001');
+                          setLoginPassword('pramuka123');
+                        }}
+                        className="text-emerald-700 font-medium hover:underline"
+                      >
+                        Isi Contoh Peserta
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -641,121 +656,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-red-800 to-red-900 py-3 text-xs font-black text-white hover:from-red-700 hover:to-red-800 transition shadow-md active:scale-98"
                 >
                   <LogIn className="h-4 w-4 text-amber-300" />
-                  <span>Masuk Sekarang</span>
+                  <span>{loginRole === 'admin' ? 'Masuk Sebagai SuperAdmin' : 'Masuk Sebagai Member'}</span>
                 </button>
               </form>
-
-              {/* Quick 1-Click Demo Section */}
-              <div className="pt-2 border-t border-slate-100">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                    Akses Cepat 1-Klik (Demo Testing)
-                  </span>
-                  <span className="text-[10px] text-amber-700 font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
-                    Siap Pakai
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleQuickLogin('superadmin')}
-                    className="flex items-center gap-2.5 rounded-xl border border-amber-300 bg-amber-50/80 p-2.5 text-left hover:bg-amber-100 transition group"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-red-950 font-black text-xs shadow-xs">
-                      <Shield className="h-4 w-4 text-red-950" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-red-950 truncate flex items-center gap-1">
-                        <span>SuperAdmin Pusat</span>
-                        <span className="text-[9px] bg-red-800 text-amber-200 px-1 rounded font-bold">VIP</span>
-                      </div>
-                      <div className="text-[10px] text-amber-900 truncate">
-                        Kak Dr. Adhyaksa (Full + Maskot)
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleQuickLogin('admin')}
-                    className="flex items-center gap-2.5 rounded-xl border border-red-200 bg-red-50/70 p-2.5 text-left hover:bg-red-100 transition group"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-800 text-white font-bold text-xs">
-                      <Shield className="h-4 w-4 text-amber-300" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-red-950 truncate">
-                        Admin Panitia
-                      </div>
-                      <div className="text-[10px] text-red-700 truncate">
-                        Kak Budi Santoso (Admin)
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleQuickLogin('peserta')}
-                    className="flex items-center gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50/70 p-2.5 text-left hover:bg-emerald-100 transition group"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-700 text-white font-bold text-xs">
-                      <User className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-emerald-950 truncate">
-                        Member Peserta
-                      </div>
-                      <div className="text-[10px] text-emerald-700 truncate">
-                        Ahmad Fauzi (Regu Rajawali)
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleQuickLogin('pembina')}
-                    className="flex items-center gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 p-2.5 text-left hover:bg-amber-100 transition group"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-600 text-white font-bold text-xs">
-                      <Compass className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-amber-950 truncate">
-                        Member Pembina
-                      </div>
-                      <div className="text-[10px] text-amber-700 truncate">
-                        Kak Suryanto, S.Pd
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    onClick={() => handleQuickLogin('public')}
-                    className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left hover:bg-slate-100 transition group"
-                  >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-700 text-white font-bold text-xs">
-                      <Users className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 truncate">
-                        Pengunjung / Umum
-                      </div>
-                      <div className="text-[10px] text-slate-500 truncate">
-                        Wali Peserta &amp; Tamu
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
           {/* ======================= TAB 2: REGISTER ======================= */}
           {activeTab === 'register' && (
             <div className="space-y-4">
-              {/* Type Selector: Peserta, Pembina, Admin */}
+              {/* Type Selector: Peserta, Pembina (No Admin Registration) */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Daftar Sebagai Tipe Pengguna:
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setRegisterType('peserta')}
@@ -782,20 +697,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <Compass className="h-4 w-4 mb-1 text-amber-600" />
                     <span className="text-xs">Member Pembina</span>
                     <span className="text-[9px] text-slate-400">Pendamping</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRegisterType('admin')}
-                    className={`flex flex-col items-center justify-center rounded-xl p-2.5 text-center transition border ${
-                      registerType === 'admin'
-                        ? 'border-red-600 bg-red-50 text-red-950 font-bold shadow-xs'
-                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Shield className="h-4 w-4 mb-1 text-red-700" />
-                    <span className="text-xs">Admin Panitia</span>
-                    <span className="text-[9px] text-slate-400">Pelaksana</span>
                   </button>
                 </div>
               </div>
@@ -830,25 +731,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
                       />
                     </div>
-                  ) : registerType === 'admin' ? (
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Bidang / Divisi Panitia *
-                      </label>
-                      <select
-                        value={regDivision}
-                        onChange={(e) => setRegDivision(e.target.value)}
-                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
-                      >
-                        <option value="Sekretariat & IT">Sekretariat &amp; IT</option>
-                        <option value="Kegiatan & Lomba">Kegiatan &amp; Lomba</option>
-                        <option value="Perkemahan & Lapangan">Perkemahan &amp; Lapangan</option>
-                        <option value="Konsumsi & Akomodasi">Konsumsi &amp; Akomodasi</option>
-                        <option value="Kesehatan & Medis">Kesehatan &amp; Medis</option>
-                        <option value="Keamanan & Ketertiban">Keamanan &amp; Ketertiban</option>
-                        <option value="Publikasi & Dokumentasi">Publikasi &amp; Dokumentasi</option>
-                      </select>
-                    </div>
                   ) : (
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -865,35 +747,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   )}
                 </div>
 
-                {registerType !== 'admin' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Pangkalan / Asal Sekolah
-                      </label>
-                      <input
-                        type="text"
-                        value={regSchool}
-                        onChange={(e) => setRegSchool(e.target.value)}
-                        placeholder="Contoh: SMP Negeri 1 Cibubur"
-                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Kwartir Cabang (Kwarcab)
-                      </label>
-                      <input
-                        type="text"
-                        value={regKwarcab}
-                        onChange={(e) => setRegKwarcab(e.target.value)}
-                        placeholder="Contoh: Kwarcab Jakarta Timur"
-                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
-                      />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Pangkalan / Asal Sekolah
+                    </label>
+                    <input
+                      type="text"
+                      value={regSchool}
+                      onChange={(e) => setRegSchool(e.target.value)}
+                      placeholder="Contoh: SMP Negeri 1 Cibubur"
+                      className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                    />
                   </div>
-                )}
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Kwartir Cabang (Kwarcab)
+                    </label>
+                    <input
+                      type="text"
+                      value={regKwarcab}
+                      onChange={(e) => setRegKwarcab(e.target.value)}
+                      placeholder="Contoh: Kwarcab Jakarta Timur"
+                      className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                    />
+                  </div>
+                </div>
 
                 {registerType === 'peserta' && (
                   <div className="grid grid-cols-3 gap-2">
@@ -971,27 +851,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </div>
                 </div>
 
-                {/* Secret Code field if registering as Admin */}
-                {registerType === 'admin' && (
-                  <div className="rounded-2xl border border-amber-300 bg-amber-50 p-3">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 mb-1">
-                      <KeyRound className="h-4 w-4 text-amber-700" />
-                      <span>Kode Rahasia Panitia (Verifikasi Keamanan)</span>
-                    </div>
-                    <p className="text-[10px] text-amber-700 mb-2">
-                      Masukkan kode otorisasi resmi panitia (Default sistem: <code>PANITIA2026</code> atau <code>JAMBORE2026</code>).
-                    </p>
-                    <input
-                      type="text"
-                      required
-                      value={adminSecretCode}
-                      onChange={(e) => setAdminSecretCode(e.target.value)}
-                      placeholder="Masukkan kode rahasia: PANITIA2026"
-                      className="w-full rounded-xl border border-amber-300 bg-white p-2 text-xs font-mono uppercase focus:border-amber-600 focus:outline-none"
-                    />
-                  </div>
-                )}
-
                 <button
                   type="submit"
                   className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-700 to-emerald-800 py-3 text-xs font-black text-white hover:from-emerald-600 hover:to-emerald-700 transition shadow-md active:scale-98 mt-2"
@@ -1006,7 +865,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Modal Footer */}
         <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-5 py-3 text-xs text-slate-500">
-          <span>Si-EPANG Jambore Penggalang 2026</span>
+          <span>SIEPANG - SiEpangApps 2026</span>
           <button
             onClick={onClose}
             className="text-slate-600 hover:text-slate-900 font-semibold"

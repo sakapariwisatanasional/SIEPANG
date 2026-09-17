@@ -44,7 +44,7 @@ export const PostQRModal: React.FC<PostQRModalProps> = ({
       const pathname = window.location.pathname;
       return `${origin}${pathname}?pos=${encodeURIComponent(postCode)}`;
     }
-    return `https://jamboapp.pramuka.id/?pos=${encodeURIComponent(postCode)}`;
+    return `https://siepangapps.pramuka.id/?pos=${encodeURIComponent(postCode)}`;
   };
 
   useEffect(() => {
@@ -273,7 +273,7 @@ export const PostQRModal: React.FC<PostQRModalProps> = ({
               </div>
 
               <p className="text-[11px] text-slate-600 font-medium mt-1.5 leading-snug">
-                Scan menggunakan <strong>Kamera HP</strong> atau menu <strong>Scan QR</strong> di aplikasi JamboApp untuk mengklaim nilai poin pos ini.
+                Scan menggunakan <strong>Kamera HP</strong> atau menu <strong>Scan QR</strong> di aplikasi SiEpangApps untuk mengklaim nilai poin pos ini.
               </p>
             </div>
           </div>

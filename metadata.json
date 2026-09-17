@@ -1,6 +1,6 @@
 {
-  "name": "Si-EPANG - Jambore Penggalang",
-  "description": "Sistem Informasi Terpadu (Si-EPANG) kegiatan Jambore Penggalang.",
+  "name": "SIEPANG - SiEpangApps",
+  "description": "Sistem Informasi Terpadu Pramuka (SIEPANG - SiEpangApps) Jambore Penggalang.",
   "requestFramePermissions": [
     "camera"
   ],

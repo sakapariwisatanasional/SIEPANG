@@ -83,7 +83,7 @@ export const IDCardModal: React.FC<IDCardModalProps> = ({ person, type, onClose 
                 </div>
                 <div>
                   <h3 className="text-sm font-black tracking-tight text-red-950">
-                    Si-EPANG
+                    SIEPANG
                   </h3>
                   <p className="text-[11px] font-bold text-red-800/90">
                     Kwartir Cabang Gerakan Pramuka

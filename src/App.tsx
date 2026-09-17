@@ -82,11 +82,15 @@ import {
   Star,
   ShieldAlert,
   Lock,
+  Wifi,
+  ChevronDown,
 } from 'lucide-react';
 
 export default function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState<string>('beranda');
+  const [directoryDropdownOpen, setDirectoryDropdownOpen] = useState<boolean>(false);
+  const [adminMenuOpen, setAdminMenuOpen] = useState<boolean>(false);
 
   // Role State (Admin, Member, Public) - Defaults to Public until authenticated
   const [currentUser, setCurrentUser] = useState<CurrentUser>(() => {
@@ -137,7 +141,7 @@ export default function App() {
 
   // Admin Quick Edit Sub-tab & Target Banner
   const [adminInitialTab, setAdminInitialTab] = useState<
-    'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot'
+    'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot' | 'localhost'
   >('docs');
   const [adminTargetBanner, setAdminTargetBanner] = useState<Banner | null>(null);
 
@@ -150,7 +154,7 @@ export default function App() {
 
   // Centralized Safe Admin Opener with Strict Role Verification
   const handleOpenAdminDashboard = (
-    tab: 'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot' = 'docs'
+    tab: 'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot' | 'localhost' = 'docs'
   ) => {
     if (currentUser.role !== 'admin') {
       soundEffects.play('error');
@@ -598,6 +602,41 @@ export default function App() {
 
   const unreadNotifCount = notifications.filter((n) => !n.isRead).length;
 
+  // Handler to return to SuperAdmin from simulation mode
+  const handleSwitchBackToSuperAdmin = () => {
+    const superAdminUser: CurrentUser = {
+      role: 'admin',
+      name: 'SuperAdmin SIEPANG',
+      id: 'SA-MASTER',
+      adminLevel: 'superadmin',
+      organization: 'Kwartir Pusat SIEPANG',
+      isSuperAdminSession: true,
+      isSimulating: false,
+    };
+    setCurrentUser(superAdminUser);
+    soundEffects.play('success');
+    setToastAlert({
+      title: 'Mode SuperAdmin Aktif',
+      message: 'Kembali ke akun Master SuperAdmin (siepang). Seluruh otoritas pusat aktif.',
+    });
+  };
+
+  // Handler to logout
+  const handleLogout = () => {
+    const publicUser: CurrentUser = {
+      role: 'public',
+      name: 'Pengunjung Umum',
+      isSuperAdminSession: false,
+      isSimulating: false,
+    };
+    setCurrentUser(publicUser);
+    soundEffects.play('notification');
+    setToastAlert({
+      title: 'Berhasil Keluar',
+      message: 'Anda sekarang berada dalam mode Pengunjung Umum (Publik).',
+    });
+  };
+
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900 pb-20 md:pb-8 flex flex-col font-sans">
       {/* Top Header */}
@@ -618,8 +657,37 @@ export default function App() {
           setAuthModalTab(tab || 'login');
           setShowAuthModal(true);
         }}
+        onOpenLocalHost={() => handleOpenAdminDashboard('localhost')}
+        onSwitchBackToSuperAdmin={handleSwitchBackToSuperAdmin}
+        onLogout={handleLogout}
         mascotUrl={mascotUrl}
       />
+
+      {/* SuperAdmin Active Simulation Bar */}
+      {currentUser.isSimulating && (
+        <div className="bg-amber-950 border-b border-amber-500/60 px-3 sm:px-6 py-2 text-amber-200 text-xs flex flex-wrap items-center justify-between gap-2 shadow-sm">
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-amber-400 shrink-0 animate-pulse" />
+            <span className="text-[11px] sm:text-xs">
+              Simulasi SuperAdmin: Sedang menguji tampilan sebagai <strong>{currentUser.role === 'member' ? (currentUser.memberType === 'pembina' ? 'Member Pembina' : 'Member Peserta') : 'Publik (Pengunjung)'}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowRoleModal(true)}
+              className="px-2.5 py-1 rounded-lg bg-slate-800 text-amber-300 hover:bg-slate-700 font-bold text-[11px] border border-slate-700 transition"
+            >
+              Ganti Akun Demo
+            </button>
+            <button
+              onClick={handleSwitchBackToSuperAdmin}
+              className="px-3 py-1 rounded-lg bg-amber-400 text-red-950 hover:bg-amber-300 font-black text-[11px] shadow transition"
+            >
+              Kembali ke SuperAdmin (siepang)
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Real-time Floating Toast Alert Banner */}
       {toastAlert && (
@@ -642,204 +710,333 @@ export default function App() {
 
       {/* Main Container */}
       <main className="mx-auto w-full max-w-7xl flex-1 px-3 py-4 sm:px-6 sm:py-6 space-y-5">
-        {/* Desktop Navigation Tabs */}
+        {/* Desktop / Tablet Navigation Tabs (Icon-Dominant, User-Friendly, Universal Responsive) */}
         <div className="hidden md:flex items-center justify-between rounded-2xl bg-white p-2 shadow-sm border border-slate-200">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {/* Primary Tab: Beranda */}
             <button
               onClick={() => setActiveTab('beranda')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+              className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                 activeTab === 'beranda'
                   ? 'bg-red-800 text-amber-200 shadow-sm border border-red-700'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
+              title="Beranda & Banner"
             >
-              <Compass className="h-4 w-4" />
-              <span>Beranda &amp; Banner</span>
+              <Compass className="h-4 w-4 text-amber-400" />
+              <span>Beranda</span>
             </button>
 
-            <button
-              onClick={() => setActiveTab('jadwal')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
-                activeTab === 'jadwal'
-                  ? 'bg-red-800 text-amber-200 shadow-sm border border-red-700'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <Calendar className="h-4 w-4" />
-              <span>Jadwal Kegiatan</span>
-            </button>
-
-            {/* Role-based desktop tabs */}
-            {currentUser.role === 'member' && (
-              <button
-                onClick={handleOpenMyIDCard}
-                className="flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition"
-              >
-                <Award className="h-4 w-4 text-red-800" />
-                <span>ID Card &amp; QR Presensi Saya</span>
-              </button>
-            )}
-
-            {(currentUser.role === 'admin' || currentUser.role === 'member') && (
-              <>
-                <button
-                  onClick={() => setActiveTab('peserta')}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
-                    activeTab === 'peserta'
-                      ? 'bg-red-800 text-amber-200 shadow-sm border border-red-700'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <Users className="h-4 w-4" />
-                  <span>Data Peserta ({participants.length})</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('pembina')}
-                  className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
-                    activeTab === 'pembina'
-                      ? 'bg-red-800 text-amber-200 shadow-sm border border-red-700'
-                      : 'text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <Award className="h-4 w-4" />
-                  <span>Pembina Pendamping ({leaders.length})</span>
-                </button>
-              </>
-            )}
-
-            {/* Visitor Tab */}
-            <button
-              onClick={() => setActiveTab('pengunjung')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
-                activeTab === 'pengunjung'
-                  ? 'bg-red-800 text-amber-200 shadow-sm border border-red-700'
-                  : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <Ticket className="h-4 w-4" />
-              <span>
-                {currentUser.role === 'public'
-                  ? 'Tiket Kunjungan Saya'
-                  : `Pengunjung (${visitors.length})`}
-              </span>
-            </button>
-
-            {/* Ranking / Gamification Tab */}
+            {/* Primary Tab: Ranking */}
             <button
               onClick={() => setActiveTab('leaderboard')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+              className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                 activeTab === 'leaderboard'
                   ? 'bg-red-800 text-amber-200 shadow-sm border border-red-700'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
+              title="Peringkat & Skor Regu"
             >
-              <Trophy className="h-4 w-4 text-amber-500" />
-              <span>Peringkat &amp; Poin Pos</span>
+              <Trophy className="h-4 w-4 text-amber-400" />
+              <span>Ranking</span>
             </button>
 
+            {/* Primary Tab: Jadwal */}
+            <button
+              onClick={() => setActiveTab('jadwal')}
+              className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                activeTab === 'jadwal'
+                  ? 'bg-red-800 text-amber-200 shadow-sm border border-red-700'
+                  : 'text-slate-600 hover:bg-slate-100'
+              }`}
+              title="Jadwal & Agenda Kegiatan"
+            >
+              <Calendar className="h-4 w-4 text-sky-500" />
+              <span>Jadwal</span>
+            </button>
+
+            {/* Primary Tab: Galeri */}
             <button
               onClick={() => setActiveTab('dokumentasi')}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+              className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                 activeTab === 'dokumentasi'
                   ? 'bg-red-800 text-amber-200 shadow-sm border border-red-700'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
+              title="Galeri & Video Dokumentasi"
             >
-              <ImageIcon className="h-4 w-4" />
-              <span>Galeri &amp; Video ({documentation.length})</span>
+              <ImageIcon className="h-4 w-4 text-emerald-500" />
+              <span>Galeri</span>
             </button>
 
+            {/* DROPDOWN: DIREKTORI KONTINGEN (Peserta, Pembina, Pengunjung) */}
+            <div className="relative">
+              <button
+                onClick={() => setDirectoryDropdownOpen(!directoryDropdownOpen)}
+                className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition ${
+                  ['peserta', 'pembina', 'pengunjung'].includes(activeTab)
+                    ? 'bg-red-800 text-amber-200 shadow-sm border border-red-700'
+                    : 'text-slate-700 hover:bg-slate-100 border border-slate-200 bg-slate-50'
+                }`}
+                title="Pilih Direktori Peserta, Pembina, atau Pengunjung"
+              >
+                <Users className="h-4 w-4 text-indigo-500" />
+                <span>Direktori</span>
+                <ChevronDown className={`h-3 w-3 text-slate-400 transition-transform ${directoryDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {directoryDropdownOpen && (
+                <div className="absolute left-0 mt-1.5 w-56 rounded-2xl bg-white border border-slate-200 p-2 shadow-xl z-30 text-slate-800 animate-fadeIn">
+                  <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                    Pilih Direktori Data
+                  </div>
+                  <div className="py-1 space-y-1">
+                    <button
+                      onClick={() => {
+                        setDirectoryDropdownOpen(false);
+                        setActiveTab('peserta');
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition ${
+                        activeTab === 'peserta' ? 'bg-red-50 text-red-900 font-black' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-indigo-600" />
+                        <span>Data Peserta</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                        {participants.length}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setDirectoryDropdownOpen(false);
+                        setActiveTab('pembina');
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition ${
+                        activeTab === 'pembina' ? 'bg-red-50 text-red-900 font-black' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Award className="h-4 w-4 text-amber-600" />
+                        <span>Pembina Pendamping</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                        {leaders.length}
+                      </span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setDirectoryDropdownOpen(false);
+                        setActiveTab('pengunjung');
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-bold transition ${
+                        activeTab === 'pengunjung' ? 'bg-red-50 text-red-900 font-black' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Ticket className="h-4 w-4 text-rose-600" />
+                        <span>Pengunjung Tamu</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-md">
+                        {visitors.length}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Member specific shortcut */}
+            {currentUser.role === 'member' && (
+              <button
+                onClick={handleOpenMyIDCard}
+                className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 transition shadow-xs"
+                title="Buka ID Card Digital & QR Presensi"
+              >
+                <Award className="h-4 w-4 text-emerald-600" />
+                <span>ID Card Saya</span>
+              </button>
+            )}
+
+            {/* Public specific shortcut */}
+            {currentUser.role === 'public' && (
+              <button
+                onClick={() => setShowVisitorModal(true)}
+                className="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition shadow-xs"
+                title="Daftar Tiket Kunjungan"
+              >
+                <Ticket className="h-4 w-4 text-amber-600" />
+                <span>Tiket Kunjungan</span>
+              </button>
+            )}
+
+            {/* Admin Dashboard shortcut */}
             {currentUser.role === 'admin' && (
               <button
                 onClick={() => handleOpenAdminDashboard('docs')}
-                className="flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-900 hover:bg-red-100 transition shadow-xs ml-1"
+                className="flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-xs font-bold text-red-900 hover:bg-red-100 transition shadow-xs"
+                title="Buka Panel Dashboard Admin"
               >
-                <Shield className="h-3.5 w-3.5 text-red-700" />
+                <Shield className="h-4 w-4 text-red-700" />
                 <span>Dashboard Admin</span>
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2 pr-2 text-xs text-slate-500">
-            <span className="font-bold text-red-900">{homeContent.eventLocation}</span>
+          <div className="flex items-center gap-2 pr-2 text-xs text-slate-500 shrink-0">
+            <span className="font-bold text-red-900 truncate max-w-[140px] lg:max-w-none">{homeContent.eventLocation}</span>
             <span>•</span>
-            <span>{homeContent.eventStatusBadge}</span>
+            <span className="hidden lg:inline">{homeContent.eventStatusBadge}</span>
           </div>
         </div>
 
         {/* View Routing */}
         {activeTab === 'beranda' && (
           <div className="space-y-5 animate-fadeIn">
-            {/* Admin Live Editing Control Bar */}
+            {/* Admin Live Editing Control Bar (Modern App-style, Icon-Dominant, Dropdown Grouping) */}
             {currentUser.role === 'admin' && (
-              <div className="rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 via-white to-amber-50 p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-800 text-amber-300 font-bold shadow-xs">
+              <div className="rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 via-white to-amber-50 p-3 shadow-xs flex flex-wrap items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-800 text-amber-300 font-bold shadow-xs shrink-0">
                     <Sliders className="h-4 w-4" />
                   </div>
                   <div>
-                    <h4 className="text-xs sm:text-sm font-black text-red-950 flex items-center gap-1.5">
-                      <span>Panel Kontrol Admin Beranda</span>
-                      <span className="rounded-full bg-red-100 px-2 py-0.2 text-[9px] font-bold text-red-800">
-                        Live Edit Mode
+                    <h4 className="text-xs font-black text-red-950 flex items-center gap-1.5">
+                      <span>Panel Admin SIEPANG</span>
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.2 text-[9px] font-bold text-emerald-800">
+                        SiEpangApps Active
                       </span>
                     </h4>
-                    <p className="text-[11px] text-slate-600">
-                      Seluruh teks judul kegiatan, tema, gambar banner, logo sponsor, &amp; URL video dapat diedit manual.
+                    <p className="text-[10px] text-slate-500 hidden sm:block">
+                      Kelola konten, banner, pos penilaian, dan mode jaringan lokal offline.
                     </p>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Dropdown Kelola Konten & Data */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+                      className="flex items-center gap-1.5 rounded-xl bg-red-800 hover:bg-red-900 px-3 py-1.5 text-xs font-bold text-amber-200 shadow-xs transition active:scale-95"
+                      title="Menu Pilihan Edit Admin"
+                    >
+                      <Edit3 className="h-3.5 w-3.5 text-amber-400" />
+                      <span>Kelola Konten</span>
+                      <ChevronDown className={`h-3 w-3 text-amber-300 transition-transform ${adminMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {adminMenuOpen && (
+                      <div className="absolute right-0 mt-1.5 w-60 rounded-2xl bg-white border border-slate-200 p-2 shadow-xl z-30 text-slate-800 animate-fadeIn">
+                        <div className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                          Pilihan Kelola Aplikasi
+                        </div>
+                        <div className="py-1 space-y-0.5">
+                          <button
+                            onClick={() => {
+                              setAdminMenuOpen(false);
+                              handleOpenAdminDashboard('homeContent');
+                            }}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition text-left"
+                          >
+                            <Edit3 className="h-4 w-4 text-red-700" />
+                            <span>Edit Teks &amp; Judul Acara</span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setAdminMenuOpen(false);
+                              handleOpenAdminDashboard('banners');
+                            }}
+                            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition text-left"
+                          >
+                            <span className="flex items-center gap-2">
+                              <ImageIcon className="h-4 w-4 text-amber-600" />
+                              <span>Kelola Banner Slider</span>
+                            </span>
+                            <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-500">
+                              {banners.length}
+                            </span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setAdminMenuOpen(false);
+                              handleOpenAdminDashboard('sponsors');
+                            }}
+                            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition text-left"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Handshake className="h-4 w-4 text-emerald-600" />
+                              <span>Mitra &amp; Sponsor</span>
+                            </span>
+                            <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-500">
+                              {sponsors.length}
+                            </span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setAdminMenuOpen(false);
+                              handleOpenAdminDashboard('activityPosts');
+                            }}
+                            className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition text-left"
+                          >
+                            <span className="flex items-center gap-2">
+                              <Target className="h-4 w-4 text-red-600" />
+                              <span>Pos Giat &amp; Poin</span>
+                            </span>
+                            <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded font-mono text-slate-500">
+                              {activityPosts.length}
+                            </span>
+                          </button>
+
+                          <button
+                            onClick={() => {
+                              setAdminMenuOpen(false);
+                              handleOpenAdminDashboard('mascot');
+                            }}
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition text-left"
+                          >
+                            <Sparkles className="h-4 w-4 text-amber-600" />
+                            <span>Maskot Resmi SIEPANG</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mode Local Host Quick Button */}
                   <button
-                    onClick={() => handleOpenAdminDashboard('homeContent')}
-                    className="flex items-center gap-1.5 rounded-xl bg-red-800 hover:bg-red-900 px-3 py-1.5 text-xs font-bold text-amber-200 shadow-xs transition active:scale-95"
+                    onClick={() => handleOpenAdminDashboard('localhost')}
+                    className="flex items-center gap-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition active:scale-95"
+                    title="Setup Jaringan WiFi & Server Localhost"
                   >
-                    <Edit3 className="h-3.5 w-3.5 text-amber-400" />
-                    <span>Edit Teks &amp; Judul</span>
+                    <Wifi className="h-3.5 w-3.5 text-emerald-200" />
+                    <span>Mode Local Host</span>
                   </button>
 
-                  <button
-                    onClick={() => handleOpenAdminDashboard('banners')}
-                    className="flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 px-3 py-1.5 text-xs font-black text-red-950 shadow-xs transition active:scale-95"
-                  >
-                    <ImageIcon className="h-3.5 w-3.5" />
-                    <span>Kelola Banner ({banners.length})</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleOpenAdminDashboard('sponsors')}
-                    className="flex items-center gap-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-xs transition active:scale-95"
-                  >
-                    <Handshake className="h-3.5 w-3.5 text-emerald-600" />
-                    <span>Kelola Sponsor ({sponsors.length})</span>
-                  </button>
-
+                  {/* Pos & Poin Quick Button */}
                   <button
                     onClick={() => handleOpenAdminDashboard('activityPosts')}
-                    className="flex items-center gap-1.5 rounded-xl bg-red-900 hover:bg-black border border-red-800 px-3 py-1.5 text-xs font-bold text-amber-300 shadow-xs transition active:scale-95"
+                    className="flex items-center gap-1.5 rounded-xl bg-slate-900 hover:bg-black px-2.5 py-1.5 text-xs font-bold text-amber-300 shadow-xs transition active:scale-95"
+                    title="Kelola Pos Giat & Poin"
                   >
                     <Target className="h-3.5 w-3.5 text-amber-400" />
-                    <span>Pos &amp; Poin ({activityPosts.length})</span>
+                    <span className="hidden sm:inline">Pos Giat</span>
                   </button>
 
-                  <button
-                    onClick={() => handleOpenAdminDashboard('mascot')}
-                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition active:scale-95"
-                    title="Edit Link Gambar Maskot Resmi Si-EPANG"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-amber-200" />
-                    <span>Kelola Maskot</span>
-                  </button>
-
+                  {/* Ubah Akses */}
                   <button
                     onClick={() => setShowRoleModal(true)}
-                    className="flex items-center gap-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95 ml-auto"
+                    className="flex items-center gap-1.5 rounded-xl bg-white hover:bg-slate-100 border border-slate-300 px-2.5 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95"
                     title="Uji tampilan sebagai Member atau Publik"
                   >
-                    <UserCheck className="h-3.5 w-3.5 text-slate-700" />
-                    <span>Ubah Level Akses</span>
+                    <UserCheck className="h-3.5 w-3.5 text-slate-600" />
+                    <span className="hidden sm:inline">Ubah Akses</span>
                   </button>
                 </div>
               </div>
@@ -1043,18 +1240,18 @@ export default function App() {
               );
             })()}
 
-            {/* Si-EPANG Mascot Banner Card */}
+            {/* SIEPANG Mascot Banner Card */}
             <div className="relative overflow-hidden rounded-3xl border border-amber-300/80 bg-gradient-to-br from-amber-50 via-white to-red-50 p-4 sm:p-5 shadow-sm">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-4 text-center sm:text-left">
                   <div
                     onClick={() => setShowMascotDetail(true)}
                     className="relative flex h-24 w-18 sm:h-28 sm:w-22 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-b from-stone-900 to-black p-1 shadow-md border-2 border-amber-400 group transition-transform hover:scale-105"
-                    title="Klik untuk melihat filosofi Maskot Resmi Si-EPANG"
+                    title="Klik untuk melihat filosofi Maskot Resmi SIEPANG"
                   >
                     <img
                       src={mascotUrl}
-                      alt="Maskot Resmi Si-EPANG"
+                      alt="Maskot Resmi SIEPANG"
                       referrerPolicy="no-referrer"
                       className="h-full w-full object-contain drop-shadow-md"
                       onError={(e) => {
@@ -1077,7 +1274,7 @@ export default function App() {
                         Maskot Resmi
                       </span>
                       <span className="text-xs font-bold text-red-950">
-                        Si-EPANG Pandu Tangkas
+                        SIEPANG Pandu Tangkas
                       </span>
                     </div>
                     <h3 className="text-base sm:text-lg font-black text-red-950 mt-1">
@@ -1827,7 +2024,7 @@ export default function App() {
             <span>⚜️ Gerakan Pramuka Indonesia • Jambore Penggalang 2026</span>
           </div>
           <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5 flex-wrap">
-            <span className="font-semibold text-slate-700">JamboApp</span>
+            <span className="font-semibold text-slate-700">SiEpangApps</span>
             <span>|</span>
             <span>Copyright : Rohadi Wijaya</span>
             <a
@@ -1853,6 +2050,7 @@ export default function App() {
         onOpenMyIDCard={handleOpenMyIDCard}
         onOpenVisitorModal={() => setShowVisitorModal(true)}
         onOpenAdminDashboard={() => handleOpenAdminDashboard('docs')}
+        onOpenLocalHost={() => handleOpenAdminDashboard('localhost')}
       />
 
       {/* QR Code Verification Modal */}

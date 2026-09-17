@@ -160,6 +160,8 @@ export interface CurrentUser {
   name: string;
   id?: string;
   adminLevel?: 'superadmin' | 'admin';
+  isSuperAdminSession?: boolean; // True when logged in as master SuperAdmin
+  isSimulating?: boolean; // True when SuperAdmin is testing/previewing Member or Public demo accounts
   memberId?: string; // RegId of participant or leader if role === 'member'
   memberType?: 'peserta' | 'pembina';
   visitorTicketNumber?: string; // Ticket number if role === 'public'
