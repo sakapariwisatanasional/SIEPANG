@@ -76,7 +76,7 @@ export const ParticipantsList: React.FC<ParticipantsListProps> = ({
   const pendingCount = participants.length - checkedInCount;
 
   const handleExportCSV = () => {
-    exportToCSV(participants, 'Data_Peserta_Jambore_Pramuka_2026');
+    exportToCSV(participants, 'Data_Peserta_Jambore_Penggalang_Pramuka_2026');
   };
 
   const handleToggleCheckIn = (p: Participant) => {
@@ -341,7 +341,7 @@ export const ParticipantsList: React.FC<ParticipantsListProps> = ({
           <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl border border-stone-200">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-bold text-stone-900 text-sm sm:text-base">
-                Tambah Data Peserta Jambore
+                Tambah Data Peserta Jambore Penggalang
               </h3>
               <button
                 onClick={() => setShowAddModal(false)}

@@ -19,6 +19,7 @@ interface UserRoleModalProps {
   leaders: Leader[];
   onSelectRole: (newUser: CurrentUser) => void;
   onOpenVisitorRegister: () => void;
+  onOpenAuthModal?: (tab?: 'login' | 'register') => void;
   onClose: () => void;
 }
 
@@ -28,6 +29,7 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
   leaders,
   onSelectRole,
   onOpenVisitorRegister,
+  onOpenAuthModal,
   onClose,
 }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole>(currentUser.role);
@@ -40,11 +42,16 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
 
   const handleApplyRole = (role: UserRole) => {
     if (role === 'admin') {
-      onSelectRole({
-        role: 'admin',
-        name: 'Kak H. Budi Santoso (Admin Panitia)',
-      });
+      if (currentUser.role === 'admin') {
+        onClose();
+        return;
+      }
+      // Cannot bypass admin security! Redirect to AuthModal login
       onClose();
+      if (onOpenAuthModal) {
+        onOpenAuthModal('login');
+      }
+      return;
     } else if (role === 'public') {
       onSelectRole({
         role: 'public',
@@ -130,13 +137,13 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-black text-slate-900">Admin (Panitia Pelaksana)</h4>
+                      <h4 className="text-sm font-black text-slate-900">SuperAdmin / Admin Panitia</h4>
                       <span className="rounded bg-red-100 px-2 py-0.5 text-[10px] font-black text-red-800 border border-red-200">
-                        Full Access
+                        Otoritas Penuh (Wajib Login)
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-slate-600 leading-relaxed">
-                      Memiliki akses penuh untuk: Dashboard Admin, Pemindai QR Presensi Peserta &amp; Visitor, Verifikasi Berkas, Log Kehadiran, Manajemen Banner, dan Integrasi Google Sheets.
+                      Memiliki akses Dashboard Admin, Pemindai QR Presensi, Pengaturan Tautan Maskot Resmi, Manajemen Banner, Sponsor, Jadwal, dan Google Sheets. Wajib login dengan akun panitia terdaftar.
                     </p>
                   </div>
                 </div>
@@ -153,12 +160,23 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
               </div>
 
               {selectedRole === 'admin' && (
-                <div className="mt-3 pt-3 border-t border-red-200 flex justify-end">
+                <div className="mt-3 pt-3 border-t border-red-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+                  {currentUser.role === 'admin' ? (
+                    <div className="text-emerald-700 font-semibold text-[11px] flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>Sedang aktif: <strong>{currentUser.name}</strong></span>
+                    </div>
+                  ) : (
+                    <div className="text-amber-800 font-medium text-[11px]">
+                      🔒 Perlu verifikasi login akun SuperAdmin / Admin
+                    </div>
+                  )}
+
                   <button
                     onClick={() => handleApplyRole('admin')}
-                    className="flex items-center gap-1.5 rounded-xl bg-red-700 px-4 py-1.5 text-xs font-bold text-white hover:bg-red-800 shadow transition"
+                    className="flex items-center gap-1.5 rounded-xl bg-red-700 px-4 py-1.5 text-xs font-bold text-white hover:bg-red-800 shadow transition whitespace-nowrap"
                   >
-                    <span>Masuk sebagai Admin</span>
+                    <span>{currentUser.role === 'admin' ? 'Tetap Sebagai Admin' : 'Login SuperAdmin / Admin'}</span>
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
                 </div>

@@ -211,7 +211,7 @@ export const LeaderboardView: React.FC<LeaderboardViewProps> = ({
               PODIUM TERTINGGI
             </span>
             <h3 className="text-base sm:text-lg font-black text-slate-900 mt-1">
-              Peringkat Teratas Jambore Saat Ini
+              Peringkat Teratas Jambore Penggalang Saat Ini
             </h3>
             <p className="text-xs text-slate-500">
               Peserta dengan akumulasi perolehan poin terbanyak dari pos kegiatan

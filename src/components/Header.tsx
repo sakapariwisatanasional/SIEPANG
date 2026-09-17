@@ -28,6 +28,9 @@ interface HeaderProps {
   onOpenVisitorModal: () => void;
   isOnline: boolean;
   isGASSynced: boolean;
+  onOpenWelcomeScreen?: () => void;
+  onOpenAuthModal?: (tab?: 'login' | 'register') => void;
+  mascotUrl?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -42,6 +45,9 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenVisitorModal,
   isOnline,
   isGASSynced,
+  onOpenWelcomeScreen,
+  onOpenAuthModal,
+  mascotUrl = '/MASKOT.png',
 }) => {
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
   const [showIOSGuide, setShowIOSGuide] = useState(false);
@@ -50,6 +56,14 @@ export const Header: React.FC<HeaderProps> = ({
   const getRoleBadge = () => {
     switch (currentUser.role) {
       case 'admin':
+        if (currentUser.adminLevel === 'superadmin') {
+          return {
+            label: 'SuperAdmin (Pusat)',
+            shortLabel: 'SuperAdmin',
+            icon: <Shield className="h-3.5 w-3.5 text-amber-300" />,
+            bgColor: 'bg-amber-950/80 border-amber-400 text-amber-200 shadow-xs',
+          };
+        }
         return {
           label: 'Admin (Panitia)',
           shortLabel: 'Admin',
@@ -95,9 +109,32 @@ export const Header: React.FC<HeaderProps> = ({
               <h1 className="text-sm font-black tracking-tight text-white sm:text-base drop-shadow-xs">
                 Si-EPANG
               </h1>
+              {onOpenWelcomeScreen && (
+                <button
+                  onClick={onOpenWelcomeScreen}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-400/40 hover:bg-amber-500/30 transition shadow-xs active:scale-95"
+                  title="Buka Welcome Screen & Maskot Resmi Si-EPANG"
+                >
+                  <img
+                    src={mascotUrl}
+                    alt="Maskot"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      if (!target.src.includes('MASKOT.png') && !target.src.includes('Maskot.png')) {
+                        target.src = '/MASKOT.png';
+                      } else if (target.src.includes('MASKOT.png')) {
+                        target.src = '/Maskot.png';
+                      }
+                    }}
+                    className="h-4 w-3.5 object-contain"
+                  />
+                  <span>Maskot</span>
+                </button>
+              )}
             </div>
             <p className="text-[11px] font-medium text-red-200 hidden sm:block">
-              Sistem Informasi Terpadu • Jambore
+              Sistem Informasi Terpadu • Jambore Penggalang
             </p>
           </div>
         </div>
@@ -241,12 +278,23 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
-          <button
-            onClick={onOpenRoleModal}
-            className="text-[11px] font-bold text-amber-300 hover:text-white hover:underline flex items-center gap-1"
-          >
-            <span>Ganti Level</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {onOpenAuthModal && (
+              <button
+                onClick={() => onOpenAuthModal('login')}
+                className="text-[11px] font-bold text-amber-300 hover:text-white hover:underline flex items-center gap-1 bg-red-900/60 px-2 py-0.5 rounded-lg border border-red-800"
+              >
+                <span>🔑 Masuk / Daftar</span>
+              </button>
+            )}
+
+            <button
+              onClick={onOpenRoleModal}
+              className="text-[11px] font-bold text-red-200 hover:text-white hover:underline flex items-center gap-1"
+            >
+              <span>Ganti Level</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -255,13 +303,13 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-3xl bg-slate-950 p-6 shadow-2xl border border-red-900 text-slate-100">
             <h3 className="text-base font-bold text-amber-400">
-              Install Jambore App di iPhone / iPad
+              Install Jambore Penggalang App di iPhone / iPad
             </h3>
             <p className="mt-2 text-xs text-slate-300 leading-relaxed">
               1. Buka halaman ini di browser <strong>Safari</strong>.<br />
               2. Ketuk tombol <strong>Share / Bagikan</strong> (ikon kotak panah ke atas) di bagian bawah.<br />
               3. Gulir ke bawah lalu pilih <strong>&quot;Tambah ke Layar Utama&quot; (Add to Home Screen)</strong>.<br />
-              4. Aplikasi Jambore akan terpasang layaknya aplikasi native tanpa App Store!
+              4. Aplikasi Jambore Penggalang akan terpasang layaknya aplikasi native tanpa App Store!
             </p>
             <button
               onClick={() => setShowIOSGuide(false)}

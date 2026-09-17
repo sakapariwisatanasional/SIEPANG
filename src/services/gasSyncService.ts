@@ -12,16 +12,18 @@ export const LOCAL_STORAGE_KEYS = {
   SPONSORS: 'jambore_sponsors_v1',
   HOME_CONTENT: 'jambore_home_content_v1',
   CURRENT_USER: 'jambore_current_user_v1',
+  AUTH_ACCOUNTS: 'jambore_accounts_v1',
+  WELCOME_SEEN: 'jambore_welcome_seen_v1',
   GAS_CONFIG: 'jambore_gas_config_v1',
   ACTIVITY_POSTS: 'jambore_activity_posts_v1',
 };
 
 export const DEFAULT_GAS_CODE = `/**
  * =========================================================================
- * GOOGLE APPS SCRIPT (GAS) - BACKEND JAMBORE PRAMUKA DIGITAL
+ * GOOGLE APPS SCRIPT (GAS) - BACKEND JAMBORE PENGGALANG PRAMUKA DIGITAL
  * =========================================================================
  * Petunjuk Instalasi:
- * 1. Buka Google Spreadsheet baru (beri nama "Database Jambore Pramuka").
+ * 1. Buka Google Spreadsheet baru (beri nama "Database Jambore Penggalang Pramuka").
  * 2. Buat Sheet/Tab berikut (Huruf besar/kecil sesuai):
  *    - Peserta (Header: ID_Registrasi | Nama_Lengkap | Panggilan | Pangkalan | Kwarcab | Regu | Gender | Gol_Darah | Kontak_Darurat | Status_CheckIn | Waktu_CheckIn | Tenda | Total_Poin | Pos_Selesai)
  *    - Pembina (Header: ID_Registrasi | Nama_Lengkap | Pangkalan | Kwarcab | No_HP | Email | Regu_Binaan | Jabatan | Status_CheckIn | Waktu_CheckIn)
@@ -59,7 +61,7 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
   
-  return ContentService.createTextOutput(JSON.stringify({ status: 'ok', message: 'GAS Jambore Active' }))
+  return ContentService.createTextOutput(JSON.stringify({ status: 'ok', message: 'GAS Jambore Penggalang Active' }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 

@@ -516,7 +516,7 @@ export const VisitorRegistrationModal: React.FC<VisitorRegistrationModalProps> =
 
                     {/* Notice */}
                     <div className="text-[10px] text-slate-500 leading-relaxed border-t border-slate-100 pt-2">
-                      Perlihatkan QR Code ini ke petugas keamanan di Pos Masuk Bumi Perkemahan Jambore. Harap mematuhi tata tertib perkemahan.
+                      Perlihatkan QR Code ini ke petugas keamanan di Pos Masuk Bumi Perkemahan Jambore Penggalang. Harap mematuhi tata tertib perkemahan.
                     </div>
                   </div>
                 </div>

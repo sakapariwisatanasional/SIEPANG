@@ -3,7 +3,7 @@ import { Banner, Sponsor, ScheduleItem, DocumentationItem, Participant, Leader, 
 export const INITIAL_BANNERS: Banner[] = [
   {
     id: 'b1',
-    title: 'Jambore Gerakan Pramuka 2026',
+    title: 'Jambore Penggalang Gerakan Pramuka 2026',
     subtitle: 'Membentuk Generasi Berkarakter, Tangguh, Terampil, dan Berwawasan Lingkungan',
     imageUrl: 'https://images.unsplash.com/photo-1510312305653-8ed496efae75?auto=format&fit=crop&w=1400&q=80',
     badge: 'Bumi Perkemahan Utama',
@@ -40,7 +40,7 @@ export const INITIAL_SPONSORS: Sponsor[] = [
     tier: 'platinum',
     logoUrl: 'https://images.unsplash.com/photo-1551698618-1dfe5d97d256?auto=format&fit=crop&w=300&q=80',
     websiteUrl: 'https://www.eigeradventure.com',
-    tagline: 'Perlengkapan Outdoor Resmi Jambore Pramuka',
+    tagline: 'Perlengkapan Outdoor Resmi Jambore Penggalang Pramuka',
   },
   {
     id: 'sp2',
@@ -118,7 +118,7 @@ export const INITIAL_SCHEDULE: ScheduleItem[] = [
     day: 1,
     date: 'Hari 1 - Rabu, 16 Sep 2026',
     time: '16:00 - 17:30 WIB',
-    title: 'Upacara Pembukaan Jambore & Penyematan Tiska',
+    title: 'Upacara Pembukaan Jambore Penggalang & Penyematan Tiska',
     location: 'Lapangan Utama Soedirman',
     category: 'upacara',
     status: 'ongoing',
@@ -232,7 +232,7 @@ export const INITIAL_DOCUMENTATION: DocumentationItem[] = [
     id: 'doc_yt1',
     type: 'video',
     sourceType: 'youtube',
-    title: 'Highlight Video Resmi Pembukaan & Defile Kontingen Jambore',
+    title: 'Highlight Video Resmi Pembukaan & Defile Kontingen Jambore Penggalang',
     description: 'Video pemutar YouTube dokumentasi pawai budaya karnaval dan defile 1.200 Pramuka Penggalang di lapangan utama.',
     url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0',
@@ -261,7 +261,7 @@ export const INITIAL_DOCUMENTATION: DocumentationItem[] = [
     id: 'doc_drive_pdf',
     type: 'document',
     sourceType: 'google_drive',
-    title: 'Buku Panduan & Petunjuk Teknis Jambore (Juknis PDF)',
+    title: 'Buku Panduan & Petunjuk Teknis Jambore Penggalang (Juknis PDF)',
     description: 'Dokumen panduan resmi kegiatan perkemahan dari Google Drive. Dapat discroll langsung di dalam aplikasi atau didownload.',
     url: 'https://drive.google.com/file/d/1_9j_Q52YpA7r6oW9M4Xo0T3eP8l_sample/view?usp=sharing',
     embedUrl: 'https://drive.google.com/file/d/1_9j_Q52YpA7r6oW9M4Xo0T3eP8l_sample/preview',
@@ -277,7 +277,7 @@ export const INITIAL_DOCUMENTATION: DocumentationItem[] = [
     type: 'photo',
     sourceType: 'direct',
     title: 'Upacara Pembukaan & Pengibaran Bendera Tunas Kelapa',
-    description: 'Detik-detik pengibaran bendera kebesaran Jambore di hadapan 1.200 anggota Pramuka Penggalang.',
+    description: 'Detik-detik pengibaran bendera kebesaran Jambore Penggalang di hadapan 1.200 anggota Pramuka Penggalang.',
     url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80',
     thumbnailUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=400&q=80',
     category: 'Upacara',
@@ -758,7 +758,7 @@ export const INITIAL_VISITORS: import('../types').VisitorRegistration[] = [
 ];
 
 export const INITIAL_HOME_CONTENT: HomeContent = {
-  eventTitle: 'Jambore Cabang Gerakan Pramuka 2026',
+  eventTitle: 'Jambore Penggalang Cabang Gerakan Pramuka 2026',
   eventSubtitle: 'Membentuk Generasi Muda yang Berkarakter, Tangguh, Mandiri, dan Berwawasan Lingkungan Hidup',
   eventLocation: 'Bumi Perkemahan Kiara Payung, Jatinangor',
   eventDates: '16 - 19 September 2026',
@@ -769,7 +769,7 @@ export const INITIAL_HOME_CONTENT: HomeContent = {
   presenceBoxDescription: 'Setiap peserta & pembina wajib melakukan scan QR pada pos ujian, pengambilan logistik, dan upacara.',
   presenceBoxBadge: 'Presensi Pos',
   sponsorSectionTitle: 'Mitra & Iklan Sponsor Kegiatan',
-  sponsorSectionSubtitle: 'Didukung oleh mitra resmi Gerakan Pramuka Jambore 2026',
+  sponsorSectionSubtitle: 'Didukung oleh mitra resmi Gerakan Pramuka Jambore Penggalang 2026',
 };
 
 

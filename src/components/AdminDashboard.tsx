@@ -33,6 +33,7 @@ import {
   Target,
   QrCode,
   Award,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -42,8 +43,10 @@ interface AdminDashboardProps {
   sponsors: Sponsor[];
   homeContent: HomeContent;
   activityPosts?: ActivityPost[];
-  initialTab?: 'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts';
+  initialTab?: 'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot';
   targetBannerToEdit?: Banner | null;
+  mascotUrl?: string;
+  onUpdateMascotUrl?: (url: string) => void;
   onUpdateDocumentation: (docs: DocumentationItem[]) => void;
   onUpdateBanners: (banners: Banner[]) => void;
   onUpdateSchedules: (schedules: ScheduleItem[]) => void;
@@ -65,6 +68,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   activityPosts = [],
   initialTab = 'docs',
   targetBannerToEdit = null,
+  mascotUrl = '/MASKOT.png',
+  onUpdateMascotUrl,
   onUpdateDocumentation,
   onUpdateBanners,
   onUpdateSchedules,
@@ -76,9 +81,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onOpenGASModal,
   onClose,
 }) => {
-  const [activeAdminTab, setActiveAdminTab] = useState<'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts'>(
+  const [activeAdminTab, setActiveAdminTab] = useState<'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot'>(
     initialTab
   );
+
+  // Mascot Edit State
+  const [mascotInput, setMascotInput] = useState(mascotUrl);
+  const [mascotPreviewUrl, setMascotPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMascotInput(mascotUrl);
+  }, [mascotUrl]);
 
   // Success alert message inside dashboard
   const [saveAlert, setSaveAlert] = useState<string | null>(null);
@@ -143,7 +156,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setEditDocType('video');
     setEditDocCategory('Perkemahan');
     setEditDocDescription('');
-    setEditDocAuthor('Panitia Jambore');
+    setEditDocAuthor('Panitia Jambore Penggalang');
     setShowAddDocModal(true);
   };
 
@@ -192,7 +205,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             : 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=600&q=80'),
         date: 'Hari Ini',
         category: editDocCategory,
-        author: editDocAuthor.trim() || 'Panitia Jambore',
+        author: editDocAuthor.trim() || 'Panitia Jambore Penggalang',
         fileSize: parsed.label,
       };
       onUpdateDocumentation([newDoc, ...documentation]);
@@ -228,7 +241,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const setSampleGoogleDrivePdf = () => {
     setEditDocUrl('https://drive.google.com/file/d/1_9j_Q52YpA7r6oW9M4Xo0T3eP8l_sample/view?usp=sharing');
     setEditDocType('document');
-    setEditDocTitle('Juklak & Petunjuk Teknis Jambore (Google Drive PDF)');
+    setEditDocTitle('Juklak & Petunjuk Teknis Jambore Penggalang (Google Drive PDF)');
     setEditDocDescription('Dokumen file Google Drive yang dapat discroll langsung di aplikasi dan didownload.');
   };
 
@@ -516,6 +529,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     showSavedNotification(`Poin pos "${targetPost?.title || ''}" diubah menjadi ${newPts} Poin!`);
   };
 
+  const handleSaveMascotUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mascotInput.trim()) return;
+    if (onUpdateMascotUrl) {
+      onUpdateMascotUrl(mascotInput.trim());
+      setMascotPreviewUrl(null);
+      showSavedNotification('Tautan URL Maskot Si-EPANG berhasil diperbarui & disimpan!');
+    }
+  };
+
+  const handleResetMascotUrl = () => {
+    const def = '/MASKOT.png';
+    setMascotInput(def);
+    setMascotPreviewUrl(null);
+    if (onUpdateMascotUrl) {
+      onUpdateMascotUrl(def);
+      showSavedNotification('Tautan Maskot dikembalikan ke gambar resmi default (/MASKOT.png)');
+    }
+  };
+
   // Helper file upload handler
   const handleImageUpload = (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -647,6 +680,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           >
             <Target className="h-4 w-4 text-amber-600" />
             <span>Pos &amp; Poin Kegiatan ({activityPosts.length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveAdminTab('mascot')}
+            className={`flex items-center gap-1.5 border-b-2 px-4 py-2.5 transition whitespace-nowrap ${
+              activeAdminTab === 'mascot'
+                ? 'border-red-700 text-red-900 bg-white rounded-t-xl shadow-xs'
+                : 'border-transparent text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Sparkles className="h-4 w-4 text-amber-500" />
+            <span>Maskot Resmi Si-EPANG</span>
           </button>
         </div>
 
@@ -1381,6 +1426,173 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             </div>
           )}
+
+          {/* ========================================================= */}
+          {/* TAB 6: KELOLA MASKOT RESMI SI-EPANG                       */}
+          {/* ========================================================= */}
+          {activeAdminTab === 'mascot' && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-amber-50 via-red-50 to-amber-50 p-4 sm:p-5 border border-amber-200">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-red-700 text-white shadow-md">
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-900">
+                      Pengaturan Maskot Resmi (Si-EPANG)
+                    </h3>
+                    <p className="text-xs text-slate-600">
+                      Hak akses eksklusif SuperAdmin / Admin Panitia untuk mengubah tautan URL gambar maskot resmi
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-300">
+                    <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                    <span>Otoritas Terverifikasi</span>
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                {/* Visual Preview Card */}
+                <div className="lg:col-span-5 rounded-3xl bg-white p-5 border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                    Tampilan Maskot Saat Ini
+                  </span>
+
+                  <div className="relative group my-3 flex items-center justify-center h-64 w-64 rounded-3xl bg-radial from-amber-100/60 via-red-50/40 to-slate-100 p-4 border border-amber-200 shadow-inner overflow-hidden">
+                    <img
+                      src={mascotPreviewUrl || mascotUrl || '/MASKOT.png'}
+                      alt="Maskot Si-EPANG"
+                      className="h-full w-full object-contain filter drop-shadow-xl transition-transform duration-300 group-hover:scale-105"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/MASKOT.png';
+                      }}
+                    />
+                    {mascotPreviewUrl && (
+                      <div className="absolute top-2 right-2 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-black text-white shadow">
+                        Mode Pratinjau
+                      </div>
+                    )}
+                  </div>
+
+                  <h4 className="font-black text-slate-900 text-sm">
+                    SI-EPANG (Elang Pandu Penggalang)
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xs">
+                    Karakter Burung Elang Bondol lincah berbalut seragam Pramuka Penggalang dengan atribut kepanduan lengkap.
+                  </p>
+
+                  <div className="mt-4 w-full rounded-2xl bg-slate-50 p-3 text-left border border-slate-200">
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      URL Aktif Sistem:
+                    </div>
+                    <div className="text-xs font-mono text-slate-700 break-all mt-0.5 select-all">
+                      {mascotUrl || '/MASKOT.png'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form & Config Card */}
+                <div className="lg:col-span-7 rounded-3xl bg-white p-5 sm:p-6 border border-slate-200 shadow-sm space-y-5">
+                  <div className="border-b border-slate-100 pb-3">
+                    <h4 className="text-sm font-black text-slate-900">
+                      Ubah Tautan / Sumber URL Maskot
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Masukkan URL gambar baru (mendukung HTTPS, Google Drive direct link, Cloudinary, Imgur, dsb.)
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleSaveMascotUrl} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        Alamat URL Gambar Maskot
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="url"
+                          required
+                          value={mascotInput}
+                          onChange={(e) => {
+                            setMascotInput(e.target.value);
+                            setMascotPreviewUrl(null);
+                          }}
+                          placeholder="https://example.com/maskot-si-epang.png"
+                          className="w-full rounded-xl border border-slate-300 p-3 text-xs font-mono focus:border-red-700 focus:outline-none focus:ring-2 focus:ring-red-100"
+                        />
+                        {mascotInput && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMascotInput('');
+                              setMascotPreviewUrl(null);
+                            }}
+                            className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-xs"
+                          >
+                            Hapus
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        Disarankan format PNG transparan atau WebP berkualitas tinggi agar menyatu dengan latar belakang aplikasi.
+                      </p>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap items-center gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (mascotInput.trim()) {
+                            setMascotPreviewUrl(mascotInput.trim());
+                            showSavedNotification('Pratinjau gambar maskot ditampilkan di kartu kiri.');
+                          }
+                        }}
+                        className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-xs flex items-center gap-1.5"
+                      >
+                        <Eye className="h-4 w-4 text-amber-600" />
+                        <span>Tes Pratinjau URL</span>
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="rounded-xl bg-red-700 px-5 py-2.5 text-xs font-bold text-white hover:bg-red-800 transition shadow-md flex items-center gap-1.5 active:scale-98"
+                      >
+                        <Save className="h-4 w-4 text-amber-300" />
+                        <span>Simpan &amp; Terapkan Maskot</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleResetMascotUrl}
+                        className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition"
+                        title="Kembalikan ke file maskot resmi lokal"
+                      >
+                        Reset Default (/MASKOT.png)
+                      </button>
+                    </div>
+                  </form>
+
+                  {/* Implementation Scope Info */}
+                  <div className="rounded-2xl bg-amber-50/70 p-4 border border-amber-200/80 space-y-2 text-xs">
+                    <div className="font-bold text-amber-950 flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4 text-amber-600" />
+                      <span>Lokasi Penayangan Maskot Si-EPANG di Aplikasi:</span>
+                    </div>
+                    <ul className="list-disc list-inside space-y-1 text-amber-900 text-[11px]">
+                      <li><strong>Layar Sambutan (Welcome Modal):</strong> Maskot menyapa seluruh pengguna pertama kali membuka aplikasi.</li>
+                      <li><strong>Header Navigasi Utama:</strong> Avatar interaktif Si-EPANG di sudut kanan atas.</li>
+                      <li><strong>Banner Interaktif Beranda:</strong> Card maskot yang dapat diklik untuk membaca filosofi Si-EPANG.</li>
+                      <li><strong>Modal Filosofi &amp; Filosofi Karakter:</strong> Detail sayap batik, hasduk merah putih, kacu, dan gawai kepanduan.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ========================================================= */}
@@ -1412,7 +1624,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     required
                     value={bannerTitle}
                     onChange={(e) => setBannerTitle(e.target.value)}
-                    placeholder="Contoh: Jambore Gerakan Pramuka 2026"
+                    placeholder="Contoh: Jambore Penggalang Gerakan Pramuka 2026"
                     className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
                   />
                 </div>
@@ -1627,7 +1839,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     required
                     value={sponsorTagline}
                     onChange={(e) => setSponsorTagline(e.target.value)}
-                    placeholder="Contoh: Perlengkapan Outdoor Resmi Jambore Pramuka"
+                    placeholder="Contoh: Perlengkapan Outdoor Resmi Jambore Penggalang Pramuka"
                     className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
                   />
                 </div>

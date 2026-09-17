@@ -120,19 +120,19 @@ export const GASIntegrationModal: React.FC<GASIntegrationModalProps> = ({
   };
 
   const downloadPesertaTemplate = () => {
-    exportToCSV(participants, 'Template_Sheet_Peserta_Jambore');
+    exportToCSV(participants, 'Template_Sheet_Peserta_Jambore_Penggalang');
   };
 
   const downloadPembinaTemplate = () => {
-    exportToCSV(leaders, 'Template_Sheet_Pembina_Jambore');
+    exportToCSV(leaders, 'Template_Sheet_Pembina_Jambore_Penggalang');
   };
 
   const downloadPengunjungTemplate = () => {
-    exportToCSV(visitors, 'Template_Sheet_Pengunjung_Jambore');
+    exportToCSV(visitors, 'Template_Sheet_Pengunjung_Jambore_Penggalang');
   };
 
   const downloadJadwalTemplate = () => {
-    exportToCSV(schedules, 'Template_Sheet_Jadwal_Jambore');
+    exportToCSV(schedules, 'Template_Sheet_Jadwal_Jambore_Penggalang');
   };
 
   return (
@@ -406,7 +406,7 @@ export const GASIntegrationModal: React.FC<GASIntegrationModalProps> = ({
                   <li>
                     Buka <strong>vercel.com</strong> lalu klik <strong>&quot;Add New Project&quot;</strong>.
                   </li>
-                  <li>Pilih repository GitHub Jambore ini.</li>
+                  <li>Pilih repository GitHub Jambore Penggalang ini.</li>
                   <li>
                     Vercel akan secara otomatis mendeteksi Framework <strong>Vite</strong> dengan build
                     command: <code>npm run build</code> dan output directory: <code>dist</code>.
@@ -423,7 +423,7 @@ export const GASIntegrationModal: React.FC<GASIntegrationModalProps> = ({
 
         {/* Footer */}
         <div className="flex items-center justify-between border-t border-stone-200 bg-stone-50 px-5 py-3 text-xs text-stone-500">
-          <span>Sistem Integrasi Jambore Pramuka</span>
+          <span>Sistem Integrasi Jambore Penggalang Pramuka</span>
           <button
             onClick={onClose}
             className="rounded-xl bg-stone-800 px-4 py-1.5 font-semibold text-white hover:bg-stone-900 transition"

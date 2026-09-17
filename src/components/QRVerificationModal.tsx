@@ -320,7 +320,7 @@ export const QRVerificationModal: React.FC<QRVerificationModalProps> = ({
 
     // Not found
     soundEffects.playErrorBuzz();
-    setErrorMessage(`Data tidak ditemukan untuk kode: "${targetId}". Pastikan QR Code resmi Jambore, Tiket Visitor, atau Pos Kegiatan.`);
+    setErrorMessage(`Data tidak ditemukan untuk kode: "${targetId}". Pastikan QR Code resmi Jambore Penggalang, Tiket Visitor, atau Pos Kegiatan.`);
   };
 
   const handleConfirmAwardPoints = () => {
@@ -967,7 +967,7 @@ export const QRVerificationModal: React.FC<QRVerificationModalProps> = ({
                   </div>
 
                   <p className="text-center text-xs text-stone-500">
-                    Arahkan kamera ke QR Code pada Tanda Peserta / ID Card Pembina Jambore
+                    Arahkan kamera ke QR Code pada Tanda Peserta / ID Card Pembina Jambore Penggalang
                   </p>
                 </div>
               )}
@@ -1109,7 +1109,7 @@ export const QRVerificationModal: React.FC<QRVerificationModalProps> = ({
         <div className="flex items-center justify-between border-t border-stone-200 bg-stone-50 px-4 py-2.5 text-[11px] text-stone-500">
           <div className="flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-amber-700" />
-            <span>Terhubung ke Sistem Registrasi Jambore</span>
+            <span>Terhubung ke Sistem Registrasi Jambore Penggalang</span>
           </div>
           {gasUrl ? (
             <span className="flex items-center gap-1 text-emerald-700 font-medium">

@@ -1,8 +1,10 @@
 {
-  "name": "Si-EPANG - Jambore",
-  "description": "Sistem Informasi Terpadu (Si-EPANG) kegiatan Perkemahan Jambore dengan jadwal real-time, data peserta & pembina pendamping, verifikasi QR code, galeri dokumentasi, sponsor, dan integrasi Google Sheets & GAS.",
+  "name": "Si-EPANG - Jambore Penggalang",
+  "description": "Sistem Informasi Terpadu (Si-EPANG) kegiatan Jambore Penggalang.",
   "requestFramePermissions": [
     "camera"
   ],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

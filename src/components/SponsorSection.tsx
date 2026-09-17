@@ -13,7 +13,7 @@ interface SponsorSectionProps {
 export const SponsorSection: React.FC<SponsorSectionProps> = ({
   sponsors,
   title = 'Mitra & Iklan Sponsor Kegiatan',
-  subtitle = 'Didukung oleh mitra resmi Gerakan Pramuka Jambore 2026',
+  subtitle = 'Didukung oleh mitra resmi Gerakan Pramuka Jambore Penggalang 2026',
   isAdmin = false,
   onOpenEditSponsors,
 }) => {
@@ -126,11 +126,11 @@ export const SponsorSection: React.FC<SponsorSectionProps> = ({
         <div className="flex items-center gap-2 text-center sm:text-left">
           <Sparkles className="h-4 w-4 text-amber-400 shrink-0 hidden sm:block" />
           <p className="text-xs text-red-100">
-            Ingin bermitra atau memasang iklan sponsor untuk Jambore Pramuka?
+            Ingin bermitra atau memasang iklan sponsor untuk Jambore Penggalang Pramuka?
           </p>
         </div>
         <a
-          href="https://wa.me/628122334455?text=Halo%20Sekretariat%20Jambore,%20kami%20tertarik%20menjadi%20sponsor"
+          href="https://wa.me/628122334455?text=Halo%20Sekretariat%20Jambore%20Penggalang,%20kami%20tertarik%20menjadi%20sponsor"
           target="_blank"
           rel="noreferrer"
           className="rounded-xl bg-amber-400 px-3 py-1.5 text-xs font-bold text-red-950 hover:bg-amber-300 transition shrink-0"

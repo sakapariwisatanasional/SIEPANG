@@ -232,7 +232,7 @@ export const PostQRModal: React.FC<PostQRModalProps> = ({
                   <span className="font-black text-slate-900 block text-[10px] uppercase tracking-wider">
                     PJ Pos / PIC:
                   </span>
-                  <span className="font-semibold">{post.picName || 'Panitia Jambore'}</span>
+                  <span className="font-semibold">{post.picName || 'Panitia Jambore Penggalang'}</span>
                 </div>
               </div>
             </div>

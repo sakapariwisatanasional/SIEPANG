@@ -46,7 +46,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       const res = await Notification.requestPermission();
       setBrowserPermission(res);
       if (res === 'granted') {
-        new Notification('Jambore Pramuka', {
+        new Notification('Jambore Penggalang Pramuka', {
           body: 'Notifikasi push browser aktif! Anda akan menerima update jadwal secara real-time.',
           icon: '/favicon.ico',
         });
@@ -270,7 +270,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
         <div className="flex items-center justify-between border-t border-stone-100 bg-stone-50 px-4 py-2.5 text-xs text-stone-500">
           <span className="flex items-center gap-1">
             <Sparkles className="h-3.5 w-3.5 text-amber-700" />
-            Notifikasi Push Real-time Jambore
+            Notifikasi Push Real-time Jambore Penggalang
           </span>
           {notifications.length > 0 && (
             <button

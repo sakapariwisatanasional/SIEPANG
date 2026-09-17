@@ -75,7 +75,7 @@ export const DocumentationGallery: React.FC<DocumentationGalleryProps> = ({
       type: newType,
       sourceType: parsed.sourceType,
       title: newTitle.trim(),
-      description: newDescription.trim() || 'Dokumentasi kegiatan Jambore Pramuka',
+      description: newDescription.trim() || 'Dokumentasi kegiatan Jambore Penggalang Pramuka',
       url: newUrl.trim(),
       embedUrl: parsed.embedUrl || newUrl.trim(),
       downloadUrl: parsed.downloadUrl,
@@ -86,7 +86,7 @@ export const DocumentationGallery: React.FC<DocumentationGalleryProps> = ({
         month: 'short',
         year: 'numeric',
       }),
-      author: newAuthor.trim() || 'Tim Dokumentasi Jambore',
+      author: newAuthor.trim() || 'Tim Dokumentasi Jambore Penggalang',
       fileSize: parsed.label,
     };
 

@@ -78,7 +78,7 @@ export const ScheduleView: React.FC<ScheduleViewProps> = ({
             </span>
           </div>
           <h3 className="text-base sm:text-lg font-black tracking-tight text-white">
-            Rundown &amp; Agenda Jambore Pramuka 2026
+            Rundown &amp; Agenda Jambore Penggalang Pramuka 2026
           </h3>
           <p className="text-xs text-red-100">
             Pembaruan jadwal terkoneksi live dengan server dan mengirimkan notifikasi instan ke perangkat mobile

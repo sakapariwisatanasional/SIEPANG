@@ -158,9 +158,14 @@ export interface VisitorRegistration {
 export interface CurrentUser {
   role: UserRole;
   name: string;
+  id?: string;
+  adminLevel?: 'superadmin' | 'admin';
   memberId?: string; // RegId of participant or leader if role === 'member'
   memberType?: 'peserta' | 'pembina';
   visitorTicketNumber?: string; // Ticket number if role === 'public'
+  organization?: string;
+  regu?: string;
+  points?: number;
 }
 
 export interface GASConfig {

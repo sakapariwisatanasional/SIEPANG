@@ -52,6 +52,9 @@ import { UserRoleModal } from './components/UserRoleModal';
 import { VisitorRegistrationModal } from './components/VisitorRegistrationModal';
 import { LeaderboardView } from './components/LeaderboardView';
 import { PostQRModal } from './components/PostQRModal';
+import { WelcomeScreen } from './components/WelcomeScreen';
+import { AuthModal } from './components/AuthModal';
+import { MascotDetailModal } from './components/MascotDetailModal';
 import {
   Calendar,
   Users,
@@ -77,13 +80,15 @@ import {
   Target,
   QrCode,
   Star,
+  ShieldAlert,
+  Lock,
 } from 'lucide-react';
 
 export default function App() {
   // Navigation
   const [activeTab, setActiveTab] = useState<string>('beranda');
 
-  // Role State (Admin, Member, Public)
+  // Role State (Admin, Member, Public) - Defaults to Public until authenticated
   const [currentUser, setCurrentUser] = useState<CurrentUser>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.CURRENT_USER);
     if (saved) {
@@ -92,10 +97,10 @@ export default function App() {
       } catch {}
     }
     return {
-      role: 'admin',
-      name: 'Kak H. Budi Santoso (Admin Panitia)',
-      regId: 'ADM-001',
-      memberType: 'admin',
+      role: 'public',
+      name: 'Pengunjung Umum (Tamu)',
+      id: 'PUB-TAMU',
+      organization: 'Umum / Tamu Jambore',
     };
   });
 
@@ -131,8 +136,35 @@ export default function App() {
   });
 
   // Admin Quick Edit Sub-tab & Target Banner
-  const [adminInitialTab, setAdminInitialTab] = useState<'docs' | 'banners' | 'homeContent' | 'sponsors'>('docs');
+  const [adminInitialTab, setAdminInitialTab] = useState<
+    'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot'
+  >('docs');
   const [adminTargetBanner, setAdminTargetBanner] = useState<Banner | null>(null);
+
+  // Security Access Barrier Alert
+  const [accessAlert, setAccessAlert] = useState<{
+    title: string;
+    message: string;
+    attemptedAction?: string;
+  } | null>(null);
+
+  // Centralized Safe Admin Opener with Strict Role Verification
+  const handleOpenAdminDashboard = (
+    tab: 'docs' | 'banners' | 'homeContent' | 'sponsors' | 'activityPosts' | 'mascot' = 'docs'
+  ) => {
+    if (currentUser.role !== 'admin') {
+      soundEffects.play('error');
+      setAccessAlert({
+        title: 'Akses Dibatasi: Khusus SuperAdmin / Admin',
+        message:
+          'Anda tidak dapat masuk ke Dashboard Admin sebelum melakukan login akun user yang terdaftar sebagai SuperAdmin atau Admin Panitia.',
+        attemptedAction: 'Buka Dashboard Admin',
+      });
+      return;
+    }
+    setAdminInitialTab(tab);
+    setShowAdminDashboard(true);
+  };
 
   const [schedules, setSchedules] = useState<ScheduleItem[]>(() => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.SCHEDULES);
@@ -231,6 +263,44 @@ export default function App() {
     person: Participant | Leader;
     type: 'peserta' | 'pembina';
   } | null>(null);
+
+  // Welcome Screen (shown initially before main dashboard unless dismissed)
+  const [showWelcomeScreen, setShowWelcomeScreen] = useState<boolean>(() => {
+    try {
+      const dismissed = localStorage.getItem(LOCAL_STORAGE_KEYS.WELCOME_SEEN);
+      return dismissed !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  // Auth Modal (Login / Register for Member & Admin)
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalTab, setAuthModalTab] = useState<'login' | 'register'>('login');
+
+  // Mascot Philosophy Modal & Dynamic Mascot URL
+  const [showMascotDetail, setShowMascotDetail] = useState(false);
+  const [mascotUrl, setMascotUrl] = useState<string>(() => {
+    return localStorage.getItem('siepang_mascot_url') || '/MASKOT.png';
+  });
+
+  const handleUpdateMascotUrl = (newUrl: string) => {
+    setMascotUrl(newUrl);
+    localStorage.setItem('siepang_mascot_url', newUrl);
+  };
+
+  // Enforce Access Control: If admin dashboard is triggered while not an admin, immediately dismiss and alert
+  useEffect(() => {
+    if (showAdminDashboard && currentUser.role !== 'admin') {
+      setShowAdminDashboard(false);
+      setAccessAlert({
+        title: 'Akses Dibatasi: Khusus SuperAdmin / Admin',
+        message:
+          'Anda tidak dapat masuk ke Dashboard Admin sebelum melakukan login akun user yang terdaftar sebagai SuperAdmin atau Admin Panitia.',
+        attemptedAction: 'Buka Dashboard Admin',
+      });
+    }
+  }, [showAdminDashboard, currentUser.role]);
 
   // Connectivity
   const [isOnline, setIsOnline] = useState(
@@ -538,11 +608,17 @@ export default function App() {
         onOpenNotifDrawer={() => setShowNotifDrawer(true)}
         onOpenGASModal={() => setShowGASModal(true)}
         onOpenQRScanner={() => setShowQRScanner(true)}
-        onOpenAdminDashboard={() => setShowAdminDashboard(true)}
+        onOpenAdminDashboard={() => handleOpenAdminDashboard('docs')}
         onOpenMyIDCard={handleOpenMyIDCard}
         onOpenVisitorModal={() => setShowVisitorModal(true)}
         isOnline={isOnline}
         isGASSynced={Boolean(gasConfig.gasWebAppUrl)}
+        onOpenWelcomeScreen={() => setShowWelcomeScreen(true)}
+        onOpenAuthModal={(tab) => {
+          setAuthModalTab(tab || 'login');
+          setShowAuthModal(true);
+        }}
+        mascotUrl={mascotUrl}
       />
 
       {/* Real-time Floating Toast Alert Banner */}
@@ -676,7 +752,7 @@ export default function App() {
 
             {currentUser.role === 'admin' && (
               <button
-                onClick={() => setShowAdminDashboard(true)}
+                onClick={() => handleOpenAdminDashboard('docs')}
                 className="flex items-center gap-1.5 rounded-xl border border-red-300 bg-red-50 px-3.5 py-2 text-xs font-bold text-red-900 hover:bg-red-100 transition shadow-xs ml-1"
               >
                 <Shield className="h-3.5 w-3.5 text-red-700" />
@@ -717,10 +793,7 @@ export default function App() {
 
                 <div className="flex flex-wrap items-center gap-2">
                   <button
-                    onClick={() => {
-                      setAdminInitialTab('homeContent');
-                      setShowAdminDashboard(true);
-                    }}
+                    onClick={() => handleOpenAdminDashboard('homeContent')}
                     className="flex items-center gap-1.5 rounded-xl bg-red-800 hover:bg-red-900 px-3 py-1.5 text-xs font-bold text-amber-200 shadow-xs transition active:scale-95"
                   >
                     <Edit3 className="h-3.5 w-3.5 text-amber-400" />
@@ -728,10 +801,7 @@ export default function App() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      setAdminInitialTab('banners');
-                      setShowAdminDashboard(true);
-                    }}
+                    onClick={() => handleOpenAdminDashboard('banners')}
                     className="flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 px-3 py-1.5 text-xs font-black text-red-950 shadow-xs transition active:scale-95"
                   >
                     <ImageIcon className="h-3.5 w-3.5" />
@@ -739,10 +809,7 @@ export default function App() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      setAdminInitialTab('sponsors');
-                      setShowAdminDashboard(true);
-                    }}
+                    onClick={() => handleOpenAdminDashboard('sponsors')}
                     className="flex items-center gap-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 px-3 py-1.5 text-xs font-bold text-slate-800 shadow-xs transition active:scale-95"
                   >
                     <Handshake className="h-3.5 w-3.5 text-emerald-600" />
@@ -750,14 +817,20 @@ export default function App() {
                   </button>
 
                   <button
-                    onClick={() => {
-                      setAdminInitialTab('activityPosts');
-                      setShowAdminDashboard(true);
-                    }}
+                    onClick={() => handleOpenAdminDashboard('activityPosts')}
                     className="flex items-center gap-1.5 rounded-xl bg-red-900 hover:bg-black border border-red-800 px-3 py-1.5 text-xs font-bold text-amber-300 shadow-xs transition active:scale-95"
                   >
                     <Target className="h-3.5 w-3.5 text-amber-400" />
                     <span>Pos &amp; Poin ({activityPosts.length})</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleOpenAdminDashboard('mascot')}
+                    className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition active:scale-95"
+                    title="Edit Link Gambar Maskot Resmi Si-EPANG"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-amber-200" />
+                    <span>Kelola Maskot</span>
                   </button>
 
                   <button
@@ -925,7 +998,7 @@ export default function App() {
                           </span>
                         </div>
                         <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
-                          {visitorTicket ? `E-Tiket: ${visitorTicket.fullName}` : 'Selamat Datang di Jambore'}
+                          {visitorTicket ? `E-Tiket: ${visitorTicket.fullName}` : 'Selamat Datang di Jambore Penggalang'}
                         </h3>
                         <p className="text-xs text-red-100 max-w-xl">
                           {visitorTicket
@@ -970,6 +1043,78 @@ export default function App() {
               );
             })()}
 
+            {/* Si-EPANG Mascot Banner Card */}
+            <div className="relative overflow-hidden rounded-3xl border border-amber-300/80 bg-gradient-to-br from-amber-50 via-white to-red-50 p-4 sm:p-5 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4 text-center sm:text-left">
+                  <div
+                    onClick={() => setShowMascotDetail(true)}
+                    className="relative flex h-24 w-18 sm:h-28 sm:w-22 shrink-0 cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-b from-stone-900 to-black p-1 shadow-md border-2 border-amber-400 group transition-transform hover:scale-105"
+                    title="Klik untuk melihat filosofi Maskot Resmi Si-EPANG"
+                  >
+                    <img
+                      src={mascotUrl}
+                      alt="Maskot Resmi Si-EPANG"
+                      referrerPolicy="no-referrer"
+                      className="h-full w-full object-contain drop-shadow-md"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (!target.src.includes('MASKOT.png') && !target.src.includes('Maskot.png')) {
+                          target.src = '/MASKOT.png';
+                        } else if (target.src.includes('MASKOT.png')) {
+                          target.src = '/Maskot.png';
+                        }
+                      }}
+                    />
+                    <div className="absolute -bottom-1 -right-1 rounded-full bg-red-700 px-1.5 py-0.5 text-[8px] font-black text-white shadow">
+                      RESMI
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-center sm:justify-start gap-2">
+                      <span className="rounded-full bg-red-800 px-2.5 py-0.5 text-[10px] font-black text-amber-300 tracking-wider uppercase shadow-xs">
+                        Maskot Resmi
+                      </span>
+                      <span className="text-xs font-bold text-red-950">
+                        Si-EPANG Pandu Tangkas
+                      </span>
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-red-950 mt-1">
+                      Selamat Datang di Jambore Penggalang 2026!
+                    </h3>
+                    <p className="text-xs text-slate-600 max-w-xl mt-0.5">
+                      Gunakan fitur lengkap verifikasi QR kegiatan, e-sertifikat, ID Card digital, jadwal interaktif, dan papan skor regu terintegrasi.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto shrink-0">
+                  <button
+                    onClick={() => setShowMascotDetail(true)}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 border border-amber-500 px-3.5 py-2 text-xs font-bold text-red-950 shadow-xs transition active:scale-95"
+                  >
+                    <span>🦋 Filosofi Maskot</span>
+                  </button>
+                  <button
+                    onClick={() => setShowWelcomeScreen(true)}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-xl bg-white hover:bg-slate-50 border border-amber-300 px-3.5 py-2 text-xs font-bold text-red-950 shadow-xs transition active:scale-95"
+                  >
+                    <span>🎭 Welcome Screen</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAuthModalTab('login');
+                      setShowAuthModal(true);
+                    }}
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 rounded-xl bg-red-800 hover:bg-red-900 px-3.5 py-2 text-xs font-bold text-amber-300 shadow-xs transition active:scale-95"
+                  >
+                    <span>🔑 Masuk / Daftar</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
             {/* 1. Banner Kegiatan */}
             <BannerSlider
               banners={banners}
@@ -977,8 +1122,7 @@ export default function App() {
               isAdmin={currentUser.role === 'admin'}
               onOpenEditBanners={(b) => {
                 setAdminTargetBanner(b || null);
-                setAdminInitialTab('banners');
-                setShowAdminDashboard(true);
+                handleOpenAdminDashboard('banners');
               }}
             />
 
@@ -1135,10 +1279,7 @@ export default function App() {
                   <div className="flex items-center gap-1.5 shrink-0">
                     {currentUser.role === 'admin' && (
                       <button
-                        onClick={() => {
-                          setAdminInitialTab('homeContent');
-                          setShowAdminDashboard(true);
-                        }}
+                        onClick={() => handleOpenAdminDashboard('homeContent')}
                         className="flex items-center gap-1 rounded-lg bg-red-50 border border-red-200 px-2 py-1 text-[11px] font-bold text-red-900 hover:bg-red-100 transition"
                         title="Edit Teks Agenda"
                       >
@@ -1194,10 +1335,7 @@ export default function App() {
                     <div className="flex items-center gap-2">
                       {currentUser.role === 'admin' && (
                         <button
-                          onClick={() => {
-                            setAdminInitialTab('homeContent');
-                            setShowAdminDashboard(true);
-                          }}
+                          onClick={() => handleOpenAdminDashboard('homeContent')}
                           className="flex items-center gap-1 rounded-md bg-black/40 px-2 py-0.5 text-[10px] font-bold text-amber-300 hover:bg-red-800 transition border border-white/10"
                           title="Edit Teks Presensi"
                         >
@@ -1295,10 +1433,7 @@ export default function App() {
                 <div className="flex items-center gap-2 flex-wrap">
                   {currentUser.role === 'admin' && (
                     <button
-                      onClick={() => {
-                        setAdminInitialTab('activityPosts');
-                        setShowAdminDashboard(true);
-                      }}
+                      onClick={() => handleOpenAdminDashboard('activityPosts')}
                       className="flex items-center gap-1.5 rounded-xl bg-red-50 border border-red-200 px-3 py-1.5 text-xs font-bold text-red-900 hover:bg-red-100 transition shadow-xs"
                     >
                       <Target className="h-3.5 w-3.5 text-red-700" />
@@ -1472,10 +1607,7 @@ export default function App() {
               title={homeContent.sponsorSectionTitle}
               subtitle={homeContent.sponsorSectionSubtitle}
               isAdmin={currentUser.role === 'admin'}
-              onOpenEditSponsors={() => {
-                setAdminInitialTab('sponsors');
-                setShowAdminDashboard(true);
-              }}
+              onOpenEditSponsors={() => handleOpenAdminDashboard('sponsors')}
             />
           </div>
         )}
@@ -1666,7 +1798,7 @@ export default function App() {
               documentation={documentation}
               isAdmin={currentUser.role === 'admin'}
               onAddDocumentation={handleAddDocumentation}
-              onOpenAdminDashboard={() => setShowAdminDashboard(true)}
+              onOpenAdminDashboard={() => handleOpenAdminDashboard('docs')}
             />
           </div>
         )}
@@ -1681,10 +1813,7 @@ export default function App() {
               isAdmin={currentUser.role === 'admin'}
               currentUser={currentUser}
               onOpenQRScanner={() => setShowQRScanner(true)}
-              onOpenAdminPosts={() => {
-                setAdminInitialTab('activityPosts');
-                setShowAdminDashboard(true);
-              }}
+              onOpenAdminPosts={() => handleOpenAdminDashboard('activityPosts')}
               onSelectParticipant={(p) => setIdCardData({ person: p, type: 'peserta' })}
             />
           </div>
@@ -1695,7 +1824,7 @@ export default function App() {
       <footer className="mt-auto border-t border-slate-200 bg-white py-4 px-4 text-center text-xs text-slate-500">
         <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span>⚜️ Gerakan Pramuka Indonesia • Jambore 2026</span>
+            <span>⚜️ Gerakan Pramuka Indonesia • Jambore Penggalang 2026</span>
           </div>
           <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5 flex-wrap">
             <span className="font-semibold text-slate-700">JamboApp</span>
@@ -1723,7 +1852,7 @@ export default function App() {
         onOpenQRScanner={() => setShowQRScanner(true)}
         onOpenMyIDCard={handleOpenMyIDCard}
         onOpenVisitorModal={() => setShowVisitorModal(true)}
-        onOpenAdminDashboard={() => setShowAdminDashboard(true)}
+        onOpenAdminDashboard={() => handleOpenAdminDashboard('docs')}
       />
 
       {/* QR Code Verification Modal */}
@@ -1768,6 +1897,11 @@ export default function App() {
           onOpenVisitorRegister={() => {
             setShowRoleModal(false);
             setShowVisitorModal(true);
+          }}
+          onOpenAuthModal={(tab) => {
+            setShowRoleModal(false);
+            setAuthModalTab(tab || 'login');
+            setShowAuthModal(true);
           }}
           onClose={() => setShowRoleModal(false)}
         />
@@ -1820,9 +1954,10 @@ export default function App() {
         />
       )}
 
-      {/* Admin Dashboard Modal */}
-      {showAdminDashboard && (
+      {/* Admin Dashboard Modal - Strict RBAC Enforced */}
+      {currentUser.role === 'admin' && showAdminDashboard && (
         <AdminDashboard
+          currentUser={currentUser}
           documentation={documentation}
           banners={banners}
           schedules={schedules}
@@ -1831,6 +1966,8 @@ export default function App() {
           activityPosts={activityPosts}
           initialTab={adminInitialTab}
           targetBannerToEdit={adminTargetBanner}
+          mascotUrl={mascotUrl}
+          onUpdateMascotUrl={handleUpdateMascotUrl}
           onUpdateDocumentation={(docs) => setDocumentation(docs)}
           onUpdateBanners={(b) => setBanners(b)}
           onUpdateSchedules={(s) => setSchedules(s)}
@@ -1860,6 +1997,143 @@ export default function App() {
           onAwardPoints={handleAwardPoints}
           onClose={() => setSelectedPostForQR(null)}
         />
+      )}
+
+      {/* Welcome Screen using Maskot.png before entering main dashboard */}
+      {showWelcomeScreen && (
+        <WelcomeScreen
+          currentUser={currentUser}
+          onEnterHome={() => setShowWelcomeScreen(false)}
+          onOpenLogin={() => {
+            setShowWelcomeScreen(false);
+            setAuthModalTab('login');
+            setShowAuthModal(true);
+          }}
+          onOpenRegister={() => {
+            setShowWelcomeScreen(false);
+            setAuthModalTab('register');
+            setShowAuthModal(true);
+          }}
+          onDismissForever={(dontShowAgain) => {
+            if (dontShowAgain) {
+              localStorage.setItem(LOCAL_STORAGE_KEYS.WELCOME_SEEN, 'true');
+            }
+          }}
+          mascotUrl={mascotUrl}
+          onUpdateMascotUrl={handleUpdateMascotUrl}
+        />
+      )}
+
+      {/* Login and Registration Modal for Member and Admin */}
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          initialTab={authModalTab}
+          currentUser={currentUser}
+          participants={participants}
+          leaders={leaders}
+          onLoginSuccess={(user) => {
+            setCurrentUser(user);
+            soundEffects.play('success');
+            setToastAlert({
+              title: `Selamat Datang, ${user.name}!`,
+              message: `Anda masuk sebagai ${
+                user.role === 'admin'
+                  ? user.adminLevel === 'superadmin'
+                    ? 'SuperAdmin (Pusat)'
+                    : 'Admin Panitia Pelaksana'
+                  : user.role === 'member'
+                  ? 'Member Pramuka'
+                  : 'Pengunjung'
+              }. Menu dan hak akses telah disesuaikan.`,
+            });
+          }}
+          onRegisterParticipant={(newP) => {
+            setParticipants((prev) => [newP, ...prev]);
+            soundEffects.play('success');
+          }}
+          onRegisterLeader={(newL) => {
+            setLeaders((prev) => [newL, ...prev]);
+            soundEffects.play('success');
+          }}
+          onClose={() => setShowAuthModal(false)}
+        />
+      )}
+
+      {/* Mascot Detail & Philosophy Modal */}
+      <MascotDetailModal
+        isOpen={showMascotDetail}
+        currentUser={currentUser}
+        onClose={() => setShowMascotDetail(false)}
+        mascotUrl={mascotUrl}
+        onUpdateMascotUrl={handleUpdateMascotUrl}
+        onOpenAuthModal={(tab) => {
+          setShowMascotDetail(false);
+          setAuthModalTab(tab || 'login');
+          setShowAuthModal(true);
+        }}
+      />
+
+      {/* Security Access Restriction Alert Modal */}
+      {accessAlert && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl border border-red-200">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-700">
+                <ShieldAlert className="h-6 w-6 text-red-700" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-slate-900">
+                  {accessAlert.title}
+                </h3>
+                <span className="inline-block rounded-full bg-red-100 px-2.5 py-0.5 text-[10px] font-bold text-red-800 mt-0.5">
+                  Proteksi Keamanan Berlapis
+                </span>
+              </div>
+            </div>
+
+            <div className="py-4 space-y-3 text-xs text-slate-600">
+              <p className="leading-relaxed text-slate-700">
+                {accessAlert.message}
+              </p>
+
+              <div className="rounded-2xl bg-amber-50 p-3.5 border border-amber-200 text-amber-900 space-y-1">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                  Status Pengguna Saat Ini:
+                </div>
+                <div className="font-semibold text-slate-900">
+                  {currentUser.name} ({currentUser.role === 'admin' ? 'Admin Panitia' : currentUser.role === 'member' ? 'Member Pramuka' : 'Pengunjung Umum / Tamu'})
+                </div>
+                <div className="text-[11px] text-amber-800">
+                  Tindakan: Silakan login dengan akun terdaftar sebagai SuperAdmin atau Admin Panitia untuk membuka fitur ini.
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setAccessAlert(null);
+                  setAuthModalTab('login');
+                  setShowAuthModal(true);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-red-700 py-2.5 text-xs font-bold text-white hover:bg-red-800 transition shadow-md"
+              >
+                <Lock className="h-3.5 w-3.5" />
+                <span>Login SuperAdmin / Admin</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAccessAlert(null)}
+                className="rounded-2xl border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 transition"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
