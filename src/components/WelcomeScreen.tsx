@@ -15,11 +15,12 @@ import {
   BookOpen,
   Info,
 } from 'lucide-react';
-import { CurrentUser } from '../types';
+import { CurrentUser, HomeContent } from '../types';
 import { MascotDetailModal } from './MascotDetailModal';
 
 interface WelcomeScreenProps {
   currentUser: CurrentUser;
+  homeContent?: HomeContent;
   onEnterHome: () => void;
   onOpenLogin: () => void;
   onOpenRegister: () => void;
@@ -30,6 +31,7 @@ interface WelcomeScreenProps {
 
 export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   currentUser,
+  homeContent,
   onEnterHome,
   onOpenLogin,
   onOpenRegister,
@@ -76,15 +78,31 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         {/* Top Header Banner */}
         <div className="relative overflow-hidden border-b border-red-900/40 bg-gradient-to-r from-red-950 via-red-900 to-red-950 px-6 py-5 text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-400/40 bg-amber-500/10 px-3.5 py-1 text-xs font-bold text-amber-300">
-            <span className="text-sm">⚜️</span>
-            <span>Gerakan Pramuka • Jambore Penggalang 2026</span>
+            {homeContent?.headerLogoUrl ? (
+              <img
+                src={homeContent.headerLogoUrl}
+                alt="Logo"
+                referrerPolicy="no-referrer"
+                className="h-4 w-4 object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <span className="text-sm">⚜️</span>
+            )}
+            <span>{homeContent?.welcomeHeaderBadge || 'Gerakan Pramuka • Jambore Ranting Sawangan 2026'}</span>
           </div>
 
           <h2 className="mt-2.5 text-2xl sm:text-3xl font-black tracking-tight text-white drop-shadow-sm">
-            Selamat Datang di <span className="text-amber-400">SIEPANG</span>
+            {homeContent?.welcomeTitle || (
+              <>
+                Selamat Datang di <span className="text-amber-400">SIEPANG</span>
+              </>
+            )}
           </h2>
           <p className="mt-1 text-xs sm:text-sm text-red-200 font-medium">
-            Sistem Informasi Terpadu (SiEpangApps) Kegiatan Jambore Penggalang
+            {homeContent?.welcomeSubtitle || 'Sistem Informasi Terpadu Jambore Ranting Sawangan'}
           </p>
         </div>
 
@@ -269,10 +287,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               <span>Daftar Akun Baru</span>
             </button>
           </div>
-
-          <p className="mt-3 text-center text-[10px] text-stone-500">
-            Tersedia akun Member (Peserta/Pembina/Pengunjung) dan Admin (Panitia Pelaksana). Anda dapat berganti akun kapan saja di menu atas.
-          </p>
         </div>
       </div>
 

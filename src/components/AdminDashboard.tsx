@@ -46,6 +46,7 @@ import {
   Database,
   Radio,
   Share2,
+  Globe,
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -270,8 +271,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleSaveHomeContent = (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateHomeContent(formHome);
-    showSavedNotification('Teks dan judul informasi Beranda berhasil diperbarui!');
+    const normalizedLogo = formHome.headerLogoUrl ? normalizeMascotUrl(formHome.headerLogoUrl.trim()) : '';
+    const normalizedFavicon = formHome.appFaviconUrl ? normalizeMascotUrl(formHome.appFaviconUrl.trim()) : '';
+    const updated: HomeContent = {
+      ...formHome,
+      headerLogoUrl: normalizedLogo,
+      appFaviconUrl: normalizedFavicon,
+    };
+    onUpdateHomeContent(updated);
+    showSavedNotification('Logo, Pav Icon (Favicon), dan teks informasi berhasil disimpan!');
+  };
+
+  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Ukuran file logo maksimal 2 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setFormHome((prev) => ({ ...prev, headerLogoUrl: event.target!.result as string }));
+        showSavedNotification('File Logo berhasil dimuat! Klik tombol Simpan di bawah untuk menerapkan.');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleFaviconFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 1 * 1024 * 1024) {
+      alert('Ukuran file favicon maksimal 1 MB.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setFormHome((prev) => ({ ...prev, appFaviconUrl: event.target!.result as string }));
+        showSavedNotification('File Favicon berhasil dimuat! Klik tombol Simpan di bawah untuk menerapkan.');
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleResetHomeContent = () => {
@@ -1140,6 +1182,280 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </div>
                 </div>
 
+                {/* 4. Logo Aplikasi, Pav Icon (Favicon) & Teks Header */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <h5 className="text-xs font-black uppercase tracking-wider text-red-900 flex items-center gap-1.5">
+                      <Crown className="h-4 w-4 text-amber-600" />
+                      <span>Logo Aplikasi &amp; Pav Icon (Favicon)</span>
+                    </h5>
+                    <span className="text-[10px] text-slate-500 font-semibold">
+                      Dapat diedit &amp; diunggah langsung
+                    </span>
+                  </div>
+
+                  {/* LOGO APLIKASI */}
+                  <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                        <ImageIcon className="h-3.5 w-3.5 text-amber-700" />
+                        <span>Logo Utama Aplikasi (Header &amp; Navigasi)</span>
+                      </label>
+                      {formHome.headerLogoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setFormHome({ ...formHome, headerLogoUrl: '' })}
+                          className="text-[10px] font-bold text-red-600 hover:text-red-800 underline"
+                        >
+                          Gunakan Lambang Default (⚜️)
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                      <div className="md:col-span-2 space-y-2">
+                        <input
+                          type="text"
+                          value={formHome.headerLogoUrl || ''}
+                          onChange={(e) => setFormHome({ ...formHome, headerLogoUrl: e.target.value })}
+                          placeholder="Masukkan URL Logo (HTTPS atau link Google Drive)..."
+                          className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-mono focus:border-red-700 focus:outline-none"
+                        />
+                        <div className="flex items-center gap-2">
+                          <label className="inline-flex items-center gap-1.5 rounded-xl border border-amber-400 bg-white px-3 py-1.5 text-[11px] font-bold text-amber-900 hover:bg-amber-100 cursor-pointer shadow-xs transition">
+                            <Upload className="h-3.5 w-3.5 text-amber-700" />
+                            <span>Pilih File Logo dari Perangkat</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleLogoFileUpload}
+                            />
+                          </label>
+                          <span className="text-[10px] text-slate-500">Maksimal 2 MB (PNG, JPG, SVG, WebP)</span>
+                        </div>
+                      </div>
+
+                      {/* Live Preview Logo Header */}
+                      <div className="flex items-center gap-2.5 rounded-xl border border-slate-700 bg-slate-900 p-2.5 text-white shadow-inner">
+                        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-red-950 shadow-md border border-amber-300 overflow-hidden">
+                          {formHome.headerLogoUrl ? (
+                            <img
+                              src={normalizeMascotUrl(formHome.headerLogoUrl)}
+                              alt="Logo Preview"
+                              className="h-full w-full object-contain p-0.5"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <span className="text-lg select-none">⚜️</span>
+                          )}
+                          <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-600 text-[8px] font-black text-white border border-white">
+                            ✓
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-black leading-tight truncate text-white">
+                            {formHome.headerAppTitle || 'SIEPANG'}
+                          </p>
+                          <span className="inline-block rounded-full bg-amber-400/20 px-1 py-0.2 text-[8px] font-bold text-amber-300">
+                            {formHome.headerAppBadge || 'SiEpangApps'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PAV ICON / FAVICON (TAB BROWSER) */}
+                  <div className="rounded-xl border border-blue-200/80 bg-blue-50/40 p-3.5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
+                        <Globe className="h-3.5 w-3.5 text-blue-700" />
+                        <span>Pav Icon / Favicon (Ikon Tab Browser)</span>
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {formHome.headerLogoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormHome({ ...formHome, appFaviconUrl: formHome.headerLogoUrl });
+                              showSavedNotification('Pav Icon disamakan dengan Logo Aplikasi!');
+                            }}
+                            className="text-[10px] font-bold text-blue-700 hover:text-blue-900 underline"
+                          >
+                            Samakan dgn Logo
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setFormHome({ ...formHome, appFaviconUrl: '/MASKOT.png' })}
+                          className="text-[10px] font-bold text-slate-600 hover:text-slate-800 underline"
+                        >
+                          Reset Bawaan (/MASKOT.png)
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                      <div className="md:col-span-2 space-y-2">
+                        <input
+                          type="text"
+                          value={formHome.appFaviconUrl || ''}
+                          onChange={(e) => setFormHome({ ...formHome, appFaviconUrl: e.target.value })}
+                          placeholder="Masukkan URL Favicon (HTTPS, .ico, .png atau link Google Drive)..."
+                          className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-mono focus:border-red-700 focus:outline-none"
+                        />
+                        <div className="flex items-center gap-2">
+                          <label className="inline-flex items-center gap-1.5 rounded-xl border border-blue-400 bg-white px-3 py-1.5 text-[11px] font-bold text-blue-900 hover:bg-blue-100 cursor-pointer shadow-xs transition">
+                            <Upload className="h-3.5 w-3.5 text-blue-700" />
+                            <span>Unggah File Favicon (.ico / .png / .svg)</span>
+                            <input
+                              type="file"
+                              accept="image/*,.ico"
+                              className="hidden"
+                              onChange={handleFaviconFileUpload}
+                            />
+                          </label>
+                          <span className="text-[10px] text-slate-500">Ikon browser 16x16 / 32x32 px</span>
+                        </div>
+                      </div>
+
+                      {/* Live Browser Tab Preview */}
+                      <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-slate-200/80 p-2 text-slate-700 shadow-inner">
+                        <div className="flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 text-[10px] font-bold shadow-xs border border-slate-200 max-w-full truncate">
+                          <img
+                            src={
+                              formHome.appFaviconUrl
+                                ? normalizeMascotUrl(formHome.appFaviconUrl)
+                                : '/MASKOT.png'
+                            }
+                            alt="Favicon Preview"
+                            className="h-3.5 w-3.5 object-contain rounded-xs shrink-0"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/MASKOT.png';
+                            }}
+                          />
+                          <span className="truncate">
+                            {formHome.headerAppTitle || 'SIEPANG'} - {formHome.headerAppBadge || 'SiEpangApps'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Teks Identitas Header */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1 border-t border-slate-100">
+                    <div>
+                      <label className="font-bold text-slate-800 block mb-1">Judul Singkat Aplikasi</label>
+                      <input
+                        type="text"
+                        value={formHome.headerAppTitle || ''}
+                        onChange={(e) => setFormHome({ ...formHome, headerAppTitle: e.target.value })}
+                        placeholder="SIEPANG"
+                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-800 block mb-1">Badge Aplikasi (Pill)</label>
+                      <input
+                        type="text"
+                        value={formHome.headerAppBadge || ''}
+                        onChange={(e) => setFormHome({ ...formHome, headerAppBadge: e.target.value })}
+                        placeholder="SiEpangApps"
+                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-slate-800 block mb-1">Subjudul / Nama Satuan di Header</label>
+                      <input
+                        type="text"
+                        value={formHome.headerSubTitle || ''}
+                        onChange={(e) => setFormHome({ ...formHome, headerSubTitle: e.target.value })}
+                        placeholder="Jambore Ranting Sawangan"
+                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Teks Halaman Welcome Screen */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-3">
+                  <h5 className="text-xs font-black uppercase tracking-wider text-red-900 flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-amber-600" />
+                    <span>Teks &amp; Judul Layar Selamat Datang (Welcome Screen)</span>
+                  </h5>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-slate-800 block mb-1">Label Badge Atas Welcome Screen</label>
+                      <input
+                        type="text"
+                        value={formHome.welcomeHeaderBadge || ''}
+                        onChange={(e) => setFormHome({ ...formHome, welcomeHeaderBadge: e.target.value })}
+                        placeholder="Gerakan Pramuka • Jambore Ranting Sawangan 2026"
+                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-slate-800 block mb-1">Judul Utama Welcome Screen</label>
+                      <input
+                        type="text"
+                        value={formHome.welcomeTitle || ''}
+                        onChange={(e) => setFormHome({ ...formHome, welcomeTitle: e.target.value })}
+                        placeholder="Selamat Datang di SIEPANG"
+                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="font-bold text-slate-800 block mb-1">Subjudul Welcome Screen</label>
+                      <textarea
+                        rows={2}
+                        value={formHome.welcomeSubtitle || ''}
+                        onChange={(e) => setFormHome({ ...formHome, welcomeSubtitle: e.target.value })}
+                        placeholder="Sistem Informasi Terpadu Jambore Ranting Sawangan"
+                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 6. Teks Footer & Hak Cipta */}
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-sm space-y-3">
+                  <h5 className="text-xs font-black uppercase tracking-wider text-red-900 flex items-center gap-1.5">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <span>Teks Footer &amp; Hak Cipta (Copyright)</span>
+                  </h5>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-800 block mb-1">Teks Penyelenggara di Footer</label>
+                      <input
+                        type="text"
+                        value={formHome.footerEventText || ''}
+                        onChange={(e) => setFormHome({ ...formHome, footerEventText: e.target.value })}
+                        placeholder="⚜️ Gerakan Pramuka Indonesia • Jambore Ranting Sawangan 2026"
+                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-800 block mb-1">Teks Hak Cipta / Pengembang</label>
+                      <input
+                        type="text"
+                        value={formHome.footerCopyright || ''}
+                        onChange={(e) => setFormHome({ ...formHome, footerCopyright: e.target.value })}
+                        placeholder="Copyright: Deri Suandi | Rohadi Wijaya"
+                        className="w-full rounded-xl border border-slate-300 p-2 text-xs focus:border-red-700 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Save Button */}
                 <div className="flex justify-end pt-2">
                   <button
@@ -1147,7 +1463,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     className="flex items-center gap-2 rounded-2xl bg-red-800 px-6 py-2.5 text-xs font-black text-amber-200 hover:bg-red-900 shadow-md transition"
                   >
                     <Save className="h-4 w-4 text-amber-400" />
-                    <span>Simpan Seluruh Teks Beranda</span>
+                    <span>Simpan Seluruh Teks &amp; Logo</span>
                   </button>
                 </div>
               </form>

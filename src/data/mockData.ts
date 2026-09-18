@@ -758,9 +758,9 @@ export const INITIAL_VISITORS: import('../types').VisitorRegistration[] = [
 ];
 
 export const INITIAL_HOME_CONTENT: HomeContent = {
-  eventTitle: 'Jambore Penggalang Cabang Gerakan Pramuka 2026',
+  eventTitle: 'Jambore Ranting Sawangan 2026',
   eventSubtitle: 'Membentuk Generasi Muda yang Berkarakter, Tangguh, Mandiri, dan Berwawasan Lingkungan Hidup',
-  eventLocation: 'Bumi Perkemahan Kiara Payung, Jatinangor',
+  eventLocation: 'Bumi Perkemahan Sawangan',
   eventDates: '16 - 19 September 2026',
   eventStatusBadge: 'Bumi Perkemahan • 🟢 Live',
   highlightAgendaTitle: 'Agenda Puncak Perkemahan',
@@ -769,7 +769,20 @@ export const INITIAL_HOME_CONTENT: HomeContent = {
   presenceBoxDescription: 'Setiap peserta & pembina wajib melakukan scan QR pada pos ujian, pengambilan logistik, dan upacara.',
   presenceBoxBadge: 'Presensi Pos',
   sponsorSectionTitle: 'Mitra & Iklan Sponsor Kegiatan',
-  sponsorSectionSubtitle: 'Didukung oleh mitra resmi Gerakan Pramuka Jambore Penggalang 2026',
+  sponsorSectionSubtitle: 'Didukung oleh mitra resmi Gerakan Pramuka Jambore Ranting Sawangan 2026',
+  // Header, Branding, Logo & Favicon
+  headerAppTitle: 'SIEPANG',
+  headerAppBadge: 'SiEpangApps',
+  headerSubTitle: 'Jambore Ranting Sawangan',
+  headerLogoUrl: '',
+  appFaviconUrl: '',
+  // Welcome Screen
+  welcomeHeaderBadge: 'Gerakan Pramuka • Jambore Ranting Sawangan 2026',
+  welcomeTitle: 'Selamat Datang di SIEPANG',
+  welcomeSubtitle: 'Sistem Informasi Terpadu Jambore Ranting Sawangan',
+  // Footer & Copyright
+  footerEventText: '⚜️ Gerakan Pramuka Indonesia • Jambore Ranting Sawangan 2026',
+  footerCopyright: 'Copyright: Deri Suandi | Rohadi Wijaya',
 };
 
 

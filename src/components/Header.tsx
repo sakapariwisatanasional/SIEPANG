@@ -22,11 +22,12 @@ import {
   Layers,
   LogOut,
 } from 'lucide-react';
-import { CurrentUser } from '../types';
+import { CurrentUser, HomeContent } from '../types';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
 interface HeaderProps {
   currentUser: CurrentUser;
+  homeContent?: HomeContent;
   onOpenRoleModal: () => void;
   unreadNotifCount: number;
   onOpenNotifDrawer: () => void;
@@ -47,6 +48,7 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({
   currentUser,
+  homeContent,
   onOpenRoleModal,
   unreadNotifCount,
   onOpenNotifDrawer,
@@ -142,10 +144,23 @@ export const Header: React.FC<HeaderProps> = ({
         
         {/* BRAND IDENTITY (App Emblem + SIEPANG + SiEpangApps Badge) */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-red-950 shadow-md border border-amber-300/80">
-            <span className="text-lg sm:text-xl select-none" role="img" aria-label="Tunas Kelapa Pramuka">
-              ⚜️
-            </span>
+          <div className="relative flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 text-red-950 shadow-md border border-amber-300/80 overflow-hidden">
+            {homeContent?.headerLogoUrl ? (
+              <img
+                src={homeContent.headerLogoUrl}
+                alt="Logo"
+                referrerPolicy="no-referrer"
+                className="h-full w-full object-contain p-0.5"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+            ) : (
+              <span className="text-lg sm:text-xl select-none" role="img" aria-label="Tunas Kelapa Pramuka">
+                ⚜️
+              </span>
+            )}
             <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-600 text-[8px] font-black text-white border border-white">
               ✓
             </span>
@@ -154,14 +169,14 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex flex-col min-w-0 justify-center">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-base sm:text-lg font-black tracking-tight text-white drop-shadow-xs leading-none">
-                SIEPANG
+                {homeContent?.headerAppTitle || 'SIEPANG'}
               </span>
               <span className="rounded-full bg-amber-400/20 border border-amber-300/40 px-1.5 py-0.2 text-[10px] font-black text-amber-300 leading-tight">
-                SiEpangApps
+                {homeContent?.headerAppBadge || 'SiEpangApps'}
               </span>
             </div>
             <span className="text-[10px] text-red-200/90 hidden sm:block truncate leading-tight mt-0.5">
-              Jambore Penggalang Digital
+              {homeContent?.headerSubTitle || 'Jambore Ranting Sawangan'}
             </span>
           </div>
 

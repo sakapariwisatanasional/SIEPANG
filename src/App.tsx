@@ -134,7 +134,11 @@ export default function App() {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEYS.HOME_CONTENT);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed.welcomeSubtitle === 'Sistem Informasi Terpadu (SiEpangApps) Kegiatan Jambore Ranting Sawangan') {
+          parsed.welcomeSubtitle = 'Sistem Informasi Terpadu Jambore Ranting Sawangan';
+        }
+        return { ...INITIAL_HOME_CONTENT, ...parsed };
       } catch {}
     }
     return INITIAL_HOME_CONTENT;
@@ -401,6 +405,18 @@ export default function App() {
     localStorage.setItem(LOCAL_STORAGE_KEYS.HOME_CONTENT, JSON.stringify(homeContent));
   }, [homeContent]);
 
+  // Sinkronisasi Favicon (Pav Icon) Tab Browser secara dinamis
+  useEffect(() => {
+    const faviconHref = homeContent?.appFaviconUrl || '/MASKOT.png';
+    let link: HTMLLinkElement | null = document.querySelector("link[rel*='icon']");
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'icon';
+      document.head.appendChild(link);
+    }
+    link.href = faviconHref;
+  }, [homeContent?.appFaviconUrl]);
+
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEYS.VISITORS, JSON.stringify(visitors));
   }, [visitors]);
@@ -649,6 +665,7 @@ export default function App() {
       {/* Top Header */}
       <Header
         currentUser={currentUser}
+        homeContent={homeContent}
         onOpenRoleModal={() => setShowRoleModal(true)}
         unreadNotifCount={unreadNotifCount}
         onOpenNotifDrawer={() => setShowNotifDrawer(true)}
@@ -2028,22 +2045,12 @@ export default function App() {
       <footer className="mt-auto border-t border-slate-200 bg-white py-4 px-4 text-center text-xs text-slate-500">
         <div className="mx-auto max-w-7xl flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span>⚜️ Gerakan Pramuka Indonesia • Jambore Penggalang 2026</span>
+            <span>{homeContent?.footerEventText || '⚜️ Gerakan Pramuka Indonesia • Jambore Ranting Sawangan 2026'}</span>
           </div>
           <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5 flex-wrap">
-            <span className="font-semibold text-slate-700">SiEpangApps</span>
+            <span className="font-semibold text-slate-700">{homeContent?.headerAppBadge || 'SiEpangApps'}</span>
             <span>|</span>
-            <span>Copyright : Rohadi Wijaya</span>
-            <a
-              href="https://instagram.com/sang_pandunegeri"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-slate-600 hover:text-pink-600 transition font-medium ml-1 group"
-              title="Instagram @sang_pandunegeri"
-            >
-              <Instagram className="h-3.5 w-3.5 text-pink-600 group-hover:scale-110 transition-transform" />
-              <span>sang_pandunegeri</span>
-            </a>
+            <span>{homeContent?.footerCopyright || 'Copyright: Deri Suandi | Rohadi Wijaya'}</span>
           </p>
         </div>
       </footer>
@@ -2208,6 +2215,7 @@ export default function App() {
       {showWelcomeScreen && (
         <WelcomeScreen
           currentUser={currentUser}
+          homeContent={homeContent}
           onEnterHome={() => setShowWelcomeScreen(false)}
           onOpenLogin={() => {
             setShowWelcomeScreen(false);

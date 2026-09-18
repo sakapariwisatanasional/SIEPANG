@@ -192,5 +192,18 @@ export interface HomeContent {
   presenceBoxBadge: string;
   sponsorSectionTitle: string;
   sponsorSectionSubtitle: string;
+  // Header, Branding, Logo & Favicon Settings
+  headerAppTitle?: string;
+  headerAppBadge?: string;
+  headerSubTitle?: string;
+  headerLogoUrl?: string;
+  appFaviconUrl?: string;
+  // Welcome Screen Text & Badge
+  welcomeHeaderBadge?: string;
+  welcomeTitle?: string;
+  welcomeSubtitle?: string;
+  // Footer Text & Copyright
+  footerEventText?: string;
+  footerCopyright?: string;
 }
 
