@@ -1,0 +1,681 @@
+/**
+ * @license
+ * SiEpang - Native-feel Fullscreen QR Scanner & Action Bottom Sheet
+ * Role-aware action dispatch with strict privacy protection for sensitive health records,
+ * and robust peer-appreciation anti-abuse validation (no self-appreciation, daily quota, duplicates).
+ */
+
+import React, { useState } from 'react';
+import {
+  X,
+  Zap,
+  CheckCircle2,
+  Flashlight,
+  UserCheck,
+  HeartHandshake,
+  CalendarCheck,
+  Stethoscope,
+  ChevronRight,
+  Smile,
+  Flame,
+  Leaf,
+  Lightbulb,
+  ShieldCheck,
+  AlertTriangle,
+  Lock,
+} from 'lucide-react';
+import { participantService } from '../../services/participantService';
+import { attendanceService } from '../../services/attendanceService';
+import { pointService, PEER_APPRECIATIONS } from '../../services/pointService';
+import { authService } from '../../services/authService';
+import { activityQrService, ScanResult } from '../../services/activityQrService';
+import { visitorManagementService } from '../../services/visitorManagementService';
+import { qrResolverService } from '../../services/qrResolverService';
+import { Participant, PeerAppreciationType, VisitorRegistration } from '../../types';
+
+interface QrScannerModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccessFeedback?: (message: string) => void;
+}
+
+export const QrScannerModal: React.FC<QrScannerModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccessFeedback,
+}) => {
+  const [flashlightOn, setFlashlightOn] = useState(false);
+  const [scannedParticipant, setScannedParticipant] = useState<Participant | null>(null);
+  const [scannedActivityResult, setScannedActivityResult] = useState<ScanResult | null>(null);
+  const [scannedVisitor, setScannedVisitor] = useState<{ visitor: VisitorRegistration; action: 'ENTRY' | 'EXIT' } | null>(null);
+  const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null);
+  const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(null);
+  const [manualCode, setManualCode] = useState('');
+  const [showPeerModal, setShowPeerModal] = useState(false);
+  const [showHealthModal, setShowHealthModal] = useState(false);
+  const [scanTypeFilter, setScanTypeFilter] = useState<'all' | 'participant' | 'activity' | 'visitor'>('all');
+
+  // Anti-abuse state
+  const [appreciatedToday, setAppreciatedToday] = useState<Set<string>>(new Set());
+  const [dailyQuotaRemaining, setDailyQuotaRemaining] = useState<number>(4);
+
+  const currentUser = authService.getCurrentUser();
+  const currentRole = currentUser?.role || 'viewer';
+  const canViewHealth = currentRole === 'health_officer' || currentRole === 'workspace_admin' || currentRole === 'superadmin';
+  const canCheckIn = currentRole === 'registration_officer' || currentRole === 'workspace_admin' || currentRole === 'superadmin';
+  const canTakeAttendance = currentRole === 'attendance_officer' || currentRole === 'committee' || currentRole === 'workspace_admin' || currentRole === 'superadmin';
+
+  if (!isOpen) return null;
+
+  const handleScanCode = async (rawCode: string) => {
+    setActionErrorMessage(null);
+    const code = rawCode.trim();
+
+    // 1. Check if Activity QR or Checkpoint QR token (Requirements 8-10)
+    const actConfig = activityQrService.getConfigByToken(code);
+    const isActToken = Boolean(actConfig) || code.includes('ACT_') || code.includes('CP_') || code.startsWith('SIEPANG:QR:v1:ACT');
+    if (isActToken) {
+      try {
+        const scanRes = await activityQrService.scanActivityQr(code);
+        setScannedActivityResult(scanRes);
+        return;
+      } catch (err: any) {
+        setActionErrorMessage(err.message || 'Gagal memproses QR Aktivitas.');
+        return;
+      }
+    }
+
+    // 2. Check if Visitor Pass QR token (Requirements 31, 32)
+    const vis = visitorManagementService.getVisitorByToken(code) || visitorManagementService.getVisitorByCode(code);
+    const isVisToken = Boolean(vis) || code.includes('VIS_') || code.toUpperCase().startsWith('VIS-') || code.startsWith('SIEPANG:QR:v1:VIS');
+    if (isVisToken) {
+      const visitor = vis || visitorManagementService.getVisitors().find(v => v.registrationCode.toUpperCase() === code.toUpperCase());
+      if (visitor) {
+        const isInside = visitor.status === 'CHECKED_IN';
+        setScannedVisitor({
+          visitor,
+          action: isInside ? 'EXIT' : 'ENTRY',
+        });
+        return;
+      }
+    }
+
+    // 3. Fallback to Participant Badge lookup
+    const found = participantService.getParticipantByCode(code) || participantService.getParticipants().find(p => p.id === code);
+    if (found) {
+      setScannedParticipant(found);
+    } else {
+      setActionErrorMessage(`Kode QR / Token '${code}' tidak ditemukan atau tidak valid dalam sistem.`);
+    }
+  };
+
+  const handleCheckIn = async () => {
+    if (!scannedParticipant) return;
+    try {
+      await participantService.checkIn(scannedParticipant.id);
+      setActionSuccessMessage(`✅ Check-in berhasil untuk ${scannedParticipant.name}`);
+      setTimeout(() => {
+        setActionSuccessMessage(null);
+        setScannedParticipant(null);
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setActionErrorMessage(err.message);
+    }
+  };
+
+  const handleAttendance = async () => {
+    if (!scannedParticipant) return;
+    try {
+      const res = await attendanceService.recordAttendance(scannedParticipant.code);
+      setActionSuccessMessage(
+        `✅ Presensi Tersimpan (+5 XP) ${res.offline ? '(Tersimpan Offline)' : ''}`
+      );
+      setTimeout(() => {
+        setActionSuccessMessage(null);
+        setScannedParticipant(null);
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setActionErrorMessage(err.message);
+    }
+  };
+
+  const handleOpenPeerModal = () => {
+    if (!scannedParticipant) return;
+
+    // Rule 1: No self-appreciation
+    if (currentUser?.participantCode && scannedParticipant.code === currentUser.participantCode) {
+      setActionErrorMessage('⚠️ Anti-Abuse: Kamu tidak dapat memberikan apresiasi kepada diri sendiri!');
+      return;
+    }
+
+    // Rule 2: Daily limit reached
+    if (dailyQuotaRemaining <= 0) {
+      setActionErrorMessage('⚠️ Kuota apresiasi harianmu (5x per hari) telah habis.');
+      return;
+    }
+
+    // Rule 3: Duplicate recipient on the same day
+    if (appreciatedToday.has(scannedParticipant.id)) {
+      setActionErrorMessage(`⚠️ Kamu sudah memberikan apresiasi kepada ${scannedParticipant.name} hari ini.`);
+      return;
+    }
+
+    setActionErrorMessage(null);
+    setShowPeerModal(true);
+  };
+
+  const handlePeerAppreciation = async (type: PeerAppreciationType) => {
+    if (!scannedParticipant) return;
+    try {
+      await pointService.givePeerAppreciation(scannedParticipant.id, scannedParticipant.name, type);
+      setAppreciatedToday(prev => new Set(prev).add(scannedParticipant.id));
+      setDailyQuotaRemaining(prev => Math.max(0, prev - 1));
+      setShowPeerModal(false);
+      setActionSuccessMessage(`⚜️ Apresiasi "${type}" berhasil dikirim! (+XP Terverifikasi)`);
+      setTimeout(() => {
+        setActionSuccessMessage(null);
+        setScannedParticipant(null);
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setActionErrorMessage(err.message);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/95 text-white animate-in fade-in duration-200">
+      {/* Top Scanner Controls */}
+      <div className="flex items-center justify-between p-4 z-20">
+        <button
+          onClick={onClose}
+          className="p-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+          aria-label="Tutup Pemindai"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="text-center">
+          <div className="text-sm font-bold tracking-tight">Pindai QR Pramuka</div>
+          <div className="text-[11px] text-emerald-400">Arahkan kamera ke ID Card / Digital Pass</div>
+        </div>
+
+        <button
+          onClick={() => setFlashlightOn(!flashlightOn)}
+          className={`p-2.5 rounded-full transition-colors ${
+            flashlightOn ? 'bg-amber-500 text-slate-950 font-bold' : 'bg-white/10 text-white'
+          }`}
+          aria-label="Senter"
+        >
+          <Flashlight className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Camera Viewport Simulation */}
+      <div className="flex-1 relative flex items-center justify-center p-4 sm:p-6 overflow-hidden">
+        {/* Animated Viewport Frame */}
+        <div className="relative w-56 h-56 min-[360px]:w-64 min-[360px]:h-64 sm:w-80 sm:h-80 rounded-3xl border-2 border-emerald-500/60 shadow-[0_0_50px_rgba(16,185,129,0.25)] flex items-center justify-center overflow-hidden">
+          {/* Corner brackets */}
+          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl" />
+          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl" />
+          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl" />
+          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-2xl" />
+
+          {/* Laser scanning line */}
+          <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_15px_#10b981] animate-bounce duration-1000" />
+
+          <div className="text-center px-4 text-xs text-slate-400 pointer-events-none">
+            <div className="text-2xl mb-2 opacity-50">📱</div>
+            Posisikan QR di dalam kotak
+          </div>
+        </div>
+      </div>
+
+      {/* Manual Input Bar */}
+      <div className="p-4 bg-slate-900/90 border-t border-white/10 z-10 backdrop-blur-md">
+        <div className="max-w-md mx-auto space-y-2.5">
+
+          <div className="flex gap-2 pt-1">
+            <input
+              type="text"
+              placeholder="Ketik/Paste token QR (Peserta, Kegiatan, atau Tamu)..."
+              value={manualCode}
+              onChange={e => setManualCode(e.target.value)}
+              className="flex-1 bg-black/50 border border-white/20 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+            />
+            <button
+              onClick={() => {
+                if (manualCode) handleScanCode(manualCode);
+              }}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-semibold text-white transition-colors"
+            >
+              Proses
+            </button>
+          </div>
+
+          {actionErrorMessage && (
+            <div className="p-2.5 rounded-xl bg-rose-950/80 border border-rose-500/40 text-xs text-rose-300 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{actionErrorMessage}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Scanned Participant Action Bottom Sheet */}
+      {scannedParticipant && (
+        <div className="fixed inset-0 z-50 flex items-end bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-lg mx-auto bg-white dark:bg-[#141418] border-t border-[#ECECEF] dark:border-white/10 rounded-t-[28px] p-5 shadow-2xl animate-in slide-in-from-bottom duration-300">
+            {/* Sheet Handle */}
+            <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-600 rounded-full mx-auto mb-4" />
+
+            {actionSuccessMessage ? (
+              <div className="p-6 text-center space-y-2">
+                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto animate-bounce" />
+                <div className="text-base font-bold text-[#171717] dark:text-white">{actionSuccessMessage}</div>
+              </div>
+            ) : (
+              <>
+                {/* Participant Identity Card Header */}
+                <div className="flex items-center gap-3.5 pb-4 border-b border-[#ECECEF] dark:border-white/10">
+                  <img
+                    src={scannedParticipant.photoUrl}
+                    alt={scannedParticipant.name}
+                    className="w-14 h-14 rounded-2xl object-cover border-2 border-emerald-500/40"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-base font-bold text-[#171717] dark:text-white truncate">{scannedParticipant.name}</div>
+                    <div className="text-xs text-slate-600 dark:text-slate-300 truncate">{scannedParticipant.contingentName}</div>
+                    <div className="flex items-center gap-2 text-[11px] text-emerald-600 dark:text-emerald-400 mt-1">
+                      <span className="font-mono">{scannedParticipant.code}</span>
+                      <span>·</span>
+                      <span>{scannedParticipant.subCamp}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs font-bold text-amber-500">⚡ {scannedParticipant.xp} XP</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">Rank #{scannedParticipant.rank}</div>
+                  </div>
+                </div>
+
+                {/* Role-Aware Actions with Strict Privacy */}
+                <div className="pt-4 space-y-2.5">
+                  <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Pilihan Tindakan Sesuai Hak Akses:</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal">
+                      Kuota Apresiasi: {dailyQuotaRemaining}/5
+                    </span>
+                  </div>
+
+                  {/* 1. Presensi Lapangan (Authorized officers only) */}
+                  {canTakeAttendance && (
+                    <button
+                      onClick={handleAttendance}
+                      className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors shadow-md shadow-emerald-950/20 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <CalendarCheck className="w-4 h-4" />
+                        <span>Catat Presensi Kegiatan Lapangan (+5 XP)</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {/* 2. Check-in Registrasi (Registration & Admin only) */}
+                  {canCheckIn && (
+                    <button
+                      onClick={handleCheckIn}
+                      className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-800 dark:text-slate-200 font-semibold text-xs transition-colors border border-[#ECECEF] dark:border-white/10 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                        <span>
+                          {scannedParticipant.checkedIn ? 'Peserta Sudah Check-in (Perbarui)' : 'Check-in Kedatangan Buper'}
+                        </span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    </button>
+                  )}
+
+                  {/* 3. Peer Appreciation (With Anti-Abuse Rules) */}
+                  <button
+                    onClick={handleOpenPeerModal}
+                    className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 font-semibold text-xs transition-colors border border-amber-500/30 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <HeartHandshake className="w-4 h-4 text-amber-500" />
+                      <span>Beri Tanda Apresiasi Kawan Pramuka</span>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-amber-500" />
+                  </button>
+
+                  {/* 4. Rekam Medis (HEALTH OFFICER ONLY — PRIVACY ENFORCED) */}
+                  {canViewHealth ? (
+                    <button
+                      onClick={() => setShowHealthModal(true)}
+                      className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-700 dark:text-rose-300 font-semibold text-xs transition-colors border border-rose-500/30 cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Stethoscope className="w-4 h-4 text-rose-500" />
+                        <span>Rekam Medis & Riwayat Alergi (Petugas Medis)</span>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-rose-500" />
+                    </button>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-black/30 border border-[#ECECEF] dark:border-white/5 text-[11px] text-slate-500 flex items-center gap-2">
+                      <Lock className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600" />
+                      <span>Data medis & kontak darurat dilindungi privasi (Khusus Petugas Medis).</span>
+                    </div>
+                  )}
+
+                  {/* Cancel / Close */}
+                  <button
+                    onClick={() => {
+                      setScannedParticipant(null);
+                      setActionErrorMessage(null);
+                    }}
+                    className="w-full py-2 text-center text-xs text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                  >
+                    Kembali ke Kamera
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Peer Appreciation Modal */}
+      {showPeerModal && scannedParticipant && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-sm bg-white dark:bg-[#141418] border border-amber-500/30 rounded-[28px] p-5 space-y-4 shadow-2xl">
+            <div className="text-center space-y-1">
+              <div className="text-sm font-bold text-[#171717] dark:text-white">Apresiasi Kawan Kemah ⚜️</div>
+              <div className="text-xs text-slate-600 dark:text-slate-300">
+                Pilih karakter kepramukaan yang paling menonjol pada <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{scannedParticipant.name}</span>:
+              </div>
+              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                Sisa kuota harian: {dailyQuotaRemaining} dari 5 apresiasi
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              {PEER_APPRECIATIONS.map(item => (
+                <button
+                  key={item.type}
+                  onClick={() => handlePeerAppreciation(item.type)}
+                  className="w-full flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-white/5 hover:bg-amber-500/15 border border-[#ECECEF] dark:border-white/10 text-left transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm">
+                      {item.type === 'Helpful' && '🤝'}
+                      {item.type === 'Friendly' && '😊'}
+                      {item.type === 'Scout Spirit' && '⚜️'}
+                      {item.type === 'Inspiring' && '💡'}
+                      {item.type === 'Eco Action' && '🌱'}
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#171717] dark:text-white">{item.label}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400">{item.type}</div>
+                    </div>
+                  </div>
+                  <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+{item.xp} XP</div>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowPeerModal(false)}
+              className="w-full py-2 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Health Officer Confidential Record Modal */}
+      {showHealthModal && scannedParticipant && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="w-full max-w-sm bg-white dark:bg-[#141418] border border-rose-500/40 rounded-[28px] p-5 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-[#ECECEF] dark:border-white/10">
+              <div className="flex items-center gap-2 text-rose-600 dark:text-rose-300 font-bold text-xs">
+                <Stethoscope className="w-4 h-4 text-rose-500" />
+                <span>Rekam Medis Rahasia Peserta</span>
+              </div>
+              <button onClick={() => setShowHealthModal(false)} className="w-6 h-6 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-[#171717] dark:hover:text-white flex items-center justify-center">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="p-3 bg-slate-50 dark:bg-black/30 rounded-2xl border border-[#ECECEF] dark:border-white/5 space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Nama:</span>
+                  <span className="font-bold text-[#171717] dark:text-white">{scannedParticipant.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Golongan Darah:</span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400">{scannedParticipant.bloodType || 'O+'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Kontak Darurat:</span>
+                  <span className="font-mono text-emerald-600 dark:text-emerald-400">{scannedParticipant.emergencyContact || '081234567890'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Riwayat Penyakit:</span>
+                  <span className="text-amber-700 dark:text-amber-300 font-semibold">{scannedParticipant.medicalNotes || 'Tidak ada riwayat'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500 dark:text-slate-400">Lokasi Tenda:</span>
+                  <span className="text-[#171717] dark:text-white">{scannedParticipant.tentNumber} ({scannedParticipant.subCamp})</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowHealthModal(false)}
+              className="w-full py-2.5 bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-800 dark:text-white rounded-xl text-xs font-semibold"
+            >
+              Tutup Rekam Medis
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Activity QR Scan Result Modal (Requirements 8-10, 11, 12, 14, 15) */}
+      {scannedActivityResult && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+          <div className="w-full max-w-sm bg-gradient-to-b from-[#14291c] to-[#0c1810] border border-emerald-500/40 rounded-3xl p-6 shadow-2xl text-center space-y-4">
+            {scannedActivityResult.success ? (
+              <>
+                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto text-emerald-400 text-3xl animate-bounce">
+                  ✅
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-wider font-bold text-emerald-400 font-mono">
+                    Kegiatan Tercatat
+                  </div>
+                  <h3 className="text-lg font-black text-white mt-1">
+                    {scannedActivityResult.activityTitle}
+                  </h3>
+                  {scannedActivityResult.scheduleTime && (
+                    <p className="text-xs text-slate-300 mt-1">
+                      {scannedActivityResult.scheduleTime} · {scannedActivityResult.location || 'Bumi Perkemahan'}
+                    </p>
+                  )}
+                </div>
+
+                {scannedActivityResult.xpAwarded > 0 && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-black text-lg">
+                    <Zap className="w-5 h-5 fill-amber-400 text-amber-400" />
+                    <span>+{scannedActivityResult.xpAwarded} XP</span>
+                  </div>
+                )}
+
+                {scannedActivityResult.checkpointProgress && (
+                  <div className="p-3 rounded-2xl bg-black/40 border border-white/10 text-xs text-slate-300 text-left space-y-1">
+                    <div className="font-semibold text-emerald-300 flex items-center justify-between">
+                      <span>Progres Pos: {scannedActivityResult.checkpointProgress.checkpointName}</span>
+                      <span className="text-[10px] font-mono text-emerald-400">
+                        {scannedActivityResult.checkpointProgress.current}/{scannedActivityResult.checkpointProgress.total}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-400 rounded-full transition-all"
+                        style={{
+                          width: `${(scannedActivityResult.checkpointProgress.current / scannedActivityResult.checkpointProgress.total) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    {scannedActivityResult.checkpointProgress.completed && (
+                      <div className="text-[11px] text-amber-300 font-bold">
+                        🎉 Selamat! Seluruh pos tantangan telah berhasil diselesaikan!
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <p className="text-xs text-emerald-200/90 italic font-medium">
+                  Semangat mengikuti kegiatan!
+                </p>
+
+                <button
+                  onClick={() => {
+                    setScannedActivityResult(null);
+                    onClose();
+                  }}
+                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-xs shadow-lg transition-transform active:scale-95"
+                >
+                  Selesai
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center mx-auto text-amber-400 text-2xl">
+                  {scannedActivityResult.isDuplicate ? 'ℹ️' : '⚠️'}
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-wider font-bold text-amber-400 font-mono">
+                    {scannedActivityResult.isDuplicate ? 'Kegiatan Sudah Tercatat' : 'Pemberitahuan Scan'}
+                  </div>
+                  <h3 className="text-base font-bold text-white mt-1">
+                    {scannedActivityResult.activityTitle}
+                  </h3>
+                  <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                    {scannedActivityResult.message}
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setScannedActivityResult(null)}
+                  className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-semibold text-xs transition-colors"
+                >
+                  Tutup
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Visitor Gate Check-in & Check-out Modal (Requirements 31, 32, 33) */}
+      {scannedVisitor && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+          <div className="w-full max-w-sm bg-gradient-to-b from-[#142319] to-[#0c160f] border border-emerald-500/40 rounded-3xl p-6 shadow-2xl space-y-4">
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Pos Gerbang Masuk & Keluar</span>
+              </div>
+              <h3 className="text-base font-black text-white">
+                {scannedVisitor.action === 'EXIT' ? 'Visitor Sedang Berada di Area' : '✅ Visitor Valid'}
+              </h3>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-black/40 border border-white/10 space-y-2 text-left">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-white">{scannedVisitor.visitor.name}</span>
+                <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                  {scannedVisitor.visitor.category}
+                </span>
+              </div>
+              <div className="text-xs text-slate-300 space-y-1">
+                <div>Pass: <strong className="font-mono text-emerald-400">{scannedVisitor.visitor.registrationCode}</strong></div>
+                <div>
+                  Mengunjungi:{' '}
+                  <strong className="text-white">{scannedVisitor.visitor.personVisited.targetName}</strong>{' '}
+                  <span className="text-slate-400 text-[11px]">({scannedVisitor.visitor.personVisited.targetDetail})</span>
+                </div>
+                <div>Tujuan: <span className="text-slate-300">{scannedVisitor.visitor.purpose}</span></div>
+                {scannedVisitor.visitor.vehicleInfo && (
+                  <div>Kendaraan: <span className="text-amber-300 font-mono text-[11px]">{scannedVisitor.visitor.vehicleInfo}</span></div>
+                )}
+                {scannedVisitor.action === 'EXIT' && (
+                  <div className="pt-1 text-[11px] text-amber-400">
+                    Check-in pada: {scannedVisitor.visitor.currentVisitSession?.checkinAt || 'Hari ini'}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setScannedVisitor(null)}
+                className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-semibold text-xs transition-colors"
+              >
+                Batal
+              </button>
+              {scannedVisitor.action === 'EXIT' ? (
+                <button
+                  onClick={async () => {
+                    const res = await visitorManagementService.processGateScan(
+                      scannedVisitor.visitor.qrToken,
+                      'gate_utama',
+                      currentUser?.name || 'Petugas Gate',
+                      { forceCheckout: true }
+                    );
+                    setActionSuccessMessage(res.message);
+                    setScannedVisitor(null);
+                    setTimeout(() => {
+                      setActionSuccessMessage(null);
+                      onClose();
+                    }, 1500);
+                  }}
+                  className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-2xl font-bold text-xs shadow-md"
+                >
+                  [ Check Out ]
+                </button>
+              ) : (
+                <button
+                  onClick={async () => {
+                    const res = await visitorManagementService.processGateScan(
+                      scannedVisitor.visitor.qrToken,
+                      'gate_utama',
+                      currentUser?.name || 'Petugas Gate'
+                    );
+                    if (res.success) {
+                      setActionSuccessMessage(`✅ ${scannedVisitor.visitor.name} diizinkan masuk buper!`);
+                    } else {
+                      setActionErrorMessage(res.message);
+                    }
+                    setScannedVisitor(null);
+                    setTimeout(() => {
+                      setActionSuccessMessage(null);
+                      onClose();
+                    }, 1500);
+                  }}
+                  className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-bold text-xs shadow-md"
+                >
+                  [ Izinkan Masuk ]
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

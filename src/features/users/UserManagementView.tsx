@@ -1,0 +1,1150 @@
+/**
+ * @license
+ * SiEpang - Online User Management & RBAC Permissions Matrix
+ * Manages authorized users, role assignments, activation status,
+ * and structured permission matrices across 13 operational domains.
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Users,
+  Shield,
+  ShieldCheck,
+  UserPlus,
+  Search,
+  Filter,
+  CheckCircle2,
+  XCircle,
+  Edit2,
+  Key,
+  Lock,
+  Layers,
+  Building2,
+  Calendar,
+  Clock,
+  Sparkles,
+  AlertTriangle,
+  RefreshCw,
+  X,
+  Check,
+  ChevronRight,
+  ChevronDown,
+  Info,
+  Smartphone,
+  Laptop,
+  Trash2,
+  LogOut,
+  Eye,
+  UserCheck,
+} from 'lucide-react';
+import { UserRole, Workspace, TrustedDeviceRecord } from '../../types';
+import {
+  userManagementService,
+  ManagedUser,
+  PERMISSION_GROUPS,
+  ROLE_PERMISSION_MAP,
+} from '../../services/userManagementService';
+import { workspaceService } from '../../services/workspaceService';
+import { organizationService } from '../../services/organizationService';
+import { onlineSessionService } from '../../services/onlineSessionService';
+import { profilePhotoService } from '../../services/profilePhotoService';
+import { ProfilePhotoUploader } from '../../components/media/ProfilePhotoUploader';
+
+const ROLE_LABELS: Record<UserRole, { label: string; badge: string; desc: string }> = {
+  superadmin: {
+    label: 'SuperAdmin Kwartir',
+    badge: 'bg-red-950/80 text-red-300 border-red-500/30',
+    desc: 'Akses penuh platform multi-workspace & provisioning kwartir.',
+  },
+  workspace_admin: {
+    label: 'Admin Kwartir Daerah/Cabang',
+    badge: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/30',
+    desc: 'Pengelola penuh workspace, event, dan konfigurasi daerah.',
+  },
+  event_admin: {
+    label: 'Admin Event / Panitia Inti',
+    badge: 'bg-sky-950/80 text-sky-300 border-sky-500/30',
+    desc: 'Pengatur jadwal, kavling tenda, pendaftaran, dan aktivitas.',
+  },
+  kontingen_admin: {
+    label: 'Pembina / Pinkon',
+    badge: 'bg-amber-950/80 text-amber-300 border-amber-500/30',
+    desc: 'Pengelola anggota kontingen cabang atau ranting.',
+  },
+  registration_officer: {
+    label: 'Petugas Verifikasi Berkas',
+    badge: 'bg-indigo-950/80 text-indigo-300 border-indigo-500/30',
+    desc: 'Verifikator dokumen KTA, asuransi, dan mandat peserta.',
+  },
+  attendance_officer: {
+    label: 'Petugas Presensi Buper',
+    badge: 'bg-emerald-950/80 text-emerald-300 border-emerald-500/30',
+    desc: 'Pindai barcode QR check-in gapura & checkpoint.',
+  },
+  judge: {
+    label: 'Dewan Juri Lomba',
+    badge: 'bg-purple-950/80 text-purple-300 border-purple-500/30',
+    desc: 'Penilai karya, rubrik skor lomba, dan pengunci nilai.',
+  },
+  health_officer: {
+    label: 'Petugas Medis / P3K',
+    badge: 'bg-rose-950/80 text-rose-300 border-rose-500/30',
+    desc: 'Catatan rekam medis, rujukan, dan insiden posko kesehatan.',
+  },
+  logistic_officer: {
+    label: 'Petugas Gudang Logistik',
+    badge: 'bg-orange-950/80 text-orange-300 border-orange-500/30',
+    desc: 'Penerimaan dan distribusi perlengkapan perkemahan.',
+  },
+  ceremony_officer: {
+    label: 'Petugas Upacara & Protokoler',
+    badge: 'bg-cyan-950/80 text-cyan-300 border-cyan-500/30',
+    desc: 'Pengatur apel pagi/sore dan penataan barisan kontingen.',
+  },
+  documentation_officer: {
+    label: 'Petugas Dokumentasi & Media',
+    badge: 'bg-violet-950/80 text-violet-300 border-violet-500/30',
+    desc: 'Pengunggah dan kurator foto album Drive serta video kegiatan.',
+  },
+  publication_officer: {
+    label: 'Petugas Publikasi & Sponsor',
+    badge: 'bg-amber-950/80 text-amber-300 border-amber-500/30',
+    desc: 'Pengelola hero banner, pengumuman publik, dan logo sponsor.',
+  },
+  committee: {
+    label: 'Panitia Lapangan',
+    badge: 'bg-teal-950/80 text-teal-300 border-teal-500/30',
+    desc: 'Fasilitator pos kegiatan dan giat perkemahan.',
+  },
+  viewer: {
+    label: 'Pengamat / Tamu Kehormatan',
+    badge: 'bg-slate-900 text-slate-300 border-slate-700',
+    desc: 'Akses lihat jadwal publik dan papan perolehan nilai.',
+  },
+  participant: {
+    label: 'Peserta Pramuka Aktif',
+    badge: 'bg-green-950/80 text-green-300 border-green-500/30',
+    desc: 'Pramuka Penggalang, Penegak, atau Pandega peserta kegiatan.',
+  },
+};
+
+export const UserManagementView: React.FC = () => {
+  const [users, setUsers] = useState<ManagedUser[]>(userManagementService.getUsers());
+  const [workspaces, setWorkspaces] = useState<Workspace[]>(workspaceService.getWorkspaces());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('ALL');
+  const [activeTab, setActiveTab] = useState<'users' | 'matrix' | 'session'>('users');
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<Partial<ManagedUser> | null>(null);
+
+  // User Detail Modal State (Requirement 15)
+  const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
+  const [detailDevices, setDetailDevices] = useState<TrustedDeviceRecord[]>([]);
+  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
+
+  const handleOpenDetail = async (user: ManagedUser) => {
+    setDetailUser(user);
+    setIsLoadingDevices(true);
+    const devs = await userManagementService.listUserTrustedDevices(user.id);
+    setDetailDevices(devs);
+    setIsLoadingDevices(false);
+  };
+
+  const handleRevokeDeviceFromDetail = async (devicePublicId: string) => {
+    if (confirm('Cabut akses untuk perangkat terpercaya ini?')) {
+      await userManagementService.revokeUserDevice(devicePublicId);
+      if (detailUser) {
+        const devs = await userManagementService.listUserTrustedDevices(detailUser.id);
+        setDetailDevices(devs);
+      }
+    }
+  };
+
+  // Selected Role for Matrix inspector
+  const [matrixRole, setMatrixRole] = useState<UserRole>('workspace_admin');
+  const [expandedGroup, setExpandedGroup] = useState<string | null>('grp_event');
+
+  type UserSubTab = 'ALL' | 'NEW' | 'UNASSIGNED' | 'OFFICERS' | 'ADMINS' | 'DISABLED';
+  const [userSubTab, setUserSubTab] = useState<UserSubTab>('ALL');
+
+  useEffect(() => {
+    const unsub = userManagementService.subscribe(() => {
+      setUsers(userManagementService.getUsers());
+    });
+    return () => unsub();
+  }, []);
+
+  const filteredUsers = useMemo(() => {
+    let result = users;
+
+    // Filter by Sub-Tab (Requirement 15)
+    if (userSubTab === 'NEW') {
+      result = result.filter(u => u.lastLogin === 'Belum pernah' || u.lastLogin === 'Belum pernah login');
+    } else if (userSubTab === 'UNASSIGNED') {
+      result = result.filter(u => u.role === 'viewer');
+    } else if (userSubTab === 'OFFICERS') {
+      const officerRoles: UserRole[] = [
+        'registration_officer',
+        'attendance_officer',
+        'judge',
+        'health_officer',
+        'logistic_officer',
+        'ceremony_officer',
+        'documentation_officer',
+        'publication_officer',
+        'committee',
+        'kontingen_admin',
+      ];
+      result = result.filter(u => officerRoles.includes(u.role));
+    } else if (userSubTab === 'ADMINS') {
+      const adminRoles: UserRole[] = ['superadmin', 'workspace_admin', 'event_admin'];
+      result = result.filter(u => adminRoles.includes(u.role));
+    } else if (userSubTab === 'DISABLED') {
+      result = result.filter(u => u.status === 'inactive');
+    }
+
+    if (selectedRoleFilter !== 'ALL') {
+      result = result.filter(u => u.role === selectedRoleFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        u =>
+          u.name.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          (u.organizationName && u.organizationName.toLowerCase().includes(q))
+      );
+    }
+    return result;
+  }, [users, userSubTab, selectedRoleFilter, searchQuery]);
+
+  const handleToggleStatus = (userId: string) => {
+    userManagementService.toggleUserStatus(userId);
+  };
+
+  const handleRevokeRole = async (userId: string) => {
+    if (confirm('Cabut seluruh peran khusus pengguna ini? Pengguna akan kembali menjadi akun standar tanpa hak akses operasional.')) {
+      await userManagementService.revokeUserRole(userId);
+    }
+  };
+
+  const handleLogoutAllDevices = async (userId: string) => {
+    if (confirm('Keluarkan pengguna ini dari semua perangkat terpercaya? Sesi aktif di seluruh browser akan dicabut.')) {
+      await userManagementService.logoutUserFromAllDevices(userId);
+      alert('Pengguna berhasil dikeluarkan dari semua perangkat.');
+    }
+  };
+
+  const handleOpenAdd = () => {
+    const activeWs = workspaceService.getCurrentWorkspace();
+    setEditingUser({
+      name: '',
+      email: '',
+      role: 'event_admin',
+      workspaceId: activeWs?.id || workspaces[0]?.id || '',
+      organizationName: activeWs?.organization || workspaces[0]?.organization || 'Kwartir Gerakan Pramuka',
+      status: 'active',
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (user: ManagedUser) => {
+    setEditingUser({ ...user });
+    setIsModalOpen(true);
+  };
+
+  const handleSaveUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser || !editingUser.name || !editingUser.email) {
+      alert('Nama dan Email wajib diisi!');
+      return;
+    }
+
+    const entityType =
+      editingUser.role === 'judge' ? 'JUDGE' :
+      editingUser.role === 'kontingen_admin' ? 'OFFICIAL' : 'COMMITTEE';
+
+    if (!profilePhotoService.isSubmissionAllowed(entityType, editingUser.profile_photo_status)) {
+      alert(`⚠️ Foto profil resmi wajib diunggah untuk peran ${editingUser.role || 'pengguna'}!`);
+      return;
+    }
+
+    const activeWs = workspaceService.getCurrentWorkspace();
+    if (editingUser.id) {
+      userManagementService.updateUser(editingUser.id, editingUser);
+    } else {
+      userManagementService.addUser({
+        name: editingUser.name,
+        email: editingUser.email,
+        role: editingUser.role || 'committee',
+        workspaceId: editingUser.workspaceId || activeWs?.id || workspaces[0]?.id || '',
+        organizationName: editingUser.organizationName || activeWs?.organization || workspaces[0]?.organization || 'Kwartir Gerakan Pramuka',
+        status: editingUser.status || 'active',
+      });
+    }
+
+    setIsModalOpen(false);
+    setEditingUser(null);
+  };
+
+  return (
+    <div className="space-y-6 max-w-6xl mx-auto pb-12">
+      {/* Top Banner & Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 sm:p-6 rounded-[28px] shadow-xs">
+        <div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#E1306C] mb-2">
+            <Shield className="w-3.5 h-3.5" />
+            <span>Manajemen Pengguna & RBAC Otoritatif</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-[#171717] dark:text-white tracking-tight">
+            Akses Pengguna & Matriks Hak Akses
+          </h1>
+          <p className="text-xs text-[#6B7280] dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+            Kelola panitia, pembina kontingen, dewan juri, dan petugas posko dengan pembatasan
+            otorisasi berbasis backend (RBAC) pada 13 domain operasional kepramukaan.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleOpenAdd}
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 transition-all min-h-[44px] cursor-pointer"
+            title="Undang / Tambah Pengguna Baru"
+            aria-label="Undang / Tambah Pengguna"
+          >
+            <UserPlus className="w-4 h-4 stroke-[3]" />
+            <span className="hidden sm:inline">Tambah Pengguna</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs navigation */}
+      <div className="flex items-center gap-2 border-b border-[#ECECEF] dark:border-white/10 pb-2">
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 min-h-[40px] cursor-pointer ${
+            activeTab === 'users'
+              ? 'bg-[#171717] text-white dark:bg-white dark:text-[#171717] shadow-xs'
+              : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Daftar Pengguna ({users.length})</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('matrix')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 min-h-[40px] cursor-pointer ${
+            activeTab === 'matrix'
+              ? 'bg-[#171717] text-white dark:bg-white dark:text-[#171717] shadow-xs'
+              : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
+          }`}
+        >
+          <Key className="w-4 h-4" />
+          <span>Matriks Izin (13 Domain RBAC)</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('session')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+            activeTab === 'session'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          <span>Sesi Online & Keamanan Backend</span>
+        </button>
+      </div>
+
+      {/* TAB 1: USERS LIST */}
+      {activeTab === 'users' && (
+        <div className="space-y-4">
+          {/* Sub-Tabs Navigation (Requirement 15) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {[
+              { id: 'ALL' as UserSubTab, label: 'Semua Pengguna', count: users.length },
+              { id: 'NEW' as UserSubTab, label: 'Baru Terdaftar', count: users.filter(u => u.lastLogin === 'Belum pernah' || u.lastLogin === 'Belum pernah login').length },
+              { id: 'UNASSIGNED' as UserSubTab, label: 'Belum Ditugaskan', count: users.filter(u => u.role === 'viewer').length },
+              { id: 'OFFICERS' as UserSubTab, label: 'Petugas', count: users.filter(u => !['superadmin', 'workspace_admin', 'event_admin', 'viewer'].includes(u.role)).length },
+              { id: 'ADMINS' as UserSubTab, label: 'Admin', count: users.filter(u => ['superadmin', 'workspace_admin', 'event_admin'].includes(u.role)).length },
+              { id: 'DISABLED' as UserSubTab, label: 'Dinonaktifkan', count: users.filter(u => u.status === 'inactive').length },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setUserSubTab(tab.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                  userSubTab === tab.id
+                    ? 'bg-[#E1306C] text-white shadow-xs'
+                    : 'bg-white dark:bg-[#141418] text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white border border-[#ECECEF] dark:border-white/10'
+                }`}
+              >
+                <span>{tab.label}</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  userSubTab === tab.id ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-slate-400'
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Search & Role Filter Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-[#141418] p-3.5 rounded-2xl border border-[#ECECEF] dark:border-white/10 shadow-2xs">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Cari berdasarkan nama, email, atau kwartir..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E1306C]"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              <select
+                value={selectedRoleFilter}
+                onChange={e => setSelectedRoleFilter(e.target.value)}
+                className="p-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+              >
+                <option value="ALL">Semua Peran (Roles)</option>
+                {Object.entries(ROLE_LABELS).map(([key, val]) => (
+                  <option key={key} value={key}>
+                    {val.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* User Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {filteredUsers.map(user => {
+              const roleMeta = ROLE_LABELS[user.role] || {
+                label: user.role,
+                badge: 'bg-slate-800 text-slate-200 border-white/10',
+                desc: '',
+              };
+              const ws = workspaces.find(w => w.id === user.workspaceId);
+
+              return (
+                <div
+                  key={user.id}
+                  className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/40 transition-all space-y-3.5 flex flex-col justify-between shadow-xs"
+                >
+                  <div className="space-y-3">
+                    {/* User Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={user.avatar}
+                          alt={user.name}
+                          className="w-10 h-10 rounded-2xl object-cover border border-[#ECECEF] dark:border-white/10 bg-[#FAFAFA] dark:bg-slate-800 shrink-0"
+                        />
+                        <div>
+                          <h3 className="text-xs font-bold text-[#171717] dark:text-white leading-tight">{user.name}</h3>
+                          <div className="text-[11px] text-[#6B7280] dark:text-slate-400 truncate max-w-[170px]">{user.email}</div>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => handleToggleStatus(user.id)}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border transition-colors cursor-pointer ${
+                          user.status === 'active'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-500/30'
+                            : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-500/30'
+                        }`}
+                      >
+                        {user.status === 'active' ? 'Aktif' : 'Nonaktif'}
+                      </button>
+                    </div>
+
+                    {/* Role Badge */}
+                    <div className="space-y-1">
+                      <div className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border inline-block ${roleMeta.badge}`}>
+                        {roleMeta.label}
+                      </div>
+                      <p className="text-[10px] text-[#6B7280] dark:text-slate-400">{roleMeta.desc}</p>
+                    </div>
+
+                    {/* Scope details */}
+                    <div className="bg-[#FAFAFA] dark:bg-white/5 p-2.5 rounded-2xl border border-[#ECECEF] dark:border-white/5 space-y-1 text-[11px]">
+                      <div className="flex justify-between text-[#6B7280] dark:text-slate-400">
+                        <span>Workspace:</span>
+                        <span className="text-[#833AB4] dark:text-purple-400 font-medium truncate max-w-[140px]">
+                          {ws ? ws.name : user.workspaceId}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[#6B7280] dark:text-slate-400">
+                        <span>Kwartir / Gudep:</span>
+                        <span className="text-[#171717] dark:text-slate-200 truncate max-w-[140px]">
+                          {user.organizationName || 'Pramuka Jatim'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[#6B7280] dark:text-slate-400">
+                        <span>Login Terakhir:</span>
+                        <span className="text-[#171717] dark:text-slate-300">{user.lastLogin}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Footer (Requirements 13 & 15) */}
+                  <div className="pt-2 border-t border-[#ECECEF] dark:border-white/5 space-y-2">
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDetail(user)}
+                        className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-[#171717] dark:text-white text-[11px] font-bold flex items-center gap-1.5 transition-colors flex-1 justify-center min-h-[38px] cursor-pointer"
+                        title={`Lihat Detail & Perangkat ${user.name}`}
+                      >
+                        <Eye className="w-3.5 h-3.5 text-[#E1306C]" />
+                        <span>Detail</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(user)}
+                        className="px-2.5 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40 text-[11px] font-bold flex items-center gap-1.5 flex-1 justify-center min-h-[38px] cursor-pointer"
+                        title={`Ubah / Tambah Peran ${user.name}`}
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        <span>Ubah Peran</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 pt-0.5">
+                      {user.role !== 'viewer' && (
+                        <button
+                          type="button"
+                          onClick={() => handleRevokeRole(user.id)}
+                          className="px-2 py-1.5 rounded-lg border border-amber-200 dark:border-amber-900/40 bg-amber-50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300 hover:bg-amber-100 text-[10px] font-semibold flex-1 text-center cursor-pointer"
+                          title="Cabut Peran (Reset ke Akun Terdaftar)"
+                        >
+                          Cabut Peran
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => handleLogoutAllDevices(user.id)}
+                        className="px-2 py-1.5 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 text-[10px] font-semibold flex-1 text-center cursor-pointer"
+                        title="Keluar dari Semua Perangkat"
+                      >
+                        Logout Semua
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: RBAC PERMISSIONS MATRIX */}
+      {activeTab === 'matrix' && (
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+            <div>
+              <h2 className="text-sm font-bold text-[#171717] dark:text-white">Inspektur Matriks Hak Akses (RBAC)</h2>
+              <p className="text-xs text-[#6B7280] dark:text-slate-400 mt-0.5">
+                Periksa daftar izin granular yang diaktifkan untuk setiap peran pengguna pada 13 domain operasional.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-[#171717] dark:text-slate-300 font-semibold shrink-0">Pilih Peran:</label>
+              <select
+                value={matrixRole}
+                onChange={e => setMatrixRole(e.target.value as UserRole)}
+                className="p-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C] font-semibold"
+              >
+                {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Active role overview banner */}
+          <div className="p-4 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-600/30 border border-emerald-500/40 flex items-center justify-center text-xl">
+                🛡️
+              </div>
+              <div>
+                <div className="text-xs text-emerald-400 font-semibold">Peran Terpilih</div>
+                <h3 className="text-sm font-bold text-white">{ROLE_LABELS[matrixRole]?.label}</h3>
+                <p className="text-[11px] text-slate-300 mt-0.5">{ROLE_LABELS[matrixRole]?.desc}</p>
+              </div>
+            </div>
+
+            <div className="text-right shrink-0">
+              <div className="text-xs text-slate-400">Total Izin Aktif</div>
+              <div className="text-xl font-black text-emerald-400 font-mono">
+                {ROLE_PERMISSION_MAP[matrixRole]?.length || 0} Izin
+              </div>
+            </div>
+          </div>
+
+          {/* 13 Operational Domains Accordion */}
+          <div className="space-y-3">
+            {PERMISSION_GROUPS.map(group => {
+              const isExpanded = expandedGroup === group.id;
+              const rolePerms = ROLE_PERMISSION_MAP[matrixRole] || [];
+              const groupPermCodes = group.permissions.map(p => p.code);
+              const grantedInGroup = groupPermCodes.filter(c => rolePerms.includes(c));
+
+              return (
+                <div
+                  key={group.id}
+                  className="rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 overflow-hidden transition-all shadow-xs"
+                >
+                  <button
+                    onClick={() => setExpandedGroup(isExpanded ? null : group.id)}
+                    className="w-full p-4 flex items-center justify-between text-left hover:bg-[#FAFAFA] dark:hover:bg-white/5 transition-colors gap-3 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-xl bg-[#FFF0F4] dark:bg-white/5 border border-[#FFE0E8] dark:border-white/10 flex items-center justify-center text-xs font-bold text-[#E1306C]">
+                        {grantedInGroup.length}/{group.permissions.length}
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-[#171717] dark:text-white">{group.title}</h4>
+                        <p className="text-[11px] text-[#6B7280] dark:text-slate-400">{group.description}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                        grantedInGroup.length > 0
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-400 dark:border-emerald-500/30'
+                          : 'bg-[#FAFAFA] text-[#9CA3AF] border-[#ECECEF] dark:bg-white/5 dark:text-slate-500 dark:border-white/5'
+                      }`}>
+                        {grantedInGroup.length === group.permissions.length
+                          ? 'Semua Diizinkan'
+                          : grantedInGroup.length > 0
+                          ? `${grantedInGroup.length} Diizinkan`
+                          : 'Tidak Ada Akses'}
+                      </span>
+                      {isExpanded ? <ChevronDown className="w-4 h-4 text-[#9CA3AF]" /> : <ChevronRight className="w-4 h-4 text-[#9CA3AF]" />}
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className="p-4 pt-0 border-t border-[#ECECEF] dark:border-white/5 space-y-2 bg-[#FAFAFA] dark:bg-black/20">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-3">
+                        {group.permissions.map(perm => {
+                          const isGranted = rolePerms.includes(perm.code);
+
+                          return (
+                            <div
+                              key={perm.code}
+                              className={`p-3 rounded-xl border transition-all flex items-start gap-2.5 ${
+                                isGranted
+                                  ? 'bg-white dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-500/25 shadow-2xs'
+                                  : 'bg-white/60 dark:bg-white/5 border-[#ECECEF] dark:border-white/5 opacity-60'
+                              }`}
+                            >
+                              <div className="mt-0.5">
+                                {isGranted ? (
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                ) : (
+                                  <XCircle className="w-4 h-4 text-[#9CA3AF] shrink-0" />
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-1">
+                                  <span className={`text-xs font-bold ${isGranted ? 'text-[#171717] dark:text-white' : 'text-[#6B7280] dark:text-slate-400'}`}>
+                                    {perm.label}
+                                  </span>
+                                  <span className="font-mono text-[9px] text-[#6B7280] dark:text-slate-500 px-1 py-0.2 rounded bg-black/5 dark:bg-black/40 border border-[#ECECEF] dark:border-white/5">
+                                    {perm.code}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-[#6B7280] dark:text-slate-400 mt-0.5">{perm.description}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: ONLINE SESSION & BACKEND SECURITY */}
+      {activeTab === 'session' && (
+        <div className="space-y-4">
+          <div className="p-5 rounded-3xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-2xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
+              <div>
+                <h3 className="text-sm font-bold text-[#171717] dark:text-white flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Sesi Otentikasi Cloud & Integritas Backend</span>
+                </h3>
+                <p className="text-xs text-[#6B7280] dark:text-slate-400 mt-0.5">
+                  SiEpang menerapkan prinsip <em>Backend-Authoritative Security</em>. Peran dan izin tidak
+                  diambil dari localStorage atau manipulasi URL.
+                </p>
+              </div>
+            </div>
+
+            {/* Session parameters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+              <div className="p-3.5 rounded-2xl bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/5 space-y-1">
+                <div className="text-[#6B7280] dark:text-slate-400 text-[11px]">Status Sesi Online</div>
+                <div className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Valid & Aktif</span>
+                </div>
+                <div className="text-[10px] text-slate-400">TTL Durasi: 8 Jam</div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/5 space-y-1">
+                <div className="text-[#6B7280] dark:text-slate-400 text-[11px]">Workspace Resolver</div>
+                <div className="text-[#171717] dark:text-white font-bold truncate">{workspaceService.getCurrentWorkspace()?.name || 'Workspace Aktif'}</div>
+                <div className="text-[10px] text-slate-400 font-mono">{workspaceService.getCurrentWorkspace()?.id || 'GLOBAL_WS'}</div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/5 space-y-1">
+                <div className="text-[#6B7280] dark:text-slate-400 text-[11px]">Security Context Guard</div>
+                <div className="text-sky-600 dark:text-sky-400 font-bold">RequestSecurityContext</div>
+                <div className="text-[10px] text-slate-400">Strict Server-side Token</div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/5 space-y-1">
+                <div className="text-[#6B7280] dark:text-slate-400 text-[11px]">Perlindungan Draft Formulir</div>
+                <div className="text-amber-600 dark:text-amber-400 font-bold">Tersimpan Otomatis</div>
+                <div className="text-[10px] text-slate-400">Aman saat sesi re-auth</div>
+              </div>
+            </div>
+
+            {/* Explanatory callout */}
+            <div className="p-4 rounded-2xl bg-[#EFF6FF] dark:bg-sky-950/20 border border-[#BFDBFE] dark:border-sky-500/20 text-xs text-slate-700 dark:text-slate-300 space-y-1.5">
+              <div className="font-bold text-sky-950 dark:text-white flex items-center gap-1.5">
+                <Info className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                <span>Prinsip Keamanan Tanpa Bypass</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-[#6B7280] dark:text-slate-300">
+                Setiap panggilan API ke SiEpang backend router (`/api/*`) diverifikasi secara ketat melalui:
+                <br />
+                1. <strong>Otentikasi Token</strong>: Memastikan identitas akun terverifikasi.
+                <br />
+                2. <strong>Workspace Guard</strong>: Memastikan pengguna terdaftar dalam workspace kwartir yang bersangkutan.
+                <br />
+                3. <strong>RBAC Guard</strong>: Memverifikasi hak akses spesifik terhadap entitas (misal: juri hanya bisa menilai lomba yang ditugaskan).
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD / EDIT USER */}
+      {isModalOpen && editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl relative space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
+              <h3 className="text-base font-bold text-[#171717] dark:text-white flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-[#833AB4]" />
+                <span>{editingUser.id ? 'Edit Akun Pengguna' : 'Tambah / Undang Pengguna'}</span>
+              </h3>
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingUser(null);
+                }}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUser} className="space-y-3.5 text-xs">
+              <div>
+                <label className="block text-[#171717] dark:text-slate-200 font-semibold mb-1">Nama Lengkap & Gelar *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Kak Siti Aminah, S.Pd."
+                  value={editingUser.name || ''}
+                  onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
+                  className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#171717] dark:text-slate-200 font-semibold mb-1">Alamat Email *</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="Contoh: siti.aminah@pramuka.or.id"
+                  value={editingUser.email || ''}
+                  onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
+                  className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[#171717] dark:text-slate-200 font-semibold mb-1">Peran Akses (Role) *</label>
+                <select
+                  value={editingUser.role}
+                  onChange={e => setEditingUser({ ...editingUser, role: e.target.value as UserRole })}
+                  className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C] font-semibold"
+                >
+                  {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Canonical Photo Uploader for Panitia, Juri, Official (Requirements 22, 25) */}
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">Foto Profil Resmi Petugas / Juri</label>
+                <ProfilePhotoUploader
+                  entityType={
+                    editingUser.role === 'judge' ? 'JUDGE' :
+                    editingUser.role === 'kontingen_admin' ? 'OFFICIAL' : 'COMMITTEE'
+                  }
+                  entityId={editingUser.id || `draft_usr_${Date.now()}`}
+                  entityName={editingUser.name || 'Pengguna'}
+                  currentPhotoUrl={editingUser.avatar || editingUser.profile_photo_url}
+                  required={profilePhotoService.isPhotoRequired(
+                    editingUser.role === 'judge' ? 'JUDGE' :
+                    editingUser.role === 'kontingen_admin' ? 'OFFICIAL' : 'COMMITTEE'
+                  )}
+                  onPhotoSaved={rec => {
+                    setEditingUser({
+                      ...editingUser,
+                      avatar: rec.profile_photo_url,
+                      profile_photo_url: rec.profile_photo_url,
+                      profile_photo_file_id: rec.profile_photo_file_id,
+                      profile_photo_status: rec.profile_photo_status,
+                    });
+                  }}
+                  onPhotoRemoved={() => {
+                    setEditingUser({
+                      ...editingUser,
+                      avatar: '',
+                      profile_photo_url: '',
+                      profile_photo_file_id: '',
+                      profile_photo_status: 'NOT_UPLOADED',
+                    });
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#171717] dark:text-slate-300 mb-1">Kwartir / Pangkalan</label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Kwartir Cabang / Ranting / Pangkalan"
+                  value={editingUser.organizationName || ''}
+                  onChange={e => setEditingUser({ ...editingUser, organizationName: e.target.value })}
+                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#171717] dark:text-slate-300 mb-1">Penyelenggara / Workspace</label>
+                <div className="w-full p-2.5 bg-slate-50 dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-xs text-[#171717] dark:text-white font-medium">
+                  {workspaceService.getCurrentWorkspace().name} ({workspaceService.getCurrentWorkspace().organization})
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#171717] dark:text-slate-300 mb-1">Status Akun</label>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[#171717] dark:text-slate-300">
+                    <input
+                      type="radio"
+                      name="user_status"
+                      checked={editingUser.status === 'active'}
+                      onChange={() => setEditingUser({ ...editingUser, status: 'active' })}
+                      className="accent-[#E1306C]"
+                    />
+                    <span>Aktif</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[#6B7280] dark:text-slate-400">
+                    <input
+                      type="radio"
+                      name="user_status"
+                      checked={editingUser.status === 'inactive'}
+                      onChange={() => setEditingUser({ ...editingUser, status: 'inactive' })}
+                      className="accent-rose-500"
+                    />
+                    <span>Nonaktif</span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#ECECEF] dark:border-white/10">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    setEditingUser(null);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#FAFAFA] dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 text-[#6B7280] dark:text-slate-300 hover:text-[#171717] dark:hover:text-white font-semibold text-xs border border-[#ECECEF] dark:border-white/10 cursor-pointer min-h-[44px]"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 cursor-pointer min-h-[44px] flex items-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>{editingUser?.id ? 'Simpan Perubahan' : 'Tambahkan Pengguna'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL: USER DETAIL & TRUSTED DEVICES (Requirement 15) */}
+      {detailUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+          <div className="bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-3xl p-6 w-full max-w-xl shadow-2xl relative space-y-5 max-h-[90vh] overflow-y-auto no-scrollbar">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#833AB4] to-[#E1306C] flex items-center justify-center text-white text-sm shadow-xs">
+                  <UserCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[#171717] dark:text-white">
+                    Detail Pengguna & Hak Akses
+                  </h3>
+                  <p className="text-[11px] text-[#6B7280] dark:text-slate-400">
+                    ID Pengguna: <span className="font-mono text-purple-600 dark:text-purple-400">{detailUser.id}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailUser(null)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 1. Identity Section */}
+            <div className="bg-[#F7F7F8] dark:bg-white/5 p-4 rounded-2xl border border-[#ECECEF] dark:border-white/10 space-y-3">
+              <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                1. Identitas Pengguna
+              </div>
+              <div className="flex items-center gap-3">
+                <img
+                  src={detailUser.avatar}
+                  alt={detailUser.name}
+                  className="w-12 h-12 rounded-2xl object-cover border border-[#ECECEF] dark:border-white/10 shrink-0"
+                />
+                <div className="space-y-0.5">
+                  <h4 className="text-sm font-bold text-[#171717] dark:text-white">{detailUser.name}</h4>
+                  <div className="text-xs text-[#6B7280] dark:text-slate-400">{detailUser.email}</div>
+                  <div className="text-[11px] text-slate-500">
+                    Terdaftar sejak: {detailUser.createdAt || 'Tidak diketahui'} · Kwartir: {detailUser.organizationName || 'Pramuka'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Account Status Section */}
+            <div className="bg-[#F7F7F8] dark:bg-white/5 p-4 rounded-2xl border border-[#ECECEF] dark:border-white/10 flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  2. Status Akun
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                    detailUser.status === 'active'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-500/30'
+                      : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-500/30'
+                  }`}>
+                    {detailUser.status === 'active' ? '✓ Akun Aktif' : '✗ Dinonaktifkan'}
+                  </span>
+                  <span className="text-xs text-slate-500">
+                    Email: <span className="font-semibold text-emerald-600">Terverifikasi OTP</span>
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  handleToggleStatus(detailUser.id);
+                  setDetailUser({
+                    ...detailUser,
+                    status: detailUser.status === 'active' ? 'inactive' : 'active',
+                  });
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${
+                  detailUser.status === 'active'
+                    ? 'border-rose-300 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:border-rose-800'
+                    : 'border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800'
+                }`}
+              >
+                {detailUser.status === 'active' ? 'Nonaktifkan Akun' : 'Aktifkan Akun'}
+              </button>
+            </div>
+
+            {/* 3. Role Assignments Section */}
+            <div className="bg-[#F7F7F8] dark:bg-white/5 p-4 rounded-2xl border border-[#ECECEF] dark:border-white/10 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  3. Penugasan Peran (UserRoleAssignments)
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleOpenEdit(detailUser);
+                    setDetailUser(null);
+                  }}
+                  className="px-2.5 py-1 rounded-xl bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 font-bold text-[11px] hover:bg-purple-200 transition-colors cursor-pointer"
+                >
+                  Tambah / Ubah Peran
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-[#141418] rounded-xl border border-[#ECECEF] dark:border-white/10">
+                <div className="space-y-0.5">
+                  <div className={`px-2 py-0.5 rounded-lg text-xs font-bold border inline-block ${
+                    ROLE_LABELS[detailUser.role]?.badge || 'bg-slate-800 text-slate-200'
+                  }`}>
+                    {ROLE_LABELS[detailUser.role]?.label || detailUser.role}
+                  </div>
+                  <p className="text-[11px] text-[#6B7280] dark:text-slate-400">
+                    {ROLE_LABELS[detailUser.role]?.desc || 'Akses peran operasional'}
+                  </p>
+                </div>
+
+                {detailUser.role !== 'viewer' && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await handleRevokeRole(detailUser.id);
+                      setDetailUser({ ...detailUser, role: 'viewer' });
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-xs font-semibold hover:bg-amber-100 cursor-pointer"
+                  >
+                    Cabut Peran
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 4. Trusted Devices Section */}
+            <div className="bg-[#F7F7F8] dark:bg-white/5 p-4 rounded-2xl border border-[#ECECEF] dark:border-white/10 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  4. Perangkat Terpercaya (TrustedDevices)
+                </div>
+                {isLoadingDevices && (
+                  <span className="text-[11px] text-slate-400 animate-pulse">Memuat...</span>
+                )}
+              </div>
+
+              {detailDevices.length === 0 ? (
+                <div className="p-3 bg-white dark:bg-[#141418] rounded-xl border border-[#ECECEF] dark:border-white/10 text-xs text-slate-500 text-center">
+                  Belum ada perangkat terpercaya yang tercatat untuk pengguna ini.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {detailDevices.map(dev => (
+                    <div
+                      key={dev.device_public_id}
+                      className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-[#141418] rounded-xl border border-[#ECECEF] dark:border-white/10"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-slate-600 dark:text-slate-300">
+                          {dev.platform?.toLowerCase().includes('android') || dev.platform?.toLowerCase().includes('ios') ? (
+                            <Smartphone className="w-4 h-4" />
+                          ) : (
+                            <Laptop className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-xs font-bold text-slate-800 dark:text-white">
+                            {dev.device_name || 'Browser'}
+                            {dev.is_current_device && (
+                              <span className="ml-1.5 text-[10px] font-bold text-emerald-600">(Perangkat ini)</span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-500">
+                            {dev.browser_family} · {dev.platform} · Terakhir aktif: {dev.last_seen_at || 'Baru saja'}
+                          </div>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRevokeDeviceFromDetail(dev.device_public_id)}
+                        className="px-2 py-1 rounded-lg border border-rose-200 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-[10px] font-bold hover:bg-rose-100 cursor-pointer"
+                        title="Cabut akses perangkat ini"
+                      >
+                        Cabut Perangkat
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 5. Last Login Section */}
+            <div className="bg-[#F7F7F8] dark:bg-white/5 p-4 rounded-2xl border border-[#ECECEF] dark:border-white/10 flex items-center justify-between">
+              <div>
+                <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-0.5">
+                  5. Login Terakhir
+                </div>
+                <div className="text-xs font-semibold text-slate-800 dark:text-white">
+                  {detailUser.lastLogin}
+                </div>
+              </div>
+              <Clock className="w-5 h-5 text-slate-400" />
+            </div>
+
+            {/* Actions Footer */}
+            <div className="flex items-center justify-between pt-3 border-t border-[#ECECEF] dark:border-white/10">
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleLogoutAllDevices(detailUser.id);
+                  if (detailUser) {
+                    const devs = await userManagementService.listUserTrustedDevices(detailUser.id);
+                    setDetailDevices(devs);
+                  }
+                }}
+                className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 dark:bg-white/10 dark:hover:bg-rose-950/30 text-xs font-bold border border-slate-200 dark:border-white/10 flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Keluar dari Semua Perangkat</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDetailUser(null)}
+                className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -1,0 +1,8 @@
+{
+  "name": "SIEPANG",
+  "description": "Aplikasi perkemahan Pramuka",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

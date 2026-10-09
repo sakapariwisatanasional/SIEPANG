@@ -1,0 +1,706 @@
+/**
+ * @license
+ * SiEpang - Admin Daerah & Event Admin Dashboard
+ * UX Refactored: Fast to understand without training, visually calm, progressive disclosure.
+ * Adheres to Requirements 8-29, 36, 40, 56.
+ */
+
+import React, { useState, useMemo } from 'react';
+import {
+  Users,
+  CheckCircle2,
+  Tent,
+  Trophy,
+  QrCode,
+  Calendar,
+  Globe,
+  Sliders,
+  Database,
+  Cloud,
+  Sparkles,
+  Cpu,
+  Activity,
+  ArrowUpCircle,
+  FileText,
+  ShieldCheck,
+  Stethoscope,
+  Boxes,
+  MapPin,
+  Search,
+  Pin,
+  ChevronRight,
+  ChevronDown,
+  AlertCircle,
+  Clock,
+  Layers,
+  Image as ImageIcon,
+  CreditCard,
+  Building2,
+  CheckSquare,
+  HelpCircle,
+} from 'lucide-react';
+import { eventService } from '../../services/eventService';
+import { participantService } from '../../services/participantService';
+import { databaseStorageService } from '../../services/databaseStorageService';
+import { visitorManagementService } from '../../services/visitorManagementService';
+import { featureControlService } from '../../services/featureControlService';
+import { authService } from '../../services/authService';
+import { canReadInstallation } from '../../backend/rbac/permissions';
+import { customerInstallationService } from '../../services/customerInstallationService';
+import { NavTab } from '../../components/navigation/MobileNavigation';
+import {
+  MetricCard,
+  AttentionList,
+  AttentionItem,
+  SearchBar,
+  ModuleGroup,
+  ModuleItem,
+  PinnedActionsBar,
+  PinnedActionItem,
+  RecentActivityList,
+  ActivityRecord,
+} from '../../components/common/GlobalUxComponents';
+
+interface AdminDaerahDashboardProps {
+  onNavigate: (tab: NavTab) => void;
+  onOpenScanner: () => void;
+  onOpenSyncCenter: () => void;
+}
+
+export const AdminDaerahDashboard: React.FC<AdminDaerahDashboardProps> = ({
+  onNavigate,
+  onOpenScanner,
+  onOpenSyncCenter,
+}) => {
+  const event = eventService.getCurrentEvent();
+  const participants = participantService.getParticipants();
+  const contingents = participantService.getContingents();
+  const visitors = visitorManagementService.getVisitors();
+  const isDbConnected = databaseStorageService.isConnected();
+
+  // Metrics
+  const checkedInCount = participants.filter(p => p.checkedIn).length;
+  const unverifiedCount = participants.filter(p => !p.checkedIn).length;
+  const visitorCount = visitors.length;
+
+  // Search feature menu state (Requirement 14)
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Pinned / favorite actions state (Requirement 15, max 4-6)
+  const [pinnedModules, setPinnedModules] = useState<NavTab[]>([
+    'participants',
+    'schedule',
+    'attendance',
+    'competitions',
+    'templates',
+  ]);
+
+  const pinnedItems: PinnedActionItem[] = useMemo(() => {
+    const iconMap: Partial<Record<NavTab, { label: string; icon: any }>> = {
+      participants: { label: 'Data Peserta', icon: Users },
+      schedule: { label: 'Jadwal Giat', icon: Calendar },
+      attendance: { label: 'Presensi Scan', icon: QrCode },
+      competitions: { label: 'Lomba', icon: Trophy },
+      templates: { label: 'Dokumen', icon: CreditCard },
+      event_studio: { label: 'Studio Buper', icon: Tent },
+      health: { label: 'Posko Medis', icon: Stethoscope },
+      logistics: { label: 'Logistik', icon: Boxes },
+    };
+    return pinnedModules
+      .filter(id => iconMap[id])
+      .map(id => ({
+        id,
+        title: iconMap[id]!.label,
+        icon: iconMap[id]!.icon,
+        onClick: () => onNavigate(id),
+      }));
+  }, [pinnedModules, onNavigate]);
+
+  const recentActivities: ActivityRecord[] = useMemo(() => [
+    {
+      id: 'act-1',
+      title: 'Check-in 12 Peserta Kwarran Cimanggis',
+      actor: 'Petugas Gerbang (Gate 1)',
+      time: '10 mnt lalu',
+      badge: 'Presensi',
+      icon: CheckCircle2,
+    },
+    {
+      id: 'act-2',
+      title: 'Penilaian Lomba Pionering Regu Garuda disahkan',
+      actor: 'Juri Kak Suryo',
+      time: '25 mnt lalu',
+      badge: 'Nilai 88',
+      icon: Trophy,
+    },
+    {
+      id: 'act-3',
+      title: 'Pencadangan Spreadsheet otomatis berhasil',
+      actor: 'Sistem Cloud Drive',
+      time: '1 jam lalu',
+      badge: 'v1.5 Sync',
+      icon: Database,
+    },
+    {
+      id: 'act-4',
+      title: 'Distribusi 4 Tenda Dome ke Regu Melati',
+      actor: 'Petugas Logistik',
+      time: '2 jam lalu',
+      badge: 'Logistik',
+      icon: Boxes,
+    },
+    {
+      id: 'act-5',
+      title: 'Penanganan 1 peserta lelah di Pos Medis Utama',
+      actor: 'Tim Medis P3K',
+      time: '3 jam lalu',
+      badge: 'Selesai',
+      icon: Stethoscope,
+    },
+  ], []);
+
+  // Collapsible category expansion states (Requirement 12, 13: smart default expansion)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    kegiatan: true, // Only KEGIATAN expanded by default
+    operasional: false,
+    publikasi: false,
+    dokumen: false,
+    sistem: false,
+  });
+
+  const toggleSection = (key: string) => {
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // 1. Actionable Needs Attention items (Requirements 23, 24)
+  const attentionItems: AttentionItem[] = useMemo(() => {
+    const list: AttentionItem[] = [];
+
+    if (unverifiedCount > 0) {
+      list.push({
+        id: 'unverified_participants',
+        title: `${unverifiedCount} peserta terdaftar belum melakukan check-in`,
+        count: unverifiedCount,
+        type: 'warning',
+        actionLabel: 'Verifikasi',
+        onClick: () => onNavigate('participants'),
+      });
+    }
+
+    if (!isDbConnected) {
+      list.push({
+        id: 'db_not_connected',
+        title: 'Database Google Spreadsheet belum terhubung untuk pencadangan',
+        type: 'urgent',
+        actionLabel: 'Koneksikan',
+        onClick: () => onNavigate('database_storage'),
+      });
+    }
+
+    return list;
+  }, [unverifiedCount, isDbConnected, onNavigate]);
+
+  // 2. All Features catalog for search (Requirement 14)
+  const allFeatures = useMemo(() => {
+    return [
+      { id: 'participants' as NavTab, title: 'Data Peserta & Kontingen', category: 'Kegiatan', icon: Users, keywords: 'peserta biodata verifikasi kta' },
+      { id: 'schedule' as NavTab, title: 'Jadwal & Agenda Kegiatan', category: 'Kegiatan', icon: Calendar, keywords: 'jadwal waktu sesi apel upacara' },
+      { id: 'attendance' as NavTab, title: 'Pemindai Presensi Scan', category: 'Kegiatan', icon: QrCode, keywords: 'presensi hadir scan barcode gate' },
+      { id: 'competitions' as NavTab, title: 'Lomba & Giat Prestasi', category: 'Kegiatan', icon: Trophy, keywords: 'lomba juara ranking voting' },
+      { id: 'event_studio' as NavTab, title: 'Tata Ruang Buper & Kavling', category: 'Operasional', icon: Tent, keywords: 'tenda buper peta kavling lokasi' },
+      { id: 'health' as NavTab, title: 'Posko Kesehatan & P3K', category: 'Operasional', icon: Stethoscope, keywords: 'medis dokter obat ambulans sakit alergi' },
+      { id: 'logistics' as NavTab, title: 'Gudang Logistik & Tenda', category: 'Operasional', icon: Boxes, keywords: 'alat logistik tenda pinjam barang' },
+      { id: 'public_home' as NavTab, title: 'Buku Tamu & Pengunjung', category: 'Operasional', icon: Globe, keywords: 'pengunjung tamu registrasi publik' },
+      { id: 'public_gallery' as NavTab, title: 'Galeri Foto Dokumentasi', category: 'Publikasi', icon: ImageIcon, keywords: 'foto galeri dokumentasi media' },
+      { id: 'event_studio' as NavTab, title: 'Banner & Publikasi Media', category: 'Publikasi', icon: Sparkles, keywords: 'banner hero pengumuman publikasi sponsor' },
+      { id: 'templates' as NavTab, title: 'ID Card & Piagam Sertifikat', category: 'Dokumen', icon: CreditCard, keywords: 'id card cetak sertifikat piagam template kartu' },
+      { id: 'database_storage' as NavTab, title: 'Database & Penyimpanan', category: 'Sistem', icon: Database, keywords: 'database spreadsheet drive backup sinkronisasi' },
+      { id: 'branding_settings' as NavTab, title: 'Branding & Tampilan Kwartir', category: 'Sistem', icon: Sparkles, keywords: 'logo branding warna identitas kop surat' },
+      { id: 'users' as NavTab, title: 'Kelola Akun & Hak Akses (RBAC)', category: 'Sistem', icon: ShieldCheck, keywords: 'user rbac panitia petugas admin password' },
+      { id: 'system_update' as NavTab, title: 'Pembaruan & Status Sistem', category: 'Sistem', icon: ArrowUpCircle, keywords: 'update versi rilis kesehatan sistem' },
+    ];
+  }, []);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const q = searchQuery.toLowerCase();
+    return allFeatures.filter(
+      f =>
+        f.title.toLowerCase().includes(q) ||
+        f.category.toLowerCase().includes(q) ||
+        f.keywords.includes(q)
+    );
+  }, [searchQuery, allFeatures]);
+
+  // Quick Actions (Max 5, Requirement 10)
+  const quickActions = [
+    { id: 'participants', label: 'Peserta', icon: Users, color: 'text-purple-600', bgColor: 'bg-purple-50 dark:bg-purple-950/30', onClick: () => onNavigate('participants') },
+    { id: 'schedule', label: 'Jadwal', icon: Calendar, color: 'text-blue-600', bgColor: 'bg-blue-50 dark:bg-blue-950/30', onClick: () => onNavigate('schedule') },
+    { id: 'attendance', label: 'Presensi', icon: QrCode, color: 'text-emerald-600', bgColor: 'bg-emerald-50 dark:bg-emerald-950/30', onClick: () => onNavigate('attendance') },
+    { id: 'competitions', label: 'Lomba', icon: Trophy, color: 'text-[#E1306C]', bgColor: 'bg-pink-50 dark:bg-pink-950/30', onClick: () => onNavigate('competitions') },
+    { id: 'templates', label: 'Dokumen', icon: CreditCard, color: 'text-amber-600', bgColor: 'bg-amber-50 dark:bg-amber-950/30', onClick: () => onNavigate('templates') },
+    { id: 'event_studio', label: 'Studio Buper', icon: Sliders, color: 'text-indigo-600', bgColor: 'bg-indigo-50 dark:bg-indigo-950/30', onClick: () => onNavigate('event_studio') },
+  ];
+
+  return (
+    <div className="space-y-6 max-w-4xl mx-auto pb-12">
+      {/* =========================================================================
+          SECTION 1: ADMIN TOP AREA (First Viewport Requirement 9)
+          Contains ONLY: Active Event, Status, Primary Actions, max 4 statistics.
+          No 15+ module cards above the fold!
+          ========================================================================= */}
+      <div className="rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 sm:p-6 shadow-xs relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="inline-flex items-center gap-2 mb-2">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#833AB4]/10 text-[#833AB4] dark:text-[#E1306C] text-xs font-bold">
+                ⛺ {event.category || 'Perkemahan'}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>BERLANGSUNG</span>
+              </span>
+            </div>
+
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-[#171717] dark:text-white tracking-tight truncate">
+              {event.name}
+            </h1>
+
+            <p className="text-xs text-[#6B7280] dark:text-slate-400 mt-1 flex items-center gap-1.5 font-medium">
+              <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+              <span className="truncate">{event.campGround} ({event.location})</span>
+            </p>
+          </div>
+
+          {/* Primary Action Buttons (Max 2 Prominent Actions, Req 9) */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => onNavigate('event_studio')}
+              className="px-4 py-2.5 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white rounded-xl font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sliders className="w-4 h-4" />
+              <span>Kelola Event</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onNavigate('public_home')}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-[#171717] dark:text-white rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Globe className="w-4 h-4 text-slate-500" />
+              <span>Portal Publik</span>
+            </button>
+          </div>
+        </div>
+
+        {/* 4 KEY STATISTICS MAXIMUM (Requirement 9, 21) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6 pt-5 border-t border-[#ECECEF] dark:border-white/5">
+          <MetricCard
+            value={participants.length.toLocaleString()}
+            label="Peserta"
+            sublabel={`${contingents.length} Kontingen`}
+            color="purple"
+            icon={Users}
+            onClick={() => onNavigate('participants')}
+          />
+          <MetricCard
+            value={checkedInCount.toLocaleString()}
+            label="Hadir di Buper"
+            sublabel={`${Math.round((checkedInCount / Math.max(1, participants.length)) * 100)}% kehadiran`}
+            color="emerald"
+            icon={CheckCircle2}
+            onClick={() => onNavigate('attendance')}
+          />
+          <MetricCard
+            value={visitorCount.toLocaleString()}
+            label="Pengunjung"
+            sublabel="Buku tamu publik"
+            color="blue"
+            icon={Globe}
+            onClick={() => onNavigate('public_home')}
+          />
+          <MetricCard
+            value={unverifiedCount.toLocaleString()}
+            label="Menunggu Cek"
+            sublabel="Belum check-in gate"
+            color="amber"
+            icon={Clock}
+            onClick={() => onNavigate('participants')}
+          />
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 2: SEARCH MENU ("Cari fitur...") (Requirement 14)
+          Allows admins to find any feature without memorizing module categories
+          ========================================================================= */}
+      <div className="space-y-2">
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Cari fitur... (cth: Peserta, Jadwal, ID Card, Juri, Sponsor, Database, Tenda)"
+        />
+
+        {searchQuery.trim() && (
+          <div className="p-3 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-xs space-y-1">
+            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
+              Hasil Pencarian ({searchResults.length})
+            </div>
+            {searchResults.length > 0 ? (
+              searchResults.map(item => {
+                const ItemIcon = item.icon;
+                return (
+                  <button
+                    key={item.id + item.title}
+                    type="button"
+                    onClick={() => {
+                      onNavigate(item.id);
+                      setSearchQuery('');
+                    }}
+                    className="w-full p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-between text-xs text-left transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-[#833AB4]">
+                        <ItemIcon className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-[#171717] dark:text-white">{item.title}</div>
+                        <div className="text-[10px] text-slate-400">Kategori: {item.category}</div>
+                      </div>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </button>
+                );
+              })
+            ) : (
+              <div className="p-3 text-center text-xs text-slate-400">
+                Fitur tidak ditemukan untuk "{searchQuery}". Coba kata kunci lain.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* =========================================================================
+          SECTION 3: NEEDS ATTENTION (Requirement 23, 24)
+          Clickable items directly opening relevant screen
+          ========================================================================= */}
+      {attentionItems.length > 0 && <AttentionList items={attentionItems} />}
+
+      {/* =========================================================================
+          SECTION 4: PRIMARY QUICK ACTIONS (Max 6, Requirement 10)
+          ========================================================================= */}
+      <div className="space-y-2">
+        <div className="text-[11px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider px-1">
+          Akses Cepat Utama
+        </div>
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+          {quickActions.map(action => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={action.id}
+                type="button"
+                onClick={action.onClick}
+                className="p-3 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#833AB4]/30 shadow-xs flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 group cursor-pointer"
+              >
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${action.bgColor} ${action.color}`}>
+                  <Icon className="w-4 h-4 stroke-[2.2]" />
+                </div>
+                <span className="text-[11px] font-bold text-[#171717] dark:text-white truncate">
+                  {action.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* =========================================================================
+          SECTION 5: FAVORITE / PINNED ACTIONS (Requirement 15: 4-6 max)
+          ========================================================================= */}
+      {pinnedItems.length > 0 && (
+        <PinnedActionsBar items={pinnedItems} />
+      )}
+
+      {/* =========================================================================
+          SECTION 6: GROUPED & COLLAPSIBLE MODULES (Requirements 11, 12, 13, 16, 17)
+          Replaces the large module wall with clean progressive disclosure categories:
+          - KEGIATAN (Default expanded)
+          - OPERASIONAL (Collapsed)
+          - PUBLIKASI (Collapsed)
+          - DOKUMEN (Collapsed)
+          - SISTEM (Collapsed)
+          Cards strictly contain: Icon, Title, optional short status.
+          ========================================================================= */}
+      <div className="space-y-3">
+        <div className="text-[11px] font-bold text-[#6B7280] dark:text-slate-400 uppercase tracking-wider px-1">
+          Modul & Manajemen Event
+        </div>
+
+        {/* 1. KEGIATAN (Default Expanded) */}
+        <ModuleGroup
+          title="Kegiatan"
+          icon={Calendar}
+          isOpen={expandedSections.kegiatan}
+          onToggle={() => toggleSection('kegiatan')}
+          items={[
+            {
+              id: 'participants',
+              title: 'Data Peserta',
+              icon: Users,
+              status: `${participants.length} Terdata`,
+              statusColor: 'purple',
+              onClick: () => onNavigate('participants'),
+            },
+            {
+              id: 'schedule',
+              title: 'Jadwal & Agenda',
+              icon: Calendar,
+              status: 'Hari ke-1',
+              statusColor: 'blue',
+              onClick: () => onNavigate('schedule'),
+            },
+            {
+              id: 'attendance',
+              title: 'Presensi Scan',
+              icon: QrCode,
+              status: `${checkedInCount} Hadir`,
+              statusColor: 'emerald',
+              onClick: () => onNavigate('attendance'),
+            },
+            {
+              id: 'competitions',
+              title: 'Lomba & Penjurian',
+              icon: Trophy,
+              status: `${event.competitionCount || 4} Cabang`,
+              statusColor: 'amber',
+              onClick: () => onNavigate('competitions'),
+            },
+            {
+              id: 'event_studio',
+              title: 'Aktivitas & Pos Giat',
+              icon: Sliders,
+              status: 'Siap',
+              statusColor: 'emerald',
+              onClick: () => onNavigate('event_studio'),
+            },
+          ]}
+        />
+
+        {/* 2. OPERASIONAL */}
+        <ModuleGroup
+          title="Operasional"
+          icon={Tent}
+          isOpen={expandedSections.operasional}
+          onToggle={() => toggleSection('operasional')}
+          items={[
+            {
+              id: 'event_studio_campsite',
+              title: 'Kavling Buper & Peta',
+              icon: Tent,
+              status: `${contingents.length} Tenda`,
+              statusColor: 'blue',
+              onClick: () => onNavigate('event_studio'),
+            },
+            {
+              id: 'health',
+              title: 'Posko Medis & P3K',
+              icon: Stethoscope,
+              status: 'Siaga 24J',
+              statusColor: 'emerald',
+              onClick: () => onNavigate('health'),
+            },
+            {
+              id: 'logistics',
+              title: 'Gudang Logistik',
+              icon: Boxes,
+              status: '48 Item',
+              statusColor: 'amber',
+              onClick: () => onNavigate('logistics'),
+            },
+            {
+              id: 'public_home',
+              title: 'Buku Tamu / Pengunjung',
+              icon: Globe,
+              status: `${visitorCount} Tamu`,
+              statusColor: 'slate',
+              onClick: () => onNavigate('public_home'),
+            },
+          ]}
+        />
+
+        {/* 3. PUBLIKASI */}
+        <ModuleGroup
+          title="Publikasi"
+          icon={ImageIcon}
+          isOpen={expandedSections.publikasi}
+          onToggle={() => toggleSection('publikasi')}
+          items={[
+            {
+              id: 'public_gallery',
+              title: 'Galeri Liputan Resmi',
+              icon: ImageIcon,
+              status: 'Dokumentasi',
+              statusColor: 'blue',
+              onClick: () => onNavigate('public_gallery'),
+            },
+            {
+              id: 'event_studio_media',
+              title: 'Hero Banner & Pengumuman',
+              icon: Sparkles,
+              status: 'Publik',
+              statusColor: 'purple',
+              onClick: () => onNavigate('event_studio'),
+            },
+            {
+              id: 'event_studio_sponsor',
+              title: 'Logo Sponsor & Kemitraan',
+              icon: Building2,
+              status: 'Aktif',
+              statusColor: 'emerald',
+              onClick: () => onNavigate('event_studio'),
+            },
+          ]}
+        />
+
+        {/* 4. DOKUMEN */}
+        <ModuleGroup
+          title="Dokumen"
+          icon={CreditCard}
+          isOpen={expandedSections.dokumen}
+          onToggle={() => toggleSection('dokumen')}
+          items={[
+            {
+              id: 'templates_idcard',
+              title: 'Desain & Cetak ID Card',
+              icon: CreditCard,
+              status: 'QR Siap',
+              statusColor: 'emerald',
+              onClick: () => onNavigate('templates'),
+            },
+            {
+              id: 'templates_cert',
+              title: 'Piagam & Sertifikat',
+              icon: FileText,
+              status: 'Template',
+              statusColor: 'purple',
+              onClick: () => onNavigate('templates'),
+            },
+            {
+              id: 'templates_canvas',
+              title: 'Studio Desain Dokumen',
+              icon: Layers,
+              status: 'WYSIWYG',
+              statusColor: 'blue',
+              onClick: () => onNavigate('templates'),
+            },
+          ]}
+        />
+
+        {/* 5. SISTEM (Advanced controls separated from daily operations - Requirement 36) */}
+        <ModuleGroup
+          title="Sistem & Konfigurasi"
+          icon={Database}
+          isOpen={expandedSections.sistem}
+          onToggle={() => toggleSection('sistem')}
+          items={[
+            ...(canReadInstallation(authService.getCurrentUser()?.role) ? [
+              {
+                id: 'installation',
+                title: 'Konfigurasi Sistem',
+                icon: ShieldCheck,
+                status: customerInstallationService.isConfigured() ? 'Terkonfigurasi' : 'Perlu Konfigurasi',
+                statusColor: (customerInstallationService.isConfigured() ? 'emerald' : 'amber') as any,
+                onClick: () => onNavigate('installation'),
+              },
+            ] : []),
+            {
+              id: 'database_storage',
+              title: 'Database Spreadsheet',
+              icon: Database,
+              status: isDbConnected ? 'Terhubung' : 'Perlu Cek',
+              statusColor: isDbConnected ? 'emerald' : 'amber',
+              onClick: () => onNavigate('database_storage'),
+            },
+            {
+              id: 'branding_settings',
+              title: 'Branding & Tampilan Kwartir',
+              icon: Sparkles,
+              status: 'Tampilan',
+              statusColor: 'purple',
+              onClick: () => onNavigate('branding_settings'),
+            },
+            {
+              id: 'users',
+              title: 'Pengguna & Hak Akses (RBAC)',
+              icon: ShieldCheck,
+              status: 'Hak Akses',
+              statusColor: 'slate',
+              onClick: () => onNavigate('users'),
+            },
+            {
+              id: 'organizations',
+              title: 'Struktur Organisasi Kwartir',
+              icon: Building2,
+              status: 'Kwarcab',
+              statusColor: 'slate',
+              onClick: () => onNavigate('organizations'),
+            },
+            {
+              id: 'system_update',
+              title: 'Status & Pembaruan Sistem',
+              icon: ArrowUpCircle,
+              status: 'v1.4',
+              statusColor: 'blue',
+              onClick: () => onNavigate('system_update'),
+            },
+          ]}
+        />
+      </div>
+
+      {/* =========================================================================
+          SECTION 7: RECENT ACTIVITY (Requirement 25: 3-5 records + Lihat Semua)
+          ========================================================================= */}
+      <RecentActivityList activities={recentActivities} />
+
+      {/* =========================================================================
+          SECTION 8: ONBOARDING QUICK CHECKLIST (Requirement 40)
+          Progressive onboarding indicator for peace of mind
+          ========================================================================= */}
+      <div className="p-4 sm:p-5 rounded-[24px] bg-slate-50 dark:bg-white/[0.03] border border-[#ECECEF] dark:border-white/5 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-bold text-[#171717] dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+            <CheckSquare className="w-4 h-4 text-emerald-600" />
+            <span>Kesiapan Operasional Event</span>
+          </span>
+          <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+            5/6 Siap
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+            <span className="text-emerald-600 font-bold">✓</span> Database Spreadsheet
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+            <span className="text-emerald-600 font-bold">✓</span> Identitas & Logo Kwartir
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+            <span className="text-emerald-600 font-bold">✓</span> Jadwal Sesi Hari 1
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+            <span className="text-emerald-600 font-bold">✓</span> Barcode ID Card Peserta
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300">
+            <span className="text-emerald-600 font-bold">✓</span> Posko Kesehatan & Medis
+          </div>
+          <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+            <span className="text-amber-500 font-bold">○</span> Penilaian Juara Final
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

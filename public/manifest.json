@@ -1,0 +1,18 @@
+{
+  "name": "SiEpang - Sistem Informasi Perkemahan Pramuka",
+  "short_name": "SiEpang",
+  "description": "Platform manajemen perkemahan pramuka modern dengan QR presensi, sinkronisasi offline, gamifikasi XP, dan portal publik.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F7F8",
+  "theme_color": "#833AB4",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,638 @@
+/**
+ * @license
+ * SiEpang - Public Event Documentation Gallery (Part 50-65, 87-90, 95-96, 125-126)
+ * Official photo and video documentation accessible without login:
+ * - Album filtering & search
+ * - Lazy loaded responsive image grid
+ * - High-performance modern Lightbox with next/prev and mobile swipe
+ * - Safe embedded video player with fallback to provider
+ * - Photo download permission controls (VIEW_ONLY vs ALLOW_ORIGINAL_LINK)
+ * - Empty state handling
+ */
+
+import React, { useState, useEffect } from 'react';
+import {
+  Image as ImageIcon,
+  Film,
+  Play,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Download,
+  Calendar,
+  Layers,
+  Sparkles,
+  Search,
+  Eye,
+  ArrowLeft,
+  AlertCircle,
+  Share2,
+} from 'lucide-react';
+import { documentationService } from '../../services/documentationService';
+import { eventService } from '../../services/eventService';
+import { PhotoAlbum, MediaItem } from '../../types';
+import { GlobalFooter } from '../../components/layout/GlobalFooter';
+
+interface PublicDocumentationGalleryProps {
+  onBackToHome?: () => void;
+  initialTab?: 'photos' | 'videos';
+}
+
+export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProps> = ({
+  onBackToHome,
+  initialTab = 'photos',
+}) => {
+  const [activeTab, setActiveTab] = useState<'photos' | 'videos'>(initialTab);
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [visiblePhotoCount, setVisiblePhotoCount] = useState<number>(12);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [activeVideoItem, setActiveVideoItem] = useState<MediaItem | null>(null);
+  const [copyFeedback, setCopyFeedback] = useState(false);
+
+  // Touch swipe state for Lightbox (Section 10)
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
+
+  const event = eventService.getCurrentEvent();
+  const albums = documentationService.getAlbums('PUBLISHED');
+  const photos = documentationService.getMediaItems({ type: 'PHOTO', publicationStatus: 'PUBLISHED' });
+  const videos = documentationService.getMediaItems({ type: 'VIDEO', publicationStatus: 'PUBLISHED' });
+
+  // Reset pagination when album or search query changes
+  useEffect(() => {
+    setVisiblePhotoCount(12);
+  }, [selectedAlbumId, searchQuery]);
+
+  // Filter photos based on album and search
+  const filteredPhotos = photos.filter(p => {
+    const matchesAlbum = selectedAlbumId === 'all' || p.album_id === selectedAlbumId;
+    const matchesSearch =
+      !searchQuery ||
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (p.caption && p.caption.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesAlbum && matchesSearch;
+  });
+
+  // Photos to render for performance (Section 8)
+  const displayedPhotos = filteredPhotos.slice(0, visiblePhotoCount);
+
+  // Filter videos based on search
+  const filteredVideos = videos.filter(v => {
+    return (
+      !searchQuery ||
+      v.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (v.caption && v.caption.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  });
+
+  const currentLightboxPhoto = lightboxIndex !== null ? filteredPhotos[lightboxIndex] : null;
+  const currentPhotoAlbum = currentLightboxPhoto?.album_id
+    ? albums.find(a => a.album_id === currentLightboxPhoto.album_id)
+    : null;
+
+  const handleOpenLightbox = (index: number) => {
+    setLightboxIndex(index);
+    const item = filteredPhotos[index];
+    if (item) {
+      documentationService.recordMediaInteraction(item.media_id, 'VIEW');
+    }
+  };
+
+  const handleNextPhoto = () => {
+    if (lightboxIndex !== null && lightboxIndex < filteredPhotos.length - 1) {
+      handleOpenLightbox(lightboxIndex + 1);
+    } else if (lightboxIndex !== null && lightboxIndex === filteredPhotos.length - 1) {
+      handleOpenLightbox(0); // loop around
+    }
+  };
+
+  const handlePrevPhoto = () => {
+    if (lightboxIndex !== null && lightboxIndex > 0) {
+      handleOpenLightbox(lightboxIndex - 1);
+    } else if (lightboxIndex !== null && lightboxIndex === 0) {
+      handleOpenLightbox(filteredPhotos.length - 1); // loop around
+    }
+  };
+
+  // Touch gesture listeners (Section 10)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.targetTouches[0].clientX);
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.targetTouches[0].clientX);
+  };
+  const handleTouchEnd = () => {
+    if (touchStartX !== null && touchEndX !== null) {
+      const distance = touchStartX - touchEndX;
+      if (distance > 50) {
+        handleNextPhoto(); // swiped left
+      } else if (distance < -50) {
+        handlePrevPhoto(); // swiped right
+      }
+    }
+    setTouchStartX(null);
+    setTouchEndX(null);
+  };
+
+  const handlePlayVideo = (video: MediaItem) => {
+    setActiveVideoItem(video);
+    documentationService.recordMediaInteraction(video.media_id, 'PLAY');
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: `Galeri Dokumentasi | ${event.name}`,
+        url: window.location.href,
+      }).catch(() => {});
+    } else {
+      navigator.clipboard?.writeText(window.location.href);
+      setCopyFeedback(true);
+      setTimeout(() => setCopyFeedback(false), 2000);
+    }
+  };
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (lightboxIndex !== null) {
+        if (e.key === 'ArrowRight') handleNextPhoto();
+        if (e.key === 'ArrowLeft') handlePrevPhoto();
+        if (e.key === 'Escape') setLightboxIndex(null);
+      }
+      if (activeVideoItem && e.key === 'Escape') {
+        setActiveVideoItem(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, activeVideoItem, filteredPhotos.length]);
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-100 flex flex-col justify-between transition-colors">
+      {/* 1. Header Bar */}
+      <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#121215]/90 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 py-3 sm:px-6 transition-colors">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {onBackToHome && (
+              <button
+                type="button"
+                onClick={onBackToHome}
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 transition-colors flex items-center gap-1.5 text-xs font-semibold"
+                title="Kembali ke Beranda"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Beranda</span>
+              </button>
+            )}
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                  Dokumentasi Resmi Kegiatan
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-600 dark:text-purple-400 text-[10px] font-bold">
+                  Publik
+                </span>
+              </div>
+              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                {event.name} · {event.campGround}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleShare}
+              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-200 text-xs font-medium flex items-center gap-1.5 border border-black/5 dark:border-white/10 transition-colors"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{copyFeedback ? 'Tersalin ✓' : 'Bagikan'}</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* 2. Main Content Container */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6 flex-1 w-full">
+        {/* Gallery Intro Banner */}
+        <div className="rounded-[28px] bg-gradient-to-r from-[#833AB4]/10 via-[#E1306C]/10 to-amber-500/10 dark:from-[#833AB4]/20 dark:via-[#141418] dark:to-black border border-black/5 dark:border-white/10 p-5 sm:p-6 shadow-xs relative overflow-hidden">
+          <div className="relative z-10 max-w-2xl space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 text-[11px] font-bold">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Arsip Foto & Rekaman Video Perkemahan</span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Galeri Kenangan & Jejak Prestasi Pramuka
+            </h1>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              Koleksi dokumentasi resmi kegiatan, apel pembukaan, giat materi penjelajahan rimba, dan malam api unggun untuk peserta, orang tua, dan pembina pendamping.
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Switcher & Search Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Photos vs Videos Tabs */}
+          <div className="flex p-1 rounded-2xl bg-slate-200/70 dark:bg-white/5 border border-black/5 dark:border-white/10 shrink-0">
+            <button
+              type="button"
+              onClick={() => setActiveTab('photos')}
+              className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'photos'
+                  ? 'bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <ImageIcon className="w-4 h-4" />
+              <span>Foto Kegiatan ({photos.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('videos')}
+              className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                activeTab === 'videos'
+                  ? 'bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Film className="w-4 h-4" />
+              <span>Video Resmi ({videos.length})</span>
+            </button>
+          </div>
+
+          {/* Search Box */}
+          <div className="relative flex-1 max-w-sm">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder={activeTab === 'photos' ? 'Cari judul foto atau kegiatan...' : 'Cari video kegiatan...'}
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#833AB4] transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* ALBUM SELECTOR (Only in Photos tab) */}
+        {activeTab === 'photos' && albums.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-1">
+              Pilih Album Foto:
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setSelectedAlbumId('all')}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border ${
+                  selectedAlbumId === 'all'
+                    ? 'bg-[#833AB4] text-white border-[#833AB4]'
+                    : 'bg-white dark:bg-[#121215] text-slate-700 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#833AB4]/40'
+                }`}
+              >
+                Semua Album ({photos.length})
+              </button>
+
+              {albums.map(alb => (
+                <button
+                  key={alb.album_id}
+                  type="button"
+                  onClick={() => setSelectedAlbumId(alb.album_id)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${
+                    selectedAlbumId === alb.album_id
+                      ? 'bg-[#833AB4] text-white border-[#833AB4]'
+                      : 'bg-white dark:bg-[#121215] text-slate-700 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#833AB4]/40'
+                  }`}
+                >
+                  <Layers className="w-3 h-3 text-purple-400" />
+                  <span>{alb.album_name}</span>
+                  <span className="text-[10px] opacity-75 font-mono">({alb.photo_count})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 1: PHOTOS GRID */}
+        {activeTab === 'photos' && (
+          <div>
+            {filteredPhotos.length === 0 ? (
+              <div className="text-center py-16 px-4 rounded-3xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/5 space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mx-auto text-2xl">
+                  📷
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Belum ada dokumentasi foto</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  Foto resmi kegiatan akan diunggah oleh panitia dokumentasi selama perkemahan berlangsung.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+                  {displayedPhotos.map((photo, idx) => (
+                    <div
+                      key={photo.media_id}
+                      onClick={() => handleOpenLightbox(idx)}
+                      className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#833AB4]/50 transition-all duration-300 shadow-xs flex flex-col"
+                    >
+                      {/* Image Thumbnail with lazy loading */}
+                      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-black/40 relative">
+                        <img
+                          src={photo.thumbnail_url}
+                          alt={photo.title}
+                          loading="lazy"
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2.5">
+                          <span className="text-[10px] text-white flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            <span>Perbesar Foto</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Meta info */}
+                      <div className="p-2.5 flex-1 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-[#833AB4] dark:group-hover:text-[#E1306C] transition-colors">
+                            {photo.title}
+                          </h4>
+                          {photo.caption && (
+                            <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                              {photo.caption}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-[9px] text-slate-400 mt-2 font-mono">
+                          <span>{photo.event_date}</span>
+                          {photo.views_count ? <span>{photo.views_count} views</span> : null}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Section 8: Load More / Pagination Button */}
+                {visiblePhotoCount < filteredPhotos.length && (
+                  <div className="text-center pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setVisiblePhotoCount(prev => prev + 12)}
+                      className="px-6 py-2.5 rounded-2xl bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 hover:border-[#833AB4] text-xs font-bold text-slate-800 dark:text-slate-200 shadow-xs hover:shadow-md transition-all active:scale-98"
+                    >
+                      <span>Muat Lebih Banyak Foto ({filteredPhotos.length - visiblePhotoCount} tersisa)</span>
+                    </button>
+                    <div className="text-[11px] text-slate-400 mt-1 font-mono">
+                      Menampilkan {displayedPhotos.length} dari {filteredPhotos.length} foto resmi
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 2: VIDEOS GRID */}
+        {activeTab === 'videos' && (
+          <div>
+            {filteredVideos.length === 0 ? (
+              <div className="text-center py-16 px-4 rounded-3xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/5 space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center mx-auto text-2xl">
+                  🎬
+                </div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">Belum ada video kegiatan</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                  Video highlight dan liputan resmi perkemahan akan segera ditayangkan di sini.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {filteredVideos.map(video => (
+                  <div
+                    key={video.media_id}
+                    onClick={() => handlePlayVideo(video)}
+                    className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#E1306C]/50 transition-all duration-300 shadow-xs flex flex-col"
+                  >
+                    {/* Video Thumbnail with centered play icon */}
+                    <div className="aspect-video w-full overflow-hidden bg-black/60 relative">
+                      <img
+                        src={video.thumbnail_url}
+                        alt={video.title}
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      {/* Centered Play Button with subtle gradient ring */}
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/15 transition-colors flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full p-[1.5px] bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] shadow-lg group-hover:scale-110 transition-transform">
+                          <div className="w-full h-full rounded-full bg-black/80 flex items-center justify-center text-white">
+                            <Play className="w-5 h-5 fill-white ml-0.5" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Duration Tag */}
+                      {video.duration && (
+                        <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-black/80 text-white text-[10px] font-mono font-bold">
+                          {video.duration}
+                        </div>
+                      )}
+
+                      {/* Provider badge */}
+                      <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/70 text-slate-200 text-[9px] font-mono">
+                        {video.provider}
+                      </div>
+                    </div>
+
+                    {/* Video Info */}
+                    <div className="p-3.5 space-y-1.5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-[#E1306C] transition-colors">
+                          {video.title}
+                        </h4>
+                        {video.caption && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                            {video.caption}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-black/5 dark:border-white/5 font-mono">
+                        <span>{video.event_date}</span>
+                        {video.plays_count ? <span>{video.plays_count} putar</span> : null}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* 3. PHOTO LIGHTBOX MODAL (Section 10) */}
+      {currentLightboxPhoto && (
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-md p-2 sm:p-4 select-none animate-in fade-in"
+        >
+          {/* Top Bar with Close & Actions */}
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-20 pt-safe">
+            <div className="text-xs text-slate-300 font-mono">
+              Foto {lightboxIndex! + 1} dari {filteredPhotos.length} {currentPhotoAlbum ? `· ${currentPhotoAlbum.album_name}` : ''}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {currentLightboxPhoto.download_control === 'ALLOW_ORIGINAL_LINK' && currentLightboxPhoto.original_url && (
+                <a
+                  href={currentLightboxPhoto.original_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                  title="Unduh resolusi asli"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Unduh Asli</span>
+                </a>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setLightboxIndex(null)}
+                className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                aria-label="Tutup Pratinjau"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Navigation Arrows */}
+          <button
+            type="button"
+            onClick={handlePrevPhoto}
+            className="absolute left-2 sm:left-4 z-20 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 transition-all hover:scale-105"
+            aria-label="Foto Sebelumnya"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleNextPhoto}
+            className="absolute right-2 sm:right-4 z-20 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white border border-white/20 transition-all hover:scale-105"
+            aria-label="Foto Selanjutnya"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+
+          {/* Main Large Image & Caption */}
+          <div className="max-w-4xl max-h-[85vh] flex flex-col items-center justify-center p-2">
+            <img
+              src={currentLightboxPhoto.source_url || currentLightboxPhoto.thumbnail_url}
+              alt={currentLightboxPhoto.title}
+              className="max-h-[70vh] max-w-full object-contain rounded-2xl shadow-2xl"
+            />
+
+            <div className="text-center mt-3 max-w-xl space-y-1">
+              <h3 className="text-base font-bold text-white">
+                {currentLightboxPhoto.title}
+              </h3>
+              {currentLightboxPhoto.caption && (
+                <p className="text-xs text-slate-300">{currentLightboxPhoto.caption}</p>
+              )}
+              <div className="text-[11px] text-purple-300 font-mono">
+                {currentPhotoAlbum ? `${currentPhotoAlbum.album_name} · ` : ''}{currentLightboxPhoto.event_date} · {event.name}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. VIDEO PLAYER MODAL (Part 59, 112) */}
+      {activeVideoItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-3 sm:p-6 animate-in fade-in">
+          <div className="w-full max-w-3xl bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/10">
+              <div className="min-w-0 pr-2">
+                <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate">
+                  {activeVideoItem.title}
+                </h3>
+                <div className="text-[11px] text-purple-600 dark:text-purple-400 font-mono">
+                  {activeVideoItem.event_date} · Penyedia: {activeVideoItem.provider}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveVideoItem(null)}
+                className="p-2 rounded-full bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors shrink-0"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Embedded Player or Fallback View */}
+            <div className="aspect-video w-full bg-black relative">
+              {activeVideoItem.can_embed && activeVideoItem.embed_url ? (
+                <iframe
+                  src={activeVideoItem.embed_url}
+                  title={activeVideoItem.title}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full border-0"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-[#833AB4]/20 text-[#833AB4] dark:text-[#E1306C] flex items-center justify-center text-3xl">
+                    🎬
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-sm font-bold text-white">Pemutaran Sematan Eksternal</h4>
+                    <p className="text-xs text-slate-400 max-w-md">
+                      Video ini dihosting di {activeVideoItem.provider}. Klik tombol di bawah untuk membuka video di tab baru.
+                    </p>
+                  </div>
+                  <a
+                    href={activeVideoItem.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-5 py-2.5 bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95"
+                  >
+                    <span>Buka Video di {activeVideoItem.provider}</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Video description & external action */}
+            <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs border-t border-black/5 dark:border-white/10">
+              <div className="text-slate-600 dark:text-slate-300 leading-relaxed max-w-lg">
+                {activeVideoItem.caption || 'Dokumentasi resmi liputan video kegiatan perkemahan.'}
+              </div>
+              <a
+                href={activeVideoItem.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white font-semibold flex items-center gap-1.5 shrink-0 transition-colors"
+              >
+                <span>Buka Tautan Asli</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global Footer (Preserve reusable global footer) */}
+      <GlobalFooter />
+    </div>
+  );
+};

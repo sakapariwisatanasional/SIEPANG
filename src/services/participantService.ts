@@ -1,0 +1,431 @@
+/**
+ * @license
+ * SiEpang - Participant & Contingent Service
+ */
+
+import { Participant, Contingent, ParticipantStatus } from '../types';
+import { syncQueue } from '../offline/syncQueue';
+import { eventService } from './eventService';
+
+class ParticipantService {
+  private participants: Participant[] = [];
+  private contingents: Contingent[] = [];
+  private listeners: Set<() => void> = new Set();
+
+  public getParticipants(filters?: {
+    search?: string;
+    contingentId?: string;
+    status?: ParticipantStatus | 'all';
+    checkedIn?: boolean;
+  }): Participant[] {
+    let result = [...this.participants];
+
+    if (filters?.search) {
+      const q = filters.search.toLowerCase();
+      result = result.filter(
+        p =>
+          p.name.toLowerCase().includes(q) ||
+          p.code.toLowerCase().includes(q) ||
+          p.contingentName.toLowerCase().includes(q)
+      );
+    }
+
+    if (filters?.contingentId && filters.contingentId !== 'all') {
+      result = result.filter(p => p.contingentId === filters.contingentId);
+    }
+
+    if (filters?.status && filters.status !== 'all') {
+      result = result.filter(p => p.status === filters.status);
+    }
+
+    if (filters?.checkedIn !== undefined) {
+      result = result.filter(p => p.checkedIn === filters.checkedIn);
+    }
+
+    return result;
+  }
+
+  public getParticipantByCode(code: string): Participant | undefined {
+    return this.participants.find(p => p.code.toLowerCase() === code.toLowerCase().trim());
+  }
+
+  public getContingents(): Contingent[] {
+    return this.contingents;
+  }
+
+  public getContingentById(id: string): Contingent | undefined {
+    return this.contingents.find(c => c.id === id || c.contingent_id === id);
+  }
+
+  public createContingent(data: Partial<Contingent>): Contingent {
+    const id = data.id || `ctg_${Date.now()}`;
+    const newContingent: Contingent = {
+      id,
+      contingent_id: id,
+      name: data.name || 'Kontingen Baru',
+      contingent_name: data.name || 'Kontingen Baru',
+      region: data.region || 'Wilayah Penyelenggara',
+      leaderName: data.leaderName || data.leader || 'Pembina Kontingen',
+      leader: data.leaderName || data.leader || 'Pembina Kontingen',
+      leaderPhone: data.leaderPhone || data.contact || '0812-0000-0000',
+      contact: data.leaderPhone || data.contact || '0812-0000-0000',
+      participantCount: 0,
+      participant_count: 0,
+      quota: data.quota || 32,
+      maleCount: 0,
+      femaleCount: 0,
+      advisorCount: 2,
+      verifiedCount: 0,
+      checkedInCount: 0,
+      campZone: data.campZone || 'Zona A',
+      subCamp: data.subCamp || 'Kavling A-01',
+      campsite_assignment: data.campsite_assignment || 'Kavling A-01',
+      verification_status: 'VERIFIED',
+      totalXp: 0,
+      organization_id: data.organization_id || 'org_kwarran_glagah',
+      contingent_level: data.contingent_level || 'KWARRAN',
+    };
+    this.contingents.push(newContingent);
+    this.notify();
+    return newContingent;
+  }
+
+  public updateContingent(id: string, updates: Partial<Contingent>): Contingent {
+    const ctg = this.contingents.find(c => c.id === id || c.contingent_id === id);
+    if (!ctg) throw new Error(`Kontingen '${id}' tidak ditemukan`);
+    Object.assign(ctg, updates);
+    this.notify();
+    return ctg;
+  }
+
+  // ==================== VERIFICATION & STATUS HISTORY ====================
+
+  public verifyParticipant(participantId: string, verifiedBy: string): Participant {
+    const p = this.participants.find(part => part.id === participantId);
+    if (!p) throw new Error('Peserta tidak ditemukan');
+
+    const prev = p.status;
+    p.status = 'verified';
+    this.recordStatusHistory(p, prev, 'verified', verifiedBy, 'Dokumen KTA, asuransi, dan izin orang tua lengkap.');
+    this.notify();
+    return p;
+  }
+
+  public approveParticipant(participantId: string, approvedBy: string): Participant {
+    const p = this.participants.find(part => part.id === participantId);
+    if (!p) throw new Error('Peserta tidak ditemukan');
+
+    const prev = p.status;
+    p.status = 'approved';
+    this.recordStatusHistory(p, prev, 'approved', approvedBy, 'Persetujuan akhir kepesertaan perkemahan.');
+    this.notify();
+    return p;
+  }
+
+  public requestRevision(participantId: string, reason: string, officerName: string): Participant {
+    const p = this.participants.find(part => part.id === participantId);
+    if (!p) throw new Error('Peserta tidak ditemukan');
+
+    const prev = p.status;
+    p.status = 'revision';
+    p.revisionReason = reason;
+    this.recordStatusHistory(p, prev, 'revision', officerName, reason);
+    this.notify();
+    return p;
+  }
+
+  public rejectParticipant(participantId: string, reason: string, officerName: string): Participant {
+    const p = this.participants.find(part => part.id === participantId);
+    if (!p) throw new Error('Peserta tidak ditemukan');
+
+    const prev = p.status;
+    p.status = 'rejected';
+    p.revisionReason = reason;
+    this.recordStatusHistory(p, prev, 'rejected', officerName, reason);
+    this.notify();
+    return p;
+  }
+
+  private recordStatusHistory(
+    participant: Participant,
+    previous: string,
+    next: string,
+    actor: string,
+    reason?: string
+  ): void {
+    if (!participant.statusHistory) {
+      participant.statusHistory = [];
+    }
+    participant.statusHistory.unshift({
+      participant_id: participant.id,
+      previous_status: previous,
+      new_status: next,
+      changed_by: actor,
+      reason,
+      timestamp: new Date().toLocaleString('id-ID'),
+    });
+  }
+
+  public getStatusHistory(participantId: string) {
+    const p = this.participants.find(part => part.id === participantId);
+    return p?.statusHistory || [];
+  }
+
+  // ==================== DUPLICATE DETECTION ====================
+
+  public detectDuplicates(candidate: Partial<Participant>): {
+    isDuplicate: boolean;
+    reason?: string;
+    matchedParticipant?: Participant;
+  } {
+    // 1. By membership number / NTA
+    if (candidate.membershipNumber) {
+      const match = this.participants.find(
+        p => p.id !== candidate.id && p.membershipNumber && p.membershipNumber.trim() === candidate.membershipNumber?.trim()
+      );
+      if (match) {
+        return { isDuplicate: true, reason: `Nomor KTA/NTA '${candidate.membershipNumber}' sudah digunakan oleh ${match.name}`, matchedParticipant: match };
+      }
+    }
+
+    // 2. By Name + Contingent
+    if (candidate.name && candidate.contingentName) {
+      const match = this.participants.find(
+        p =>
+          p.id !== candidate.id &&
+          p.name.trim().toLowerCase() === candidate.name?.trim().toLowerCase() &&
+          p.contingentName.trim().toLowerCase() === candidate.contingentName?.trim().toLowerCase()
+      );
+      if (match) {
+        return { isDuplicate: true, reason: `Nama '${candidate.name}' sudah terdaftar dalam kontingen ${candidate.contingentName}`, matchedParticipant: match };
+      }
+    }
+
+    // 3. By Email or Phone
+    if (candidate.email) {
+      const match = this.participants.find(
+        p => p.id !== candidate.id && p.email && p.email.trim().toLowerCase() === candidate.email?.trim().toLowerCase()
+      );
+      if (match) {
+        return { isDuplicate: true, reason: `Email '${candidate.email}' sudah terdaftar pada ${match.name}`, matchedParticipant: match };
+      }
+    }
+
+    return { isDuplicate: false };
+  }
+
+  // ==================== CSV / SPREADSHEET IMPORT ====================
+
+  public importParticipants(
+    rows: any[],
+    importedBy: string
+  ): {
+    accepted: number;
+    needsReview: number;
+    rejected: number;
+    duplicatesCount: number;
+    importedList: Participant[];
+  } {
+    let accepted = 0;
+    let needsReview = 0;
+    let rejected = 0;
+    let duplicatesCount = 0;
+    const importedList: Participant[] = [];
+
+    rows.forEach((row, idx) => {
+      const name = row.name || row.Nama || row['Nama Lengkap'];
+      if (!name || name.trim().length < 2) {
+        rejected++;
+        return;
+      }
+
+      const dupCheck = this.detectDuplicates({
+        name,
+        membershipNumber: row.membershipNumber || row.NTA || row.KTA,
+        contingentName: row.contingentName || row.Kontingen || 'Kontingen',
+        email: row.email || row.Email,
+      });
+
+      const isDuplicate = dupCheck.isDuplicate;
+      if (isDuplicate) {
+        duplicatesCount++;
+        needsReview++;
+      } else {
+        accepted++;
+      }
+
+      const activeEvent = eventService.getCurrentEvent();
+      const eventCodePrefix = activeEvent.eventCode || 'PST';
+
+      const newP: Participant = {
+        id: `p_imp_${Date.now()}_${idx}`,
+        code: `${eventCodePrefix}-${String(this.participants.length + 1).padStart(4, '0')}`,
+        name: name.trim(),
+        gender: (row.gender || row['Jenis Kelamin'] || 'M').toUpperCase().startsWith('P') ? 'F' : 'M',
+        role: row.role || row.Tingkatan || 'Penggalang',
+        contingentId: row.contingentId || `ctg_${Date.now()}`,
+        contingentName: row.contingentName || row.Kontingen || 'Kontingen',
+        subCamp: row.subCamp || 'Bumi Perkemahan',
+        tentNumber: row.tentNumber || 'Tenda 1',
+        photoUrl: row.photoUrl || '',
+        status: isDuplicate ? 'revision' : 'submitted',
+        checkedIn: false,
+        xp: 100,
+        level: 1,
+        rank: this.participants.length + 1,
+        attendanceCount: 0,
+        badges: ['badge_spirit'],
+        membershipNumber: row.membershipNumber || row.NTA || row.KTA || `NTA-${Date.now()}`,
+        email: row.email || row.Email || '',
+        phone: row.phone || row.Telepon || '',
+        isPossibleDuplicate: isDuplicate,
+        revisionReason: isDuplicate ? dupCheck.reason : undefined,
+      };
+
+      this.participants.unshift(newP);
+      importedList.push(newP);
+    });
+
+    this.notify();
+    return { accepted, needsReview, rejected, duplicatesCount, importedList };
+  }
+
+  // ==================== BULK ACTIONS ====================
+
+  public bulkApprove(ids: string[], actor: string): number {
+    let count = 0;
+    ids.forEach(id => {
+      const p = this.participants.find(part => part.id === id);
+      if (p) {
+        const prev = p.status;
+        p.status = 'approved';
+        this.recordStatusHistory(p, prev, 'approved', actor, 'Bulk approval oleh administrator');
+        count++;
+      }
+    });
+    this.notify();
+    return count;
+  }
+
+  public bulkAssignContingent(ids: string[], contingentId: string, contingentName: string): number {
+    let count = 0;
+    ids.forEach(id => {
+      const p = this.participants.find(part => part.id === id);
+      if (p) {
+        p.contingentId = contingentId;
+        p.contingentName = contingentName;
+        count++;
+      }
+    });
+    this.notify();
+    return count;
+  }
+
+  public bulkAssignCategory(ids: string[], role: Participant['role']): number {
+    let count = 0;
+    ids.forEach(id => {
+      const p = this.participants.find(part => part.id === id);
+      if (p) {
+        p.role = role;
+        count++;
+      }
+    });
+    this.notify();
+    return count;
+  }
+
+  public bulkArchive(ids: string[]): number {
+    this.participants = this.participants.filter(p => !ids.includes(p.id));
+    this.notify();
+    return ids.length;
+  }
+
+  // ==================== CONTINGENT CHECK-IN ====================
+
+  public contingentCheckIn(
+    contingentId: string,
+    officerName: string,
+    exceptionIds: string[] = []
+  ): { checkedInCount: number; exceptionsCount: number } {
+    let checkedInCount = 0;
+    let exceptionsCount = 0;
+
+    this.participants.forEach(p => {
+      if (p.contingentId === contingentId) {
+        if (exceptionIds.includes(p.id)) {
+          exceptionsCount++;
+        } else {
+          p.checkedIn = true;
+          p.checkInTime = new Date().toISOString();
+          checkedInCount++;
+        }
+      }
+    });
+
+    const ctg = this.contingents.find(c => c.id === contingentId || c.contingent_id === contingentId);
+    if (ctg) {
+      ctg.checkedInCount = checkedInCount;
+    }
+
+    this.notify();
+    return { checkedInCount, exceptionsCount };
+  }
+
+  public async checkIn(participantId: string): Promise<Participant> {
+    const participant = this.participants.find(p => p.id === participantId);
+    if (!participant) {
+      throw new Error('Peserta tidak ditemukan');
+    }
+
+    if (participant.checkedIn) {
+      const timeStr = participant.checkInTime ? new Date(participant.checkInTime).toLocaleTimeString('id-ID') : 'sebelumnya';
+      throw new Error(`⚠️ Peserta '${participant.name}' (${participant.code}) sudah melakukan check-in kedatangan buper (${timeStr}). Check-in ganda dicegah.`);
+    }
+
+    participant.checkedIn = true;
+    participant.checkInTime = new Date().toISOString();
+
+    // Log offline action for persistent sync
+    await syncQueue.addAction('check_in', {
+      participantId,
+      participantCode: participant.code,
+      timestamp: participant.checkInTime,
+    });
+
+    this.notify();
+    return participant;
+  }
+
+  public async addParticipant(data: Omit<Participant, 'id' | 'code' | 'xp' | 'level' | 'rank' | 'attendanceCount' | 'badges'>): Promise<Participant> {
+    const currentEvent = eventService.getCurrentEvent();
+    const prefix = currentEvent?.eventCode || 'PST';
+    const year = currentEvent?.startDate ? new Date(currentEvent.startDate).getFullYear() : new Date().getFullYear();
+    const newParticipant: Participant = {
+      ...data,
+      id: `p_${Date.now()}`,
+      code: `${prefix}-${year}-${String(this.participants.length + 1).padStart(4, '0')}`,
+      xp: 100,
+      level: 1,
+      rank: this.participants.length + 1,
+      attendanceCount: 0,
+      badges: ['badge_spirit'],
+    };
+
+    this.participants.unshift(newParticipant);
+    this.notify();
+    return newParticipant;
+  }
+
+  public subscribe(cb: () => void) {
+    this.listeners.add(cb);
+    return () => {
+      this.listeners.delete(cb);
+    };
+  }
+
+  private notify() {
+    this.listeners.forEach(cb => cb());
+  }
+}
+
+export const participantService = new ParticipantService();

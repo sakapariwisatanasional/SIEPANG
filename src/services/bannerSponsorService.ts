@@ -1,0 +1,414 @@
+/**
+ * @license
+ * SiEpang - Hero Banner, Public Information Banner & Sponsor Service (Requirements 21-41, 49, 50, 52-54, 58, 63)
+ * Full management of advertising, announcements, and sponsor media.
+ */
+
+import {
+  BannerItem,
+  SponsorItem,
+  BannerType,
+  BannerPreset,
+  BannerFitMode,
+  BannerDisplayLocation,
+  BannerPriority,
+  MediaPublicationStatus,
+  SponsorTier,
+  BannerRotatorConfig,
+  SponsorCarouselConfig,
+} from '../types';
+import { mediaResolverService } from './mediaResolverService';
+import { eventStudioService } from './eventStudioService';
+import { eventService } from './eventService';
+import { workspaceService } from './workspaceService';
+import { spreadsheetRepository } from '../backend/repositories/spreadsheetRepository';
+
+class BannerSponsorService {
+  private banners: Map<string, BannerItem> = new Map();
+  private sponsors: Map<string, SponsorItem> = new Map();
+  private rotatorConfig: BannerRotatorConfig = {
+    mode: 'AUTO_ROTATE',
+    rotationIntervalSeconds: 6,
+    showNavigationDots: true,
+    enableMobileSwipe: true,
+    pauseOnHover: true,
+  };
+  private carouselConfig: SponsorCarouselConfig = {
+    enabled: true,
+    direction: 'RIGHT_TO_LEFT',
+    carousel_duration_seconds: 30, // Normal 30s, Fast 15s, Slow 60s
+    pauseOnHover: true,
+    pauseOnTouch: true,
+  };
+  private listeners: Set<() => void> = new Set();
+
+  constructor() {
+    this.loadPersistentConfigs();
+  }
+
+  private loadPersistentConfigs(): void {
+    try {
+      const storedCar = localStorage.getItem('siepang_sponsor_carousel_config');
+      if (storedCar) {
+        this.carouselConfig = { ...this.carouselConfig, ...JSON.parse(storedCar) };
+      }
+      const storedRot = localStorage.getItem('siepang_banner_rotator_config');
+      if (storedRot) {
+        this.rotatorConfig = { ...this.rotatorConfig, ...JSON.parse(storedRot) };
+      }
+    } catch {
+      // Memory defaults
+    }
+  }
+
+
+
+  // ==================== BANNER OPERATIONS ====================
+
+  public getBanners(options?: {
+    location?: BannerDisplayLocation;
+    type?: BannerType;
+    status?: MediaPublicationStatus;
+    onlyActiveNow?: boolean;
+  }): BannerItem[] {
+    let list = Array.from(this.banners.values());
+
+    if (options?.location) {
+      list = list.filter(b => b.display_location === options.location);
+    }
+    if (options?.type) {
+      list = list.filter(b => b.banner_type === options.type);
+    }
+    if (options?.status) {
+      list = list.filter(b => b.publication_status === options.status);
+    }
+
+    if (options?.onlyActiveNow) {
+      const now = new Date().toISOString();
+      list = list.filter(b => {
+        if (b.publication_status !== 'PUBLISHED') return false;
+        if (b.publish_start && b.publish_start > now) return false;
+        if (b.publish_end && b.publish_end < now) return false;
+        return true;
+      });
+    }
+
+    // Sort by priority (URGENT first) then display_order
+    return list.sort((a, b) => {
+      const pMap: Record<BannerPriority, number> = { URGENT: 1, IMPORTANT: 2, NORMAL: 3 };
+      if (pMap[a.priority] !== pMap[b.priority]) {
+        return pMap[a.priority] - pMap[b.priority];
+      }
+      return a.display_order - b.display_order;
+    });
+  }
+
+  public getBannerById(id: string): BannerItem | undefined {
+    return this.banners.get(id);
+  }
+
+  public createBanner(data: {
+    banner_type: BannerType;
+    title: string;
+    subtitle?: string;
+    image_url: string;
+    desktop_preset?: BannerPreset;
+    mobile_preset?: BannerPreset;
+    mobile_image_url?: string;
+    fit_mode?: BannerFitMode;
+    focal_x?: number;
+    focal_y?: number;
+    target_type?: 'NONE' | 'INTERNAL_ROUTE' | 'EXTERNAL_URL';
+    target_url?: string;
+    cta_label?: string;
+    display_location?: BannerDisplayLocation;
+    priority?: BannerPriority;
+    publish_start?: string;
+    publish_end?: string;
+    publication_status?: MediaPublicationStatus;
+    createdBy?: string;
+  }): BannerItem {
+    const id = `ban_${Date.now()}`;
+    const resolution = mediaResolverService.resolveSource(data.image_url);
+
+    const banner: BannerItem = {
+      banner_id: id,
+      workspace_id: workspaceService.getCurrentWorkspace().id || '',
+      event_id: eventService.getCurrentEvent().id || '',
+      banner_type: data.banner_type,
+      title: data.title.trim(),
+      subtitle: data.subtitle?.trim(),
+      image_url: resolution.thumbnailUrl || data.image_url,
+      source_type: resolution.sourceType,
+      desktop_preset: data.desktop_preset || 'BILLBOARD', // 970x250 default
+      mobile_preset: data.mobile_preset || 'LARGE_MOBILE_BANNER', // 320x100 default
+      mobile_image_url: data.mobile_image_url?.trim(),
+      fit_mode: data.fit_mode || 'COVER',
+      focal_x: typeof data.focal_x === 'number' ? data.focal_x : 50,
+      focal_y: typeof data.focal_y === 'number' ? data.focal_y : 50,
+      target_type: data.target_type || 'NONE',
+      target_url: data.target_url?.trim(),
+      cta_label: data.cta_label?.trim(),
+      display_location: data.display_location || 'PUBLIC_HOME_TOP',
+      display_order: this.banners.size + 1,
+      priority: data.priority || 'NORMAL',
+      publish_start: data.publish_start || new Date().toISOString().replace('T', ' ').slice(0, 16),
+      publish_end: data.publish_end,
+      publication_status: data.publication_status || 'PUBLISHED',
+      click_tracking_enabled: true,
+      impressions_count: 0,
+      clicks_count: 0,
+      created_at: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      created_by: data.createdBy || 'Event Admin',
+    };
+
+    this.banners.set(id, banner);
+
+    eventStudioService.addAuditLogEntry(
+      'BANNER_CREATED',
+      `Banner '${banner.title}' (${banner.banner_type}) berhasil dibuat.`,
+      data.createdBy || 'Admin'
+    );
+
+    this.notify();
+    return banner;
+  }
+
+  public updateBanner(id: string, updates: Partial<BannerItem>, updatedBy?: string): BannerItem {
+    const target = this.banners.get(id);
+    if (!target) throw new Error('Banner tidak ditemukan.');
+
+    const updated: BannerItem = {
+      ...target,
+      ...updates,
+      updated_at: new Date().toISOString().replace('T', ' ').slice(0, 16),
+    };
+    this.banners.set(id, updated);
+
+    eventStudioService.addAuditLogEntry(
+      'BANNER_UPDATED',
+      `Banner '${updated.title}' diperbarui.`,
+      updatedBy || 'Admin'
+    );
+
+    this.notify();
+    return updated;
+  }
+
+  public deleteBanner(id: string, deletedBy?: string): boolean {
+    const target = this.banners.get(id);
+    if (!target) return false;
+
+    this.banners.delete(id);
+
+    eventStudioService.addAuditLogEntry(
+      'BANNER_DELETED',
+      `Banner '${target.title}' dihapus.`,
+      deletedBy || 'Admin'
+    );
+
+    this.notify();
+    return true;
+  }
+
+  public recordBannerImpression(id: string): void {
+    const b = this.banners.get(id);
+    if (b && b.click_tracking_enabled) {
+      b.impressions_count = (b.impressions_count || 0) + 1;
+    }
+  }
+
+  public recordBannerClick(id: string): void {
+    const b = this.banners.get(id);
+    if (b && b.click_tracking_enabled) {
+      b.clicks_count = (b.clicks_count || 0) + 1;
+      this.notify();
+    }
+  }
+
+  // ==================== SPONSOR OPERATIONS ====================
+
+  public getSponsors(filterStatus?: MediaPublicationStatus): SponsorItem[] {
+    let list = Array.from(this.sponsors.values());
+    if (filterStatus) {
+      list = list.filter(s => s.publication_status === filterStatus);
+    }
+    return list.sort((a, b) => a.display_order - b.display_order);
+  }
+
+  public getSponsorById(id: string): SponsorItem | undefined {
+    return this.sponsors.get(id);
+  }
+
+  public createSponsor(data: {
+    sponsor_name?: string;
+    sponsor_tier?: SponsorTier;
+    logo_url: string;
+    target_url?: string;
+    website_url?: string;
+    status?: 'ACTIVE' | 'INACTIVE';
+    banner_id?: string;
+    publication_status?: MediaPublicationStatus;
+    createdBy?: string;
+  }): SponsorItem {
+    const id = `sp_${Date.now()}`;
+    const targetLink = (data.target_url || data.website_url)?.trim();
+    const isActive = data.status ? data.status === 'ACTIVE' : true;
+
+    const sponsor: SponsorItem = {
+      sponsor_id: id,
+      workspace_id: workspaceService.getCurrentWorkspace().id || '',
+      event_id: eventService.getCurrentEvent().id || '',
+      sponsor_name: data.sponsor_name?.trim() || 'Mitra Sponsor',
+      sponsor_tier: data.sponsor_tier || 'PARTNER',
+      logo_url: data.logo_url.trim(),
+      target_url: targetLink,
+      website_url: targetLink,
+      banner_id: data.banner_id,
+      display_order: this.sponsors.size + 1,
+      status: data.status || (isActive ? 'ACTIVE' : 'INACTIVE'),
+      publication_status: data.publication_status || (isActive ? 'PUBLISHED' : 'ARCHIVED'),
+      created_at: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      created_by: data.createdBy || 'Admin',
+    };
+
+    this.sponsors.set(id, sponsor);
+
+    eventStudioService.addAuditLogEntry(
+      'SPONSOR_CREATED',
+      `Sponsor logo '${sponsor.sponsor_name}' ditambahkan.`,
+      data.createdBy || 'Admin'
+    );
+
+    this.notify();
+    return sponsor;
+  }
+
+  public updateSponsor(id: string, updates: Partial<SponsorItem>, updatedBy?: string): SponsorItem {
+    const target = this.sponsors.get(id);
+    if (!target) throw new Error('Sponsor tidak ditemukan.');
+
+    const updated = {
+      ...target,
+      ...updates,
+      updated_at: new Date().toISOString().replace('T', ' ').slice(0, 16),
+    };
+    this.sponsors.set(id, updated);
+
+    eventStudioService.addAuditLogEntry(
+      'SPONSOR_UPDATED',
+      `Sponsor '${updated.sponsor_name}' diperbarui.`,
+      updatedBy || 'Admin'
+    );
+
+    this.notify();
+    return updated;
+  }
+
+  public deleteSponsor(id: string, deletedBy?: string): boolean {
+    const target = this.sponsors.get(id);
+    if (!target) return false;
+
+    this.sponsors.delete(id);
+
+    eventStudioService.addAuditLogEntry(
+      'SPONSOR_DELETED',
+      `Sponsor '${target.sponsor_name}' dihapus.`,
+      deletedBy || 'Admin'
+    );
+
+    this.notify();
+    return true;
+  }
+
+  public reorderSponsor(id: string, direction: 'UP' | 'DOWN'): boolean {
+    const list = this.getSponsors();
+    const index = list.findIndex(s => s.sponsor_id === id);
+    if (index === -1) return false;
+    if (direction === 'UP' && index === 0) return false;
+    if (direction === 'DOWN' && index === list.length - 1) return false;
+
+    const targetIdx = direction === 'UP' ? index - 1 : index + 1;
+    const current = list[index];
+    const target = list[targetIdx];
+
+    const currentOrder = current.display_order;
+    current.display_order = target.display_order;
+    target.display_order = currentOrder;
+
+    this.sponsors.set(current.sponsor_id, { ...current });
+    this.sponsors.set(target.sponsor_id, { ...target });
+
+    this.notify();
+    return true;
+  }
+
+  public toggleSponsorStatus(id: string, updatedBy?: string): SponsorItem {
+    const sponsor = this.sponsors.get(id);
+    if (!sponsor) throw new Error('Sponsor tidak ditemukan.');
+
+    const nextStatus = sponsor.publication_status === 'PUBLISHED' ? 'ARCHIVED' : 'PUBLISHED';
+    sponsor.publication_status = nextStatus;
+    sponsor.status = nextStatus === 'PUBLISHED' ? 'ACTIVE' : 'INACTIVE';
+    sponsor.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 16);
+    sponsor.updated_by = updatedBy || 'Admin';
+
+    this.sponsors.set(id, sponsor);
+    this.notify();
+    return sponsor;
+  }
+
+  // ==================== SPONSOR CAROUSEL SETTINGS (Section 11 & 12) ====================
+
+  public getCarouselConfig(): SponsorCarouselConfig {
+    return { ...this.carouselConfig };
+  }
+
+  public updateCarouselConfig(updates: Partial<SponsorCarouselConfig>, eventId: string = ''): SponsorCarouselConfig {
+    this.carouselConfig = { ...this.carouselConfig, ...updates };
+    try {
+      localStorage.setItem('siepang_sponsor_carousel_config', JSON.stringify(this.carouselConfig));
+      // Authoritative sync to canonical SponsorSettings table
+      spreadsheetRepository.updateSponsorSettings(eventId, {
+        carousel_enabled: this.carouselConfig.enabled,
+        direction: this.carouselConfig.direction,
+        carousel_duration_seconds: this.carouselConfig.carousel_duration_seconds,
+        pause_on_hover: this.carouselConfig.pauseOnHover,
+      });
+    } catch {
+      // Storage unavailable
+    }
+    this.notify();
+    return this.carouselConfig;
+  }
+
+  // ==================== ROTATOR SETTINGS ====================
+
+  public getRotatorConfig(): BannerRotatorConfig {
+    return { ...this.rotatorConfig };
+  }
+
+  public updateRotatorConfig(updates: Partial<BannerRotatorConfig>): BannerRotatorConfig {
+    this.rotatorConfig = { ...this.rotatorConfig, ...updates };
+    try {
+      localStorage.setItem('siepang_banner_rotator_config', JSON.stringify(this.rotatorConfig));
+    } catch {
+      // Storage unavailable
+    }
+    this.notify();
+    return this.rotatorConfig;
+  }
+
+  // ==================== SUBSCRIPTION ====================
+
+  public subscribe(cb: () => void): () => void {
+    this.listeners.add(cb);
+    return () => this.listeners.delete(cb);
+  }
+
+  private notify(): void {
+    this.listeners.forEach(cb => cb());
+  }
+}
+
+export const bannerSponsorService = new BannerSponsorService();
