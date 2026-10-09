@@ -79,15 +79,26 @@ class ApiTransport {
     const envUrl = (import.meta as any).env?.VITE_SIEPANG_BACKEND_URL;
     const targetUrl = options?.overrideUrl || envUrl || record.web_app_url;
 
-    // If GAS URL is missing or not configured, return INSTALLATION_NOT_CONFIGURED
+    // If GAS URL is missing or not configured
     if (!targetUrl || !targetUrl.trim().startsWith('https://script.google.com/macros/s/')) {
+      if (action === 'bootstrap.status') {
+        return {
+          ok: true,
+          request_id: requestId,
+          data: {
+            installation_ready: false,
+            backend_reachable: false,
+          } as any,
+          error: null,
+        };
+      }
       return {
         ok: false,
         request_id: requestId,
         data: null,
         error: {
           code: 'INSTALLATION_NOT_CONFIGURED',
-          message: 'Script Properties / Backend Google Apps Script belum dikonfigurasi. Hubungkan Web App URL dan lengkapi Script Properties pada Project Settings.',
+          message: 'Backend Google Apps Script belum dikonfigurasi.',
         },
       };
     }

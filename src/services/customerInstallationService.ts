@@ -236,7 +236,6 @@ class CustomerInstallationService {
       !!this.record.installation_id &&
       !!this.record.workspace_id &&
       !!this.record.active_event_id &&
-      !!this.record.web_app_url &&
       this.record.bootstrap_superadmin_status === 'ACTIVE'
     );
   }

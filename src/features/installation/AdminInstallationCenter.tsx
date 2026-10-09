@@ -72,6 +72,7 @@ import {
 import { InstallationWizardModal } from './InstallationWizardModal';
 import { RecoveryModal } from './RecoveryModal';
 import { RecoveryCardModal } from './RecoveryCardModal';
+import { runBootstrapSecuritySuite, BootstrapTestSuiteResult } from '../../tests/bootstrapSecuritySuite';
 
 export interface AdminInstallationCenterProps {
   onBackToHome?: () => void;
@@ -269,6 +270,19 @@ export const AdminInstallationCenter: React.FC<AdminInstallationCenterProps> = (
       setAcceptanceReport(rep);
       setIsRunningAcceptance(false);
     }, 400);
+  };
+
+  const [bootstrapReport, setBootstrapReport] = useState<BootstrapTestSuiteResult | null>(null);
+  const [isRunningBootstrapTests, setIsRunningBootstrapTests] = useState(false);
+
+  const handleRunBootstrapTests = async () => {
+    setIsRunningBootstrapTests(true);
+    try {
+      const rep = await runBootstrapSecuritySuite();
+      setBootstrapReport(rep);
+    } finally {
+      setIsRunningBootstrapTests(false);
+    }
   };
 
   return (
@@ -871,14 +885,14 @@ export const AdminInstallationCenter: React.FC<AdminInstallationCenterProps> = (
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
+          <div className="flex flex-wrap items-center gap-2 pt-1">
             <button
               onClick={handleTestHandshake}
               disabled={isValidating}
               className="flex-1 py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-800 dark:text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isValidating ? 'animate-spin' : ''}`} />
-              <span>Uji Handshake Nonce</span>
+              <span>Uji Handshake</span>
             </button>
             <button
               onClick={handleRunTwoAccountAcceptance}
@@ -886,12 +900,52 @@ export const AdminInstallationCenter: React.FC<AdminInstallationCenterProps> = (
             >
               Audit Isolasi
             </button>
+            <button
+              onClick={handleRunBootstrapTests}
+              disabled={isRunningBootstrapTests}
+              className="py-2 px-3 rounded-xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+              <span>{isRunningBootstrapTests ? 'Menguji...' : 'Uji Bootstrap 1-8'}</span>
+            </button>
           </div>
 
           {validationResult && (
             <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 text-emerald-800 dark:text-emerald-200 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{validationResult}</span>
+            </div>
+          )}
+
+          {bootstrapReport && (
+            <div className="p-4 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-800/40 space-y-2.5 animate-in fade-in">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-purple-900 dark:text-purple-200 flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-purple-600" />
+                  <span>Audit Keamanan Bootstrap ({bootstrapReport.passedTests}/{bootstrapReport.totalTests} Lolos)</span>
+                </span>
+                <span className="font-mono font-bold text-[11px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                  {bootstrapReport.allPassed ? 'ALL PASS' : 'FAIL'}
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {bootstrapReport.results.map((t) => (
+                  <div
+                    key={t.id}
+                    className="p-2 rounded-xl bg-white/80 dark:bg-black/40 border border-purple-100 dark:border-purple-900/30 flex items-start justify-between gap-2 text-[11px]"
+                  >
+                    <div className="space-y-0.5">
+                      <div className="font-bold text-slate-800 dark:text-slate-200">
+                        {t.id}: {t.name}
+                      </div>
+                      <div className="text-slate-500 dark:text-slate-400">{t.actualResult}</div>
+                    </div>
+                    <span className="shrink-0 text-emerald-600 font-bold">
+                      {t.passed ? '✓ PASS' : '✗ FAIL'}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

@@ -30,6 +30,7 @@ import { UserManagementView } from './features/users/UserManagementView';
 import { AdminBrandingManager } from './features/branding/AdminBrandingManager';
 import { DatabaseStorageManager } from './features/database/DatabaseStorageManager';
 import { AdminInstallationCenter } from './features/installation/AdminInstallationCenter';
+import { FirstBootstrapScreen } from './features/installation/FirstBootstrapScreen';
 import { SystemUpdateCenter } from './features/system/SystemUpdateCenter';
 import { ReauthModal } from './components/layout/ReauthModal';
 import { QrScannerModal } from './components/scanner/QrScannerModal';
@@ -38,11 +39,13 @@ import { GlobalFooter } from './components/layout/GlobalFooter';
 import { UserRole, SystemFeatureKey } from './types';
 import { featureControlService } from './services/featureControlService';
 import { canReadInstallation } from './backend/rbac/permissions';
+import { bootstrapService } from './services/bootstrapService';
 import { Lock, ArrowLeft, ShieldAlert, Globe, UserCheck, AlertCircle, ShieldCheck } from 'lucide-react';
 
 export const PUBLIC_ROUTES: ReadonlyArray<NavTab> = [
   'public_home',
   'public_gallery',
+  'bootstrap',
 ];
 
 const ROLE_ALLOWED_TABS: Record<UserRole, ReadonlyArray<NavTab>> = {
@@ -84,6 +87,9 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<NavTab>(() => {
     try {
       const path = window.location.pathname;
+      if (path === '/bootstrap' || path === '/bootstrap/') {
+        return 'bootstrap';
+      }
       if (path === '/install' || path === '/install/') {
         // Requirement 2 & 6: Anonymous user opening /install must be redirected to /login
         if (!authService.isAuthenticated()) {
@@ -160,7 +166,9 @@ export default function App() {
     const handlePopState = () => {
       try {
         const path = window.location.pathname;
-        if (path === '/install' || path === '/install/') {
+        if (path === '/bootstrap' || path === '/bootstrap/') {
+          setActiveTab('bootstrap');
+        } else if (path === '/install' || path === '/install/') {
           if (!authService.isAuthenticated()) {
             window.history.replaceState(null, '', '/login');
             setActiveTab('home');
@@ -207,11 +215,15 @@ export default function App() {
     };
   }, []);
 
-  // Synchronize browser URL bar with activeTab for /, /install, /gallery, and /login
+  // Synchronize browser URL bar with activeTab for /, /install, /gallery, /bootstrap, and /login
   useEffect(() => {
     try {
       const currentPath = window.location.pathname;
-      if (activeTab === 'installation') {
+      if (activeTab === 'bootstrap') {
+        if (currentPath !== '/bootstrap') {
+          window.history.pushState(null, '', '/bootstrap');
+        }
+      } else if (activeTab === 'installation') {
         if (!isLoggedIn) {
           if (currentPath !== '/login') {
             window.history.replaceState(null, '', '/login');
@@ -568,7 +580,7 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="pt-2 border-t border-[#ECECEF] dark:border-white/10">
+              <div className="pt-2 border-t border-[#ECECEF] dark:border-white/10 space-y-2">
                 <button
                   type="button"
                   onClick={() => setActiveTab('public_home')}
@@ -577,6 +589,19 @@ export default function App() {
                   <Globe className="w-4 h-4 text-purple-600" />
                   <span>Portal Publik</span>
                 </button>
+
+                {!bootstrapService.isInstallationReady() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.history.pushState(null, '', '/bootstrap');
+                      setActiveTab('bootstrap');
+                    }}
+                    className="w-full py-2 px-3 text-center text-[11px] text-[#833AB4] dark:text-[#E1306C] font-semibold hover:underline cursor-pointer"
+                  >
+                    ⚙️ Belum diinisialisasi? Buka First Bootstrap
+                  </button>
+                )}
               </div>
             </form>
           )}
@@ -888,6 +913,23 @@ export default function App() {
           {activeTab === 'branding_settings' && <AdminBrandingManager />}
 
           {activeTab === 'database_storage' && <DatabaseStorageManager />}
+
+          {activeTab === 'bootstrap' && (
+            <FirstBootstrapScreen
+              onComplete={(superadminEmail) => {
+                setLoginEmail(superadminEmail);
+                setAuthError(null);
+                setAuthSuccess(null);
+                setAuthMode('LOGIN');
+                window.history.pushState(null, '', '/login');
+                setActiveTab('home');
+              }}
+              onNavigateToLogin={() => {
+                window.history.pushState(null, '', '/login');
+                setActiveTab('home');
+              }}
+            />
+          )}
 
           {activeTab === 'installation' && (
             <AdminInstallationCenter onBackToHome={() => setActiveTab('public_home')} />

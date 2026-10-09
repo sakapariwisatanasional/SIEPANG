@@ -59,6 +59,8 @@ class ApiClient {
       'points/transact': 'points.transact',
       'database/provision_schema_v16': 'database.provision_schema_v19',
       'database/provision_schema_v19': 'database.provision_schema_v19',
+      'bootstrap/status': 'bootstrap.status',
+      'bootstrap/initialize': 'bootstrap.initialize',
     };
     return map[clean] || clean.replace(/\//g, '.');
   }

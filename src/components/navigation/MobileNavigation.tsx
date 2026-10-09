@@ -32,7 +32,8 @@ export type NavTab =
   | 'installation'
   | 'system_update'
   | 'public_home'
-  | 'public_gallery';
+  | 'public_gallery'
+  | 'bootstrap';
 
 interface MobileNavigationProps {
   activeTab: NavTab;

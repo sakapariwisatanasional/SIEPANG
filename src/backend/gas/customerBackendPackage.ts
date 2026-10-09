@@ -99,6 +99,10 @@ function initScriptProperties() {
   if (!currentProps['SCHEMA_VERSION']) updates['SCHEMA_VERSION'] = CONFIG.SCHEMA_VERSION;
   if (CONFIG.BOOTSTRAP_SUPERADMIN_EMAIL && !currentProps['BOOTSTRAP_SUPERADMIN_EMAIL']) updates['BOOTSTRAP_SUPERADMIN_EMAIL'] = CONFIG.BOOTSTRAP_SUPERADMIN_EMAIL;
   if (!currentProps['SUPERADMIN_BOOTSTRAPPED']) updates['SUPERADMIN_BOOTSTRAPPED'] = 'false';
+  if (!currentProps['SIEPANG_INSTALLATION_READY']) updates['SIEPANG_INSTALLATION_READY'] = 'false';
+  if (!currentProps['SIEPANG_BOOTSTRAP_TOKEN'] && currentProps['SIEPANG_INSTALLATION_READY'] !== 'true' && currentProps['SIEPANG_BOOTSTRAP_TOKEN_USED'] !== 'true') {
+    updates['SIEPANG_BOOTSTRAP_TOKEN'] = 'boot_' + Utilities.getUuid().replace(/-/g, '');
+  }
   if (!currentProps['SESSION_SIGNING_SECRET']) updates['SESSION_SIGNING_SECRET'] = 'sec_' + Utilities.getUuid().replace(/-/g, '');
   if (!currentProps['TOKEN_HASH_SECRET']) updates['TOKEN_HASH_SECRET'] = 'thash_' + Utilities.getUuid().replace(/-/g, '');
   if (!currentProps['OTP_EXPIRY_MINUTES']) updates['OTP_EXPIRY_MINUTES'] = String(CONFIG.OTP_EXPIRY_MINUTES);
@@ -133,7 +137,8 @@ function checkInstallationStatus() {
   if (!sheetId || sheetId === 'DISCONNECTED' || sheetId === 'NOT_CONFIGURED') missing.push('SPREADSHEET_ID');
   if (!driveRootId || driveRootId === 'NOT_CONFIGURED') missing.push('DRIVE_ROOT_ID');
 
-  var isConfigured = missing.length === 0;
+  var isInstallationReady = props.getProperty('SIEPANG_INSTALLATION_READY') === 'true';
+  var isConfigured = missing.length === 0 || isInstallationReady;
   var bootSuperAdminEmail = props.getProperty('BOOTSTRAP_SUPERADMIN_EMAIL') || CONFIG.BOOTSTRAP_SUPERADMIN_EMAIL || 'scoutpreneur@gmail.com';
   var isSuperAdminBootstrapped = props.getProperty('SUPERADMIN_BOOTSTRAPPED') === 'true';
 
@@ -563,6 +568,103 @@ function bootstrapSuperAdminForVerifiedUser(userEmail) {
 
 /**
  * ============================================================================
+ * FIRST BOOTSTRAP INITIALIZER (Zero Deadlock)
+ * ============================================================================
+ * One-time setup secret verification, initial installation context,
+ * initial superadmin provisioning, and token invalidation.
+ */
+function executeFirstBootstrap(props, payload) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+  } catch (e) {
+    return { ok: false, error: 'SERVER_BUSY', message: 'Server sedang sibuk memproses inisialisasi lain.' };
+  }
+
+  try {
+    if (props.getProperty('SIEPANG_INSTALLATION_READY') === 'true') {
+      return { ok: false, error: 'BOOTSTRAP_ALREADY_COMPLETED', message: 'Inisialisasi awal sudah selesai.' };
+    }
+
+    var instId = (payload && payload.installation_id) || props.getProperty('SIEPANG_INSTALLATION_ID') || CONFIG.INSTALLATION_ID || ('inst_' + Utilities.getUuid().substring(0, 10));
+    var wsId = (payload && payload.workspace_id) || props.getProperty('SIEPANG_ACTIVE_WORKSPACE_ID') || CONFIG.ACTIVE_WORKSPACE_ID || 'ws_kwartir_01';
+    var evtId = (payload && payload.event_id) || props.getProperty('SIEPANG_ACTIVE_EVENT_ID') || CONFIG.ACTIVE_EVENT_ID || 'evt_perkemahan_01';
+    var sheetId = (payload && payload.spreadsheet_id) || props.getProperty('SPREADSHEET_ID') || CONFIG.SPREADSHEET_ID || '';
+    var driveRootId = (payload && payload.drive_root_id) || props.getProperty('DRIVE_ROOT_ID') || CONFIG.DRIVE_ROOT_ID || '';
+
+    props.setProperty('SIEPANG_INSTALLATION_ID', instId);
+    props.setProperty('SIEPANG_ACTIVE_WORKSPACE_ID', wsId);
+    props.setProperty('SIEPANG_WORKSPACE_ID', wsId);
+    props.setProperty('SIEPANG_ACTIVE_EVENT_ID', evtId);
+    if (sheetId) props.setProperty('SPREADSHEET_ID', sheetId);
+    if (driveRootId) props.setProperty('DRIVE_ROOT_ID', driveRootId);
+
+    // Initialize Database & Canonical Schema if Spreadsheet is available
+    var db = null;
+    try {
+      db = getCustomerDatabase();
+      provisionCanonicalSchemaV19();
+    } catch (dbErr) {
+      Logger.log('Spreadsheet init notice during bootstrap: ' + dbErr.toString());
+    }
+
+    // Initialize Drive subfolders if root Drive folder is available
+    try {
+      if (driveRootId) {
+        var rootFolder = getCustomerDriveRoot();
+        var requiredSubfolders = ['Database', 'Branding', 'Documents', 'Certificates', 'ID Cards', 'Backup', 'Assets'];
+        for (var f = 0; f < requiredSubfolders.length; f++) {
+          var subName = requiredSubfolders[f];
+          var iter = rootFolder.getFoldersByName(subName);
+          if (!iter.hasNext()) {
+            rootFolder.createFolder(subName);
+          }
+        }
+      }
+    } catch (driveErr) {
+      Logger.log('Drive folder init notice during bootstrap: ' + driveErr.toString());
+    }
+
+    // Ensure Initial Superadmin: scoutpreneur@gmail.com
+    var targetSuperAdminEmail = 'scoutpreneur@gmail.com';
+    if (db) {
+      var saRes = ensureInitialSuperAdmin(db, props, targetSuperAdminEmail);
+      if (!saRes.ok) {
+        return { ok: false, error: 'SUPERADMIN_BOOTSTRAP_FAILED', message: 'Gagal membuat superadmin awal: ' + saRes.message };
+      }
+    } else {
+      props.setProperty('BOOTSTRAP_SUPERADMIN_EMAIL', targetSuperAdminEmail);
+      props.setProperty('SUPERADMIN_BOOTSTRAPPED', 'true');
+    }
+
+    // Mark installation ready & inactivate bootstrap token permanently
+    props.setProperty('SIEPANG_INSTALLATION_READY', 'true');
+    props.deleteProperty('SIEPANG_BOOTSTRAP_TOKEN');
+    props.setProperty('SIEPANG_BOOTSTRAP_TOKEN_USED', 'true');
+
+    return {
+      ok: true,
+      data: {
+        installation_ready: true,
+        installation_id: instId,
+        workspace_id: wsId,
+        event_id: evtId,
+        superadmin: {
+          email: targetSuperAdminEmail,
+          role: 'superadmin',
+          status: 'ACTIVE'
+        },
+        otp_ready: true,
+        timestamp: new Date().toISOString()
+      }
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * ============================================================================
  * PART 46 & 47 — CLEANUP & BACKUP JOBS
  * ============================================================================
  */
@@ -664,6 +766,20 @@ function doGet(e) {
     })).setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (action === 'bootstrap.status' || action === '/api/bootstrap/status') {
+    var props = PropertiesService.getScriptProperties();
+    var isReady = props.getProperty('SIEPANG_INSTALLATION_READY') === 'true';
+    return ContentService.createTextOutput(JSON.stringify({
+      ok: true,
+      request_id: reqId,
+      data: {
+        installation_ready: isReady,
+        backend_reachable: true
+      },
+      error: null
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (action === 'public.current' || action === '/api/public/current') {
     return dispatchAction(action, {}, {}, reqId);
   }
@@ -685,11 +801,51 @@ function doPost(e) {
     var action = req.action || req.endpoint || '';
     var payload = req.payload || {};
 
+    var props = PropertiesService.getScriptProperties();
     var status = checkInstallationStatus();
 
     // Khusus action public.current: langsung dispatch untuk mengembalikan status konfigurasi
     if (action === 'public.current' || action === '/api/public/current') {
       return dispatchAction(action, payload, req, reqId);
+    }
+
+    // FIRST BOOTSTRAP ENDPOINTS (Zero Deadlock)
+    if (action === 'bootstrap.status' || action === '/api/bootstrap/status') {
+      var isReady = props.getProperty('SIEPANG_INSTALLATION_READY') === 'true';
+      return envelopeSuccess(reqId, {
+        installation_ready: isReady,
+        backend_reachable: true
+      });
+    }
+
+    if (action === 'bootstrap.initialize' || action === '/api/bootstrap/initialize') {
+      var isReady = props.getProperty('SIEPANG_INSTALLATION_READY') === 'true';
+      if (isReady) {
+        return envelopeError(
+          reqId,
+          'BOOTSTRAP_ALREADY_COMPLETED',
+          'Inisialisasi awal sudah selesai. Endpoint bootstrap tidak dapat diakses lagi.',
+          403
+        );
+      }
+
+      var inputToken = (payload.bootstrap_token || '').trim();
+      var expectedToken = (props.getProperty('SIEPANG_BOOTSTRAP_TOKEN') || '').trim();
+
+      if (!inputToken || !expectedToken || inputToken !== expectedToken) {
+        return envelopeError(
+          reqId,
+          'INVALID_BOOTSTRAP_TOKEN',
+          'Token bootstrap tidak valid atau sudah kedaluwarsa.',
+          401
+        );
+      }
+
+      var bootRes = executeFirstBootstrap(props, payload);
+      if (!bootRes.ok) {
+        return envelopeError(reqId, bootRes.error || 'BOOTSTRAP_FAILED', bootRes.message || 'Gagal melakukan inisialisasi awal.', 500);
+      }
+      return envelopeSuccess(reqId, bootRes.data);
     }
 
     // Jika Script Properties belum lengkap, tolak request protected dengan status INSTALLATION_NOT_CONFIGURED

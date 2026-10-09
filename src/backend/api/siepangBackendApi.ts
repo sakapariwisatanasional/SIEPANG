@@ -13,11 +13,16 @@ import { visitorManagementService } from '../../services/visitorManagementServic
 import { documentStudioService } from '../../services/documentStudioService';
 import { documentationService } from '../../services/documentationService';
 import { customerInstallationService } from '../../services/customerInstallationService';
+import { bootstrapService } from '../../services/bootstrapService';
 import { StandardApiResponse, StandardErrorCode } from '../../types';
 
 export const PUBLIC_API_ALLOWLIST = new Set<string>([
   'public.current',
   '/api/public/current',
+  'bootstrap.status',
+  '/api/bootstrap/status',
+  'bootstrap.initialize',
+  '/api/bootstrap/initialize',
   '/api/public/event-info',
   '/api/public/schedules',
   '/api/public/documentation',
@@ -71,6 +76,30 @@ export class SiepangBackendApi {
 
       // 1. Route dispatch with explicit RBAC permission check
       switch (endpoint) {
+        // ==================== BOOTSTRAP ENDPOINTS (Zero Deadlock) ====================
+        case 'bootstrap.status':
+        case '/api/bootstrap/status': {
+          const status = await bootstrapService.getStatus();
+          return this.success(status as unknown as T);
+        }
+
+        case 'bootstrap.initialize':
+        case '/api/bootstrap/initialize': {
+          const initRes = await bootstrapService.initialize(payload?.bootstrap_token);
+          if (!initRes.success) {
+            const statusCode = initRes.error?.code === 'BOOTSTRAP_ALREADY_COMPLETED' ? 403 : 401;
+            return {
+              success: false,
+              statusCode,
+              error: {
+                code: initRes.error?.code || 'BOOTSTRAP_FAILED',
+                message: initRes.error?.message || 'Gagal melakukan inisialisasi awal.',
+              },
+            };
+          }
+          return this.success(initRes.data as unknown as T);
+        }
+
         // ==================== PUBLIC API ALLOWLIST (Req 8 & 9) ====================
         case 'public.current':
         case '/api/public/current': {

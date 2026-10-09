@@ -13,6 +13,8 @@ import { OfflineEmergencySession } from '../offline/types';
 import { apiTransport } from './apiTransport';
 import { generateSecureToken, generateDevicePublicId } from '../utils/cryptoSecurity';
 import { userManagementService } from './userManagementService';
+import { customerInstallationService } from './customerInstallationService';
+import { bootstrapService } from './bootstrapService';
 
 export type AuthenticationMode = 'CLOUD' | 'OFFLINE_EMERGENCY';
 
@@ -276,6 +278,17 @@ class AuthService {
     name: string,
     email: string
   ): Promise<{ success: boolean; challengeId?: string; message?: string; error?: string; devOtp?: string }> {
+    const envUrl = (import.meta as any).env?.VITE_SIEPANG_BACKEND_URL;
+    const record = customerInstallationService.getInstallationRecord();
+    const hasBackendUrl = !!(envUrl?.trim() || record.web_app_url?.trim());
+
+    if (!hasBackendUrl || !customerInstallationService.isConfigured()) {
+      return {
+        success: false,
+        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
+      };
+    }
+
     try {
       const res = await apiTransport.send('auth.register.requestOtp', {
         name: name.trim(),
@@ -283,6 +296,17 @@ class AuthService {
       });
 
       if (!res.ok || !res.data) {
+        if (
+          res.error?.code === 'INSTALLATION_NOT_CONFIGURED' ||
+          res.error?.code === 'DATABASE_NOT_CONFIGURED' ||
+          res.error?.code === 'NETWORK_ERROR' ||
+          res.error?.code === 'TIMEOUT'
+        ) {
+          return {
+            success: false,
+            error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
+          };
+        }
         return {
           success: false,
           error: res.error?.message || 'Gagal mengirim kode verifikasi.',
@@ -295,10 +319,10 @@ class AuthService {
         message: res.data.message || `Kode verifikasi telah dikirim ke ${email}.`,
         devOtp: res.data.dev_otp,
       };
-    } catch (e: any) {
+    } catch {
       return {
         success: false,
-        error: e.message || 'Layanan login SiEpang belum dapat dihubungi. Coba lagi beberapa saat.',
+        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
       };
     }
   }
@@ -334,10 +358,10 @@ class AuthService {
       }
 
       return this.handleAuthSuccess(res.data);
-    } catch (e: any) {
+    } catch {
       return {
         success: false,
-        error: e.message || 'Gagal memverifikasi kode OTP.',
+        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
       };
     }
   }
@@ -350,23 +374,67 @@ class AuthService {
     email: string
   ): Promise<{ success: boolean; challengeId?: string; message?: string; error?: string; devOtp?: string }> {
     const cleanEmail = email.trim().toLowerCase();
-    try {
-      const res = await apiTransport.send('auth.login.requestOtp', {
-        email: cleanEmail,
-      });
+    const envUrl = (import.meta as any).env?.VITE_SIEPANG_BACKEND_URL;
+    const record = customerInstallationService.getInstallationRecord();
+    const hasBackendUrl = !!(envUrl?.trim() || record.web_app_url?.trim());
 
-      if (res.ok && res.data) {
-        return {
-          success: true,
-          challengeId: res.data.challenge_id,
-          message: res.data.message || `Kode verifikasi telah dikirim ke ${cleanEmail}.`,
-          devOtp: res.data.dev_otp,
-        };
+    // Requirements 10 & 11: If backend URL is not available or installation is not configured
+    const isReady = customerInstallationService.isConfigured() || bootstrapService.isInstallationReady();
+    if (!hasBackendUrl && !isReady) {
+      return {
+        success: false,
+        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
+      };
+    }
+
+    try {
+      if (hasBackendUrl) {
+        const res = await apiTransport.send('auth.login.requestOtp', {
+          email: cleanEmail,
+        });
+
+        if (res.ok && res.data) {
+          return {
+            success: true,
+            challengeId: res.data.challenge_id,
+            message: res.data.message || `Kode verifikasi telah dikirim ke ${cleanEmail}.`,
+            devOtp: res.data.dev_otp,
+          };
+        }
+
+        // Catch backend unconfigured or technical transport errors
+        if (
+          res.error?.code === 'INSTALLATION_NOT_CONFIGURED' ||
+          res.error?.code === 'DATABASE_NOT_CONFIGURED'
+        ) {
+          return {
+            success: false,
+            error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
+          };
+        }
+
+        if (
+          res.error?.code === 'NETWORK_ERROR' ||
+          res.error?.code === 'TIMEOUT' ||
+          res.error?.code?.startsWith('HTTP_') ||
+          res.error?.code === 'INVALID_JSON_RESPONSE'
+        ) {
+          if (!isReady) {
+            return {
+              success: false,
+              error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
+            };
+          }
+        } else {
+          return {
+            success: false,
+            error: res.error?.message || 'Gagal mengirim kode verifikasi.',
+          };
+        }
       }
 
-      // If backend network cannot be reached (e.g. offline, sandbox testing, or unconfigured GAS):
-      // Validate against authoritative local user registry (TEST 1, TEST 3)
-      if (res.error?.code === 'NETWORK_ERROR' || res.error?.code === 'TIMEOUT' || res.error?.code === 'INSTALLATION_NOT_CONFIGURED' || !import.meta.env.PROD) {
+      // If backend was initialized/ready but transport unavailable (local/dev test resilience):
+      if (isReady) {
         let user = userManagementService.getUsers().find(u => u.email.toLowerCase().trim() === cleanEmail);
         if (!user && cleanEmail === 'scoutpreneur@gmail.com') {
           user = userManagementService.ensureBootstrapSuperadmin();
@@ -403,35 +471,12 @@ class AuthService {
 
       return {
         success: false,
-        error: res.error?.message || 'Gagal mengirim kode verifikasi.',
+        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
       };
-    } catch (e: any) {
-      // Local fallback for offline/dev test resilience
-      let user = userManagementService.getUsers().find(u => u.email.toLowerCase().trim() === cleanEmail);
-      if (!user && cleanEmail === 'scoutpreneur@gmail.com') {
-        user = userManagementService.ensureBootstrapSuperadmin();
-      }
-
-      if (user && user.status !== 'inactive') {
-        const localOtp = String(Math.floor(100000 + Math.random() * 900000));
-        const localChalId = `chal_dev_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        this.localOtpChallenges.set(localChalId, {
-          email: cleanEmail,
-          otp: localOtp,
-          expiresAt: Date.now() + 10 * 60 * 1000,
-        });
-
-        return {
-          success: true,
-          challengeId: localChalId,
-          message: `Kode verifikasi telah dikirim ke ${cleanEmail}.`,
-          devOtp: localOtp,
-        };
-      }
-
+    } catch {
       return {
         success: false,
-        error: e.message || 'Layanan login SiEpang belum dapat dihubungi. Coba lagi beberapa saat.',
+        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
       };
     }
   }
