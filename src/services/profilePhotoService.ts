@@ -28,6 +28,7 @@ import {
   PhotoRequiredPolicy,
   PhotoReplacementPolicy,
 } from '../types';
+import { apiTransport } from './apiTransport';
 
 const STORAGE_KEY_PHOTOS = 'siepang_profile_photos_v1';
 const STORAGE_KEY_CONFIG = 'siepang_photo_required_config_v1';
@@ -155,82 +156,56 @@ export class ProfilePhotoService {
    * Resolves customer Google Drive path:
    * /SiEpang/Assets/Profile Photos/JAMRAN-2026/[Category]/[filename]
    */
-  public uploadPhoto(params: {
+  public async uploadPhoto(params: {
     entity_type: PhotoEntityType;
     entity_id: string;
     entity_name: string;
-    data_url: string; // 512x512 optimized crop
-    thumbnail_url?: string; // 128x128
+    data_url: string;
+    thumbnail_url?: string;
     width?: number;
     height?: number;
     file_size_bytes?: number;
     uploader_name?: string;
-  }): ProfilePhotoRecord {
-    const {
+  }): Promise<ProfilePhotoRecord> {
+    const { entity_type, entity_id, entity_name, data_url } = params;
+    if (!/^data:image\/(webp|jpeg|png);base64,/.test(data_url)) {
+      throw new Error('Foto harus berformat WebP, JPEG, atau PNG.');
+    }
+    const safeName = entity_name.toLowerCase().replace(/[^a-z0-9]/g, '_').slice(0, 48);
+    const response = await apiTransport.send<any>('admin.profilePhoto.upload', {
       entity_type,
       entity_id,
       entity_name,
       data_url,
-      thumbnail_url = data_url,
-      width = 512,
-      height = 512,
-      file_size_bytes = 75000,
-      uploader_name = 'User',
-    } = params;
-
-    const categoryMap: Record<PhotoEntityType, string> = {
-      PARTICIPANT: 'Participants',
-      OFFICIAL: 'Officials',
-      COMMITTEE: 'Committee',
-      JUDGE: 'Judges',
-    };
-
-    const category = categoryMap[entity_type];
-    const safeName = entity_name.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const customerDrivePath = `/SiEpang/Assets/Profile Photos/JAMRAN-2026/${category}/${safeName}_${Date.now()}.webp`;
-    const driveFileId = `DRV-PHT-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-    const thumbDriveId = `DRV-THM-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-    const existingIdx = this.records.findIndex(r => r.entity_type === entity_type && r.entity_id === entity_id);
-
-    // Replacement Policy check if existing photo was VALID
-    let newStatus: ProfilePhotoStatus = 'UPLOADED';
-    if (existingIdx !== -1) {
-      const prev = this.records[existingIdx];
-      if (prev.profile_photo_status === 'VALID') {
-        if (this.replacementPolicy === 'REQUIRE_REAPPROVAL') {
-          newStatus = 'UPLOADED'; // Needs re-approval
-        } else if (this.replacementPolicy === 'ALLOW') {
-          newStatus = 'VALID'; // Retain approval
-        }
-      }
+      file_name: `${safeName}_${Date.now()}.webp`,
+      width: params.width || 512,
+      height: params.height || 512,
+      file_size_bytes: params.file_size_bytes || Math.round(data_url.length * .75),
+    }, { timeoutMs: 60000 });
+    if (!response.ok) throw new Error(response.error?.message || 'Upload ke Google Drive gagal.');
+    const remote = response.data?.record;
+    const url = String(remote?.public_render_url || remote?.profile_photo_url || '');
+    const fileId = String(remote?.drive_file_id || remote?.profile_photo_file_id || '');
+    if (!url.startsWith('https://') || !fileId) {
+      throw new Error('GAS belum mengembalikan URL HTTPS dan ID file Google Drive yang valid.');
     }
-
+    const existingIdx = this.records.findIndex(r => r.entity_type === entity_type && r.entity_id === entity_id);
     const record: ProfilePhotoRecord = {
-      id: existingIdx !== -1 ? this.records[existingIdx].id : `PHT-${Date.now()}`,
-      entity_type,
-      entity_id,
-      entity_name,
-      profile_photo_file_id: driveFileId,
-      profile_photo_thumbnail_file_id: thumbDriveId,
-      profile_photo_url: data_url,
-      profile_photo_thumbnail_url: thumbnail_url,
-      profile_photo_status: newStatus,
-      customer_drive_path: customerDrivePath,
-      width,
-      height,
-      file_size_bytes,
-      mime_type: 'image/webp',
-      lifecycle_state: 'ATTACHED',
+      id: String(remote.id || `PHT-${Date.now()}`),
+      entity_type, entity_id, entity_name,
+      profile_photo_file_id: fileId,
+      profile_photo_thumbnail_file_id: String(remote.profile_photo_thumbnail_file_id || ''),
+      profile_photo_url: url,
+      profile_photo_thumbnail_url: String(remote.thumbnail_url || url),
+      profile_photo_status: 'UPLOADED',
+      customer_drive_path: String(remote.customer_drive_path || ''),
+      width: params.width || 512, height: params.height || 512,
+      file_size_bytes: params.file_size_bytes || 0,
+      mime_type: 'image/webp', lifecycle_state: 'ATTACHED',
       uploaded_at: new Date().toISOString(),
     };
-
-    if (existingIdx !== -1) {
-      this.records[existingIdx] = record;
-    } else {
-      this.records.unshift(record);
-    }
-
+    if (existingIdx >= 0) this.records[existingIdx] = record;
+    else this.records.unshift(record);
     this.persist();
     return record;
   }
