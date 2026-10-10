@@ -114,6 +114,8 @@ export const ParticipantList: React.FC = () => {
 
   const [toast, setToast] = useState<string | null>(null);
   const [isSubmittingRegistration, setIsSubmittingRegistration] = useState(false);
+  const [loadState, setLoadState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [loadError, setLoadError] = useState('');
   const registrationSubmitLock = useRef(false);
   const showToast = (msg: string) => {
     setToast(msg);
@@ -127,8 +129,10 @@ export const ParticipantList: React.FC = () => {
     const unsubscribe = participantService.subscribe(() => {
       if (active) forceRefresh(prev => prev + 1);
     });
-    participantService.loadParticipants().catch((err: any) => {
-      if (active) showToast(`❌ ${err?.message || 'Gagal memuat peserta dari GAS.'}`);
+    participantService.loadParticipants().then(() => {
+      if (active) setLoadState('ready');
+    }).catch((err: any) => {
+      if (active) { setLoadState('error'); setLoadError(err?.message || 'Gagal memuat peserta dari GAS.'); }
     });
     return () => { active = false; unsubscribe(); };
   }, []);
@@ -357,7 +361,7 @@ export const ParticipantList: React.FC = () => {
             <span className="px-2.5 py-0.5 rounded-full bg-[#FFF0F4] text-[#F47743] border border-[#FFE0E8] text-[10px] font-bold">
               Manajemen Peserta Online v1.1
             </span>
-            <span className="text-xs text-[#6B7280] dark:text-slate-400">Total {participants.length} Terdaftar</span>
+            <span className="text-xs text-[#6B7280] dark:text-slate-400">{loadState === 'loading' ? 'Memuat peserta…' : loadState === 'error' ? 'Gagal memuat' : `Total ${participants.length} Terdaftar`}</span>
           </div>
           <h1 className="text-xl font-bold text-[#171717] dark:text-white tracking-tight">Database & Verifikasi Peserta</h1>
         </div>
@@ -586,7 +590,11 @@ export const ParticipantList: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#ECECEF] dark:divide-white/5 text-[#171717] dark:text-slate-200">
-                {participants.length === 0 ? (
+                {loadState === 'loading' ? (
+                  <tr><td colSpan={7} className="px-4 py-10"><div role="status" className="flex items-center gap-3 text-sm text-[#6B6257]"><span className="inline-block h-6 w-6 animate-spin rounded-full border-[3px] border-[#D4A017] border-t-[#C62828]"/> Memuat peserta dari Google Spreadsheet…</div><div className="mt-5 space-y-3 animate-pulse">{[0,1,2].map(i => <div key={i} className="h-14 rounded-2xl bg-[#F4EBDD] dark:bg-white/10"/>)}</div></td></tr>
+                ) : loadState === 'error' ? (
+                  <tr><td colSpan={7} className="px-4 py-8 text-center"><p role="alert" className="font-semibold text-red-700">Gagal memuat peserta: {loadError}</p><button type="button" className="mt-3 rounded-xl bg-[#C62828] px-4 py-2 font-bold text-white" onClick={() => { setLoadState('loading'); participantService.loadParticipants().then(() => setLoadState('ready')).catch((e:any) => {setLoadState('error');setLoadError(e?.message || 'Koneksi gagal');}); }}>Coba Lagi</button></td></tr>
+                ) : participants.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center py-10 text-[#9CA3AF] dark:text-slate-400">
                       Belum ada peserta yang cocok dengan kriteria pencarian.
@@ -610,7 +618,7 @@ export const ParticipantList: React.FC = () => {
                         </td>
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2.5">
-                            <img src={p.photoUrl} alt={p.name} className="w-9 h-9 rounded-xl object-cover border border-[#ECECEF] dark:border-white/10" />
+                            <img src={p.photoUrl || profilePhotoService.getPlaceholderUrl(p.name)} onError={e => { const fallback = profilePhotoService.getPlaceholderUrl(p.name); if (e.currentTarget.src !== fallback) e.currentTarget.src = fallback; }} alt={p.name} className="w-9 h-9 rounded-xl object-cover border border-[#ECECEF] dark:border-white/10" />
                             <div>
                               <div className="font-bold text-[#171717] dark:text-white flex items-center gap-1.5">
                                 <span>{p.name}</span>
@@ -730,7 +738,7 @@ export const ParticipantList: React.FC = () => {
                 <div key={p.id} className="p-5 rounded-3xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/40 transition-all space-y-3 shadow-xs">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <img src={p.photoUrl} alt={p.name} className="w-12 h-12 rounded-2xl object-cover border border-[#ECECEF] dark:border-white/10" />
+                      <img src={p.photoUrl || profilePhotoService.getPlaceholderUrl(p.name)} onError={e => { const fallback = profilePhotoService.getPlaceholderUrl(p.name); if (e.currentTarget.src !== fallback) e.currentTarget.src = fallback; }} alt={p.name} className="w-12 h-12 rounded-2xl object-cover border border-[#ECECEF] dark:border-white/10" />
                       <div>
                         <h4 className="text-sm font-bold text-[#171717] dark:text-white">{p.name}</h4>
                         <div className="text-xs text-[#6B7280] dark:text-slate-300">{p.contingentName} · {p.role}</div>
@@ -779,16 +787,7 @@ export const ParticipantList: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          p.profile_photo_status = 'VALID';
-                          p.photo_rejection_reason = undefined;
-                          profilePhotoService.uploadPhoto({
-                            entity_type: 'PARTICIPANT',
-                            entity_id: p.id,
-                            entity_name: p.name,
-                            data_url: p.photoUrl,
-                          });
-                          profilePhotoService.approvePhoto(p.id, currentActorName);
-                          showToast(`✓ Foto '${p.name}' disetujui (VALID).`);
+                          showToast('Verifikasi foto permanen belum tersedia. Jangan mengubah status hanya di browser.');
                         }}
                         className="flex-1 py-1 px-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-600/30 dark:hover:bg-emerald-600/50 dark:text-emerald-300 dark:border-emerald-500/30 text-[10px] font-bold transition-colors cursor-pointer"
                       >
@@ -1619,7 +1618,7 @@ export const ParticipantList: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <img src={selectedDetail.photoUrl} alt={selectedDetail.name} className="w-16 h-16 rounded-2xl object-cover border-2 border-pink-200 dark:border-[#F47743]/30" />
+              <img src={selectedDetail.photoUrl || profilePhotoService.getPlaceholderUrl(selectedDetail.name)} onError={e => { const fallback = profilePhotoService.getPlaceholderUrl(selectedDetail.name); if (e.currentTarget.src !== fallback) e.currentTarget.src = fallback; }} alt={selectedDetail.name} className="w-16 h-16 rounded-2xl object-cover border-2 border-pink-200 dark:border-[#F47743]/30" />
               <div>
                 <h3 className="text-base font-bold text-[#171717] dark:text-white">{selectedDetail.name}</h3>
                 <p className="text-xs text-[#6B7280] dark:text-slate-400">{selectedDetail.role} · {selectedDetail.contingentName}</p>
