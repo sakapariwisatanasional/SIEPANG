@@ -211,7 +211,7 @@ export const ParticipantList: React.FC = () => {
   };
 
   // Step-based Registration submit (Requirement 8, 25, 27)
-  const handleFinishStepReg = (e: React.FormEvent) => {
+  const handleFinishStepReg = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stepData.name) return;
 
@@ -225,7 +225,8 @@ export const ParticipantList: React.FC = () => {
 
     const defaultPhoto = profilePhotoService.getPlaceholderUrl(stepData.name);
 
-    participantService.addParticipant({
+    try {
+      await participantService.addParticipant({
       name: stepData.name,
       gender: stepData.gender,
       role: stepData.role,
@@ -247,6 +248,11 @@ export const ParticipantList: React.FC = () => {
       profile_photo_url: stepData.photoUrl || defaultPhoto,
       profile_photo_status: stepData.profile_photo_status,
     });
+
+    } catch (err: any) {
+      showToast(`❌ ${err?.message || 'Gagal menyimpan pendaftaran ke GAS.'}`);
+      return;
+    }
 
     showToast(`✅ Pendaftaran berhasil! Berkas '${stepData.name}' masuk ke antrean verifikasi.`);
     setShowStepRegModal(false);
