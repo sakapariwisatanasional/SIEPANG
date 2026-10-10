@@ -4,7 +4,7 @@
  * Main Application Orchestrator
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AppLayout } from './app/layout/AppLayout';
 import { NavTab } from './components/navigation/MobileNavigation';
 import { authService } from './services/authService';
@@ -370,6 +370,9 @@ export default function App() {
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  // Synchronous guard against duplicate submit events before React has time
+  // to render the disabled button state.
+  const loginOtpRequestLockRef = useRef(false);
 
   // 1. Startup Auto-Login Session Validation (Requirement 9 & 10)
   useEffect(() => {
@@ -404,30 +407,51 @@ export default function App() {
 
   const handleStartLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (loginOtpRequestLockRef.current || isSubmittingAuth) {
+      return;
+    }
+
     const email = loginEmail.trim().toLowerCase();
     if (!email) return;
 
+    loginOtpRequestLockRef.current = true;
     setAuthError(null);
     setAuthSuccess(null);
     setIsSubmittingAuth(true);
 
-    const backendReady = await ensureAuthBackendReady();
-    if (!backendReady) {
-      setIsSubmittingAuth(false);
-      return;
-    }
+    try {
+      const backendReady = await ensureAuthBackendReady();
+      if (!backendReady) {
+        return;
+      }
 
-    const res = await authService.requestLoginOtp(email);
-    setIsSubmittingAuth(false);
+      const res = await authService.requestLoginOtp(email);
 
-    if (!res.success) {
-      setAuthError(res.error || 'Email belum terdaftar. Silakan buat akun baru terlebih dahulu.');
-    } else {
-      setChallengeId(res.challengeId || '');
-      setDevOtpHint(res.devOtp || null);
+      if (!res.success) {
+        setAuthError(
+          res.error ||
+            'Email belum terdaftar. Silakan buat akun baru terlebih dahulu.'
+        );
+        return;
+      }
+
+      const nextChallengeId = String(res.challengeId || '').trim();
+      if (!nextChallengeId) {
+        setAuthError(
+          'Kode OTP berhasil diproses, tetapi ID verifikasi tidak diterima. Silakan coba lagi.'
+        );
+        return;
+      }
+
+      setChallengeId(nextChallengeId);
       setAuthMode('LOGIN_OTP');
       setResendCooldown(60);
       setOtpInput('');
+      setAuthSuccess(res.message || `Kode verifikasi telah dikirim ke ${email}.`);
+    } finally {
+      setIsSubmittingAuth(false);
+      loginOtpRequestLockRef.current = false;
     }
   };
 
