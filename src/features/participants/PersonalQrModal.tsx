@@ -21,7 +21,7 @@ export const PersonalQrModal: React.FC<PersonalQrModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   const handleCopyCode = () => {
-    navigator.clipboard?.writeText(participant.code);
+    navigator.clipboard?.writeText(participant.id);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -36,7 +36,7 @@ export const PersonalQrModal: React.FC<PersonalQrModalProps> = ({ isOpen, onClos
         className={`w-full max-w-sm rounded-[32px] p-[2px] shadow-2xl transition-colors duration-300 ${
           highBrightness
             ? 'bg-slate-200'
-            : 'bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A]'
+            : 'bg-gradient-to-tr from-[#C62828] via-[#8B1E1E] to-[#D4A017]'
         }`}
       >
         <div
@@ -81,58 +81,22 @@ export const PersonalQrModal: React.FC<PersonalQrModalProps> = ({ isOpen, onClos
             {/* Holographic Scout Badge Shimmer */}
             <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[11px] font-bold text-emerald-400">
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Digital Scout Pass Terverifikasi</span>
+              <span>Kartu QR Peserta SiEpang</span>
             </div>
 
-            {/* QR Code Container (Strict high-contrast, no gradient behind modules) */}
-            <div className="mx-auto w-56 h-56 bg-white p-4 rounded-3xl shadow-xl border-4 border-slate-900 flex flex-col items-center justify-center relative overflow-hidden">
-              <div className="w-full h-full flex flex-col items-center justify-center relative">
-                <svg className="w-full h-full text-slate-950" viewBox="0 0 100 100" fill="currentColor">
-                  {/* 3 corner finder patterns */}
-                  <rect x="5" y="5" width="26" height="26" rx="4" />
-                  <rect x="9" y="9" width="18" height="18" fill="white" />
-                  <rect x="13" y="13" width="10" height="10" />
-
-                  <rect x="69" y="5" width="26" height="26" rx="4" />
-                  <rect x="73" y="9" width="18" height="18" fill="white" />
-                  <rect x="77" y="13" width="10" height="10" />
-
-                  <rect x="5" y="69" width="26" height="26" rx="4" />
-                  <rect x="9" y="73" width="18" height="18" fill="white" />
-                  <rect x="13" y="77" width="10" height="10" />
-
-                  {/* Timing patterns and mock data matrix */}
-                  <rect x="35" y="8" width="6" height="6" />
-                  <rect x="45" y="8" width="6" height="6" />
-                  <rect x="55" y="8" width="6" height="6" />
-
-                  <rect x="8" y="35" width="6" height="6" />
-                  <rect x="8" y="45" width="6" height="6" />
-                  <rect x="8" y="55" width="6" height="6" />
-
-                  <rect x="35" y="35" width="7" height="7" />
-                  <rect x="47" y="35" width="7" height="7" />
-                  <rect x="59" y="35" width="7" height="7" />
-                  <rect x="35" y="47" width="7" height="7" />
-                  <rect x="59" y="47" width="7" height="7" />
-                  <rect x="35" y="59" width="7" height="7" />
-                  <rect x="47" y="59" width="7" height="7" />
-                  <rect x="59" y="59" width="7" height="7" />
-
-                  <rect x="69" y="69" width="6" height="6" />
-                  <rect x="79" y="69" width="6" height="6" />
-                  <rect x="89" y="69" width="6" height="6" />
-                  <rect x="69" y="79" width="6" height="6" />
-                  <rect x="89" y="89" width="6" height="6" />
-                </svg>
-
-                {/* Center Scout Fleur-de-lis Emblem */}
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-10 h-10 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center text-white text-xs shadow-md">
-                    ⚜️
-                  </div>
-                </div>
-              </div>
+            {/* Actual scannable participant QR - stable code, not a decorative matrix. */}
+            <div className="mx-auto w-56 h-56 bg-white p-3 rounded-3xl shadow-xl border-4 border-[#171717] flex items-center justify-center">
+              {participant.id ? (
+                <img
+                  className="w-full h-full object-contain"
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(participant.id)}`}
+                  alt={`QR peserta ${participant.name}`}
+                  loading="eager"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="text-red-700 font-bold text-sm">Kode peserta belum tersedia</span>
+              )}
             </div>
 
             {/* Participant Info */}
@@ -141,7 +105,7 @@ export const PersonalQrModal: React.FC<PersonalQrModalProps> = ({ isOpen, onClos
               <p className={`text-xs ${highBrightness ? 'text-slate-600' : 'text-slate-400'}`}>
                 {participant.role} · {participant.contingentName}
               </p>
-              <p className="text-[11px] font-semibold text-[#F47743] dark:text-[#F4A53A] mt-0.5">
+              <p className="text-[11px] font-semibold text-[#D4A017] mt-0.5">
                 Tenda: {participant.tentNumber} ({participant.subCamp})
               </p>
             </div>
@@ -155,7 +119,7 @@ export const PersonalQrModal: React.FC<PersonalQrModalProps> = ({ isOpen, onClos
                     : 'bg-white/10 text-white border border-white/10'
                 }`}
               >
-                {participant.code}
+                {participant.id}
               </span>
               <button
                 type="button"
