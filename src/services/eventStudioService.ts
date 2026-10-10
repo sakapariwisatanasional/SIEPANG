@@ -38,7 +38,6 @@ import {
   RegisteredDevice,
   RoleScopedSnapshot,
 } from '../types';
-import { apiClient } from './apiClient';
 import { apiTransport } from './apiTransport';
 import { EMPTY_EVENT } from './eventService';
 
@@ -104,6 +103,123 @@ class EventStudioService {
   }
 
   /**
+   * Compatibility bridge:
+   * keeps every existing Event Studio method signature intact while routing
+   * legacy /api/... calls through the production GAS transport.
+   */
+  private readonly endpointActionMap: Record<string, string> = {
+    '/api/events/archive': 'events.archive',
+    '/api/schedules/list': 'schedules.list',
+    '/api/schedules/create': 'schedules.create',
+    '/api/schedules/update': 'schedules.update',
+    '/api/schedules/duplicate': 'schedules.duplicate',
+    '/api/schedules/move': 'schedules.move',
+    '/api/schedules/publish': 'schedules.publish',
+    '/api/schedules/archive': 'schedules.archive',
+    '/api/activities/list': 'activities.list',
+    '/api/activities/create': 'activities.create',
+    '/api/activities/update': 'activities.update',
+    '/api/activities/archive': 'activities.archive',
+    '/api/activities/types/list': 'activities.types.list',
+    '/api/activities/types/create': 'activities.types.create',
+    '/api/campsite/subcamps/list': 'campsite.subcamps.list',
+    '/api/campsite/subcamps/create': 'campsite.subcamps.create',
+    '/api/campsite/zones/list': 'campsite.zones.list',
+    '/api/campsite/zones/create': 'campsite.zones.create',
+    '/api/campsite/blocks/list': 'campsite.blocks.list',
+    '/api/campsite/blocks/create': 'campsite.blocks.create',
+    '/api/campsite/lots/list': 'campsite.lots.list',
+    '/api/campsite/lots/create': 'campsite.lots.create',
+    '/api/campsite/lots/update': 'campsite.lots.update',
+    '/api/campsite/lots/assign': 'campsite.lots.assign',
+    '/api/campsite/lots/archive': 'campsite.lots.archive',
+    '/api/campsite/facilities/list': 'campsite.facilities.list',
+    '/api/campsite/facilities/create': 'campsite.facilities.create',
+    '/api/campsite/facilities/update': 'campsite.facilities.update',
+    '/api/campsite/facilities/archive': 'campsite.facilities.archive',
+    '/api/campsite/capacity-check': 'campsite.capacity-check',
+    '/api/competitions/types/list': 'competitions.types.list',
+    '/api/competitions/types/create': 'competitions.types.create',
+    '/api/competitions/list': 'competitions.list',
+    '/api/competitions/create': 'competitions.create',
+    '/api/competitions/update': 'competitions.update',
+    '/api/competitions/archive': 'competitions.archive',
+    '/api/competitions/criteria/list': 'competitions.criteria.list',
+    '/api/competitions/criteria/configure': 'competitions.criteria.configure',
+    '/api/competitions/judges/list': 'competitions.judges.list',
+    '/api/competitions/judges/assign': 'competitions.judges.assign',
+    '/api/competitions/judges/toggle-lock': 'competitions.judges.toggle-lock',
+    '/api/competitions/judges/archive': 'competitions.judges.archive',
+    '/api/competitions/voting/get': 'competitions.voting.get',
+    '/api/competitions/voting/configure': 'competitions.voting.configure',
+    '/api/competitions/readiness': 'competitions.readiness',
+    '/api/registration/settings/get': 'registration.settings.get',
+    '/api/registration/settings/update': 'registration.settings.update',
+    '/api/registration/fields/list': 'registration.fields.list',
+    '/api/registration/fields/create': 'registration.fields.create',
+    '/api/registration/fields/update': 'registration.fields.update',
+    '/api/gamification/points/list': 'gamification.points.list',
+    '/api/gamification/points/create': 'gamification.points.create',
+    '/api/gamification/points/update': 'gamification.points.update',
+    '/api/gamification/points/archive': 'gamification.points.archive',
+    '/api/gamification/badges/list': 'gamification.badges.list',
+    '/api/gamification/badges/create': 'gamification.badges.create',
+    '/api/gamification/badges/update': 'gamification.badges.update',
+    '/api/gamification/badges/archive': 'gamification.badges.archive',
+    '/api/gamification/checkpoints/list': 'gamification.checkpoints.list',
+    '/api/gamification/checkpoints/create': 'gamification.checkpoints.create',
+    '/api/gamification/checkpoints/update': 'gamification.checkpoints.update',
+    '/api/gamification/checkpoints/archive': 'gamification.checkpoints.archive',
+    '/api/gamification/checkpoints/regenerate': 'gamification.checkpoints.regenerate',
+    '/api/features/update': 'features.update',
+    '/api/features/home-sections/reorder': 'features.home-sections.reorder',
+    '/api/content/pages/list': 'content.pages.list',
+    '/api/content/pages/create': 'content.pages.create',
+    '/api/content/pages/update': 'content.pages.update',
+    '/api/content/pages/archive': 'content.pages.archive',
+    '/api/content/contacts/list': 'content.contacts.list',
+    '/api/content/contacts/create': 'content.contacts.create',
+    '/api/content/contacts/update': 'content.contacts.update',
+    '/api/audit/list': 'audit.list',
+    '/api/audit/create': 'audit.create',
+    '/api/organizations/list': 'organizations.list',
+    '/api/organizations/create': 'organizations.create',
+    '/api/readiness/get': 'readiness.get',
+    '/api/conflicts/schedules': 'conflicts.schedules',
+    '/api/devices/list': 'devices.list',
+    '/api/devices/revoke': 'devices.revoke',
+    '/api/devices/activate': 'devices.activate',
+    '/api/sync/snapshot': 'sync.snapshot',
+  };
+
+  private async request<T>(
+    path: string,
+    options?: { data?: Record<string, any> }
+  ): Promise<{ success: boolean; data: T | null; error?: string }> {
+    const action = this.endpointActionMap[path];
+
+    if (!action) {
+      return {
+        success: false,
+        data: null,
+        error: `Endpoint Event Studio belum dipetakan ke GAS: ${path}`,
+      };
+    }
+
+    const res = await apiTransport.send<T>(
+      action,
+      options?.data || {},
+      { timeoutMs: 30000 }
+    );
+
+    return {
+      success: res.ok,
+      data: res.data ?? null,
+      error: res.error?.message,
+    };
+  }
+
+  /**
    * Initializes cache by pulling live data through the API Client.
    */
   public async initialSync(): Promise<void> {
@@ -134,28 +250,28 @@ class EventStudioService {
         orgRes,
       ] = await Promise.all([
         apiTransport.send<ScoutEvent>('events.get', {}, { timeoutMs: 30000 }),
-        apiClient.request<ScheduleItem[]>('/api/schedules/list'),
-        apiClient.request<CampActivity[]>('/api/activities/list'),
-        apiClient.request<ActivityType[]>('/api/activities/types/list'),
-        apiClient.request<CampsiteSubcamp[]>('/api/campsite/subcamps/list'),
-        apiClient.request<CampsiteZone[]>('/api/campsite/zones/list'),
-        apiClient.request<CampsiteBlock[]>('/api/campsite/blocks/list'),
-        apiClient.request<CampsiteLot[]>('/api/campsite/lots/list'),
-        apiClient.request<CampFacility[]>('/api/campsite/facilities/list'),
-        apiClient.request<CompetitionType[]>('/api/competitions/types/list'),
-        apiClient.request<Competition[]>('/api/competitions/list'),
-        apiClient.request<JudgingCriterion[]>('/api/competitions/criteria/list'),
-        apiClient.request<CompetitionJudge[]>('/api/competitions/judges/list'),
-        apiClient.request<VotingConfig>('/api/competitions/voting/get'),
-        apiClient.request<RegistrationSettings>('/api/registration/settings/get'),
-        apiClient.request<RegistrationFieldConfig[]>('/api/registration/fields/list'),
-        apiClient.request<PointRuleConfig[]>('/api/gamification/points/list'),
-        apiClient.request<BadgeConfig[]>('/api/gamification/badges/list'),
-        apiClient.request<QrCheckpoint[]>('/api/gamification/checkpoints/list'),
-        apiClient.request<CustomInfoPage[]>('/api/content/pages/list'),
-        apiClient.request<EventContactItem[]>('/api/content/contacts/list'),
-        apiClient.request<AuditLog[]>('/api/audit/list'),
-        apiClient.request<Organization[]>('/api/organizations/list'),
+        this.request<ScheduleItem[]>('/api/schedules/list'),
+        this.request<CampActivity[]>('/api/activities/list'),
+        this.request<ActivityType[]>('/api/activities/types/list'),
+        this.request<CampsiteSubcamp[]>('/api/campsite/subcamps/list'),
+        this.request<CampsiteZone[]>('/api/campsite/zones/list'),
+        this.request<CampsiteBlock[]>('/api/campsite/blocks/list'),
+        this.request<CampsiteLot[]>('/api/campsite/lots/list'),
+        this.request<CampFacility[]>('/api/campsite/facilities/list'),
+        this.request<CompetitionType[]>('/api/competitions/types/list'),
+        this.request<Competition[]>('/api/competitions/list'),
+        this.request<JudgingCriterion[]>('/api/competitions/criteria/list'),
+        this.request<CompetitionJudge[]>('/api/competitions/judges/list'),
+        this.request<VotingConfig>('/api/competitions/voting/get'),
+        this.request<RegistrationSettings>('/api/registration/settings/get'),
+        this.request<RegistrationFieldConfig[]>('/api/registration/fields/list'),
+        this.request<PointRuleConfig[]>('/api/gamification/points/list'),
+        this.request<BadgeConfig[]>('/api/gamification/badges/list'),
+        this.request<QrCheckpoint[]>('/api/gamification/checkpoints/list'),
+        this.request<CustomInfoPage[]>('/api/content/pages/list'),
+        this.request<EventContactItem[]>('/api/content/contacts/list'),
+        this.request<AuditLog[]>('/api/audit/list'),
+        this.request<Organization[]>('/api/organizations/list'),
       ]);
 
       if (evRes.ok && evRes.data) {
@@ -352,7 +468,7 @@ class EventStudioService {
   }
 
   public async archiveEvent(eventId?: string): Promise<ScoutEvent> {
-    const res = await apiClient.request<ScoutEvent>('/api/events/archive', {
+    const res = await this.request<ScoutEvent>('/api/events/archive', {
       data: { eventId: eventId || this.event.id },
     });
     if (res.success && res.data) {
@@ -378,7 +494,7 @@ class EventStudioService {
     this.saveState = { ...this.saveState, status: 'Saving…' };
     this.notify();
 
-    const res = await apiClient.request<ScheduleItem>('/api/schedules/create', {
+    const res = await this.request<ScheduleItem>('/api/schedules/create', {
       data: { schedule },
     });
 
@@ -407,7 +523,7 @@ class EventStudioService {
     this.saveState = { ...this.saveState, status: 'Saving…' };
     this.notify();
 
-    const res = await apiClient.request<ScheduleItem>('/api/schedules/update', {
+    const res = await this.request<ScheduleItem>('/api/schedules/update', {
       data: { id, updates },
     });
 
@@ -428,7 +544,7 @@ class EventStudioService {
   }
 
   public async duplicateSchedule(id: string): Promise<ScheduleItem> {
-    const res = await apiClient.request<ScheduleItem>('/api/schedules/duplicate', {
+    const res = await this.request<ScheduleItem>('/api/schedules/duplicate', {
       data: { id },
     });
     if (res.success && res.data) {
@@ -442,7 +558,7 @@ class EventStudioService {
   }
 
   public async moveSchedule(id: string, newDay: number): Promise<ScheduleItem> {
-    const res = await apiClient.request<ScheduleItem>('/api/schedules/move', {
+    const res = await this.request<ScheduleItem>('/api/schedules/move', {
       data: { id, newDay },
     });
     if (res.success && res.data) {
@@ -459,7 +575,7 @@ class EventStudioService {
   }
 
   public async publishSchedule(id: string, isPublished: boolean): Promise<ScheduleItem> {
-    const res = await apiClient.request<ScheduleItem>('/api/schedules/publish', {
+    const res = await this.request<ScheduleItem>('/api/schedules/publish', {
       data: { id, isPublished },
     });
     if (res.success && res.data) {
@@ -472,7 +588,7 @@ class EventStudioService {
   }
 
   public async archiveSchedule(id: string): Promise<ScheduleItem> {
-    const res = await apiClient.request<ScheduleItem>('/api/schedules/archive', {
+    const res = await this.request<ScheduleItem>('/api/schedules/archive', {
       data: { id },
     });
     if (res.success && res.data) {
@@ -499,7 +615,7 @@ class EventStudioService {
   }
 
   public async createActivity(activity: Omit<CampActivity, 'id'>): Promise<CampActivity> {
-    const res = await apiClient.request<CampActivity>('/api/activities/create', {
+    const res = await this.request<CampActivity>('/api/activities/create', {
       data: { activity },
     });
     if (res.success && res.data) {
@@ -516,7 +632,7 @@ class EventStudioService {
   }
 
   public async updateActivity(id: string, updates: Partial<CampActivity>): Promise<CampActivity> {
-    const res = await apiClient.request<CampActivity>('/api/activities/update', {
+    const res = await this.request<CampActivity>('/api/activities/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -529,7 +645,7 @@ class EventStudioService {
   }
 
   public async archiveActivity(id: string): Promise<CampActivity> {
-    const res = await apiClient.request<CampActivity>('/api/activities/archive', {
+    const res = await this.request<CampActivity>('/api/activities/archive', {
       data: { id },
     });
     if (res.success && res.data) {
@@ -550,7 +666,7 @@ class EventStudioService {
   }
 
   public async createActivityType(activityType: Omit<ActivityType, 'id'>): Promise<ActivityType> {
-    const res = await apiClient.request<ActivityType>('/api/activities/types/create', {
+    const res = await this.request<ActivityType>('/api/activities/types/create', {
       data: { activityType },
     });
     if (res.success && res.data) {
@@ -569,7 +685,7 @@ class EventStudioService {
   }
 
   public async createSubcamp(subcamp: Omit<CampsiteSubcamp, 'id'>): Promise<CampsiteSubcamp> {
-    const res = await apiClient.request<CampsiteSubcamp>('/api/campsite/subcamps/create', {
+    const res = await this.request<CampsiteSubcamp>('/api/campsite/subcamps/create', {
       data: { subcamp },
     });
     if (res.success && res.data) {
@@ -586,7 +702,7 @@ class EventStudioService {
   }
 
   public async createZone(zone: Omit<CampsiteZone, 'id'>): Promise<CampsiteZone> {
-    const res = await apiClient.request<CampsiteZone>('/api/campsite/zones/create', {
+    const res = await this.request<CampsiteZone>('/api/campsite/zones/create', {
       data: { zone },
     });
     if (res.success && res.data) {
@@ -603,7 +719,7 @@ class EventStudioService {
   }
 
   public async createBlock(block: Omit<CampsiteBlock, 'id'>): Promise<CampsiteBlock> {
-    const res = await apiClient.request<CampsiteBlock>('/api/campsite/blocks/create', {
+    const res = await this.request<CampsiteBlock>('/api/campsite/blocks/create', {
       data: { block },
     });
     if (res.success && res.data) {
@@ -624,7 +740,7 @@ class EventStudioService {
   }
 
   public async createLot(lot: Omit<CampsiteLot, 'id'>): Promise<CampsiteLot> {
-    const res = await apiClient.request<CampsiteLot>('/api/campsite/lots/create', {
+    const res = await this.request<CampsiteLot>('/api/campsite/lots/create', {
       data: { lot },
     });
     if (res.success && res.data) {
@@ -641,7 +757,7 @@ class EventStudioService {
   }
 
   public async updateLot(id: string, updates: Partial<CampsiteLot>): Promise<CampsiteLot> {
-    const res = await apiClient.request<CampsiteLot>('/api/campsite/lots/update', {
+    const res = await this.request<CampsiteLot>('/api/campsite/lots/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -657,13 +773,18 @@ class EventStudioService {
     return this.updateLot(id, updates);
   }
 
-  public deleteCampsiteLot(id: string): void {
+  public async deleteCampsiteLot(id: string): Promise<void> {
+    const res = await this.request<CampsiteLot>('/api/campsite/lots/archive', {
+      data: { id },
+    });
+    if (!res.success) throw new Error(res.error || 'Gagal mengarsipkan kavling.');
     this.lots = this.lots.filter(l => l.id !== id);
+    await this.refreshAudit();
     this.notify();
   }
 
   public async assignContingentToLot(lotId: string, contingentId: string, contingentName: string): Promise<CampsiteLot> {
-    const res = await apiClient.request<CampsiteLot>('/api/campsite/lots/assign', {
+    const res = await this.request<CampsiteLot>('/api/campsite/lots/assign', {
       data: { lotId, contingentId, contingentName },
     });
     if (res.success && res.data) {
@@ -684,7 +805,7 @@ class EventStudioService {
   }
 
   public async createFacility(facility: Omit<CampFacility, 'id'>): Promise<CampFacility> {
-    const res = await apiClient.request<CampFacility>('/api/campsite/facilities/create', {
+    const res = await this.request<CampFacility>('/api/campsite/facilities/create', {
       data: { facility },
     });
     if (res.success && res.data) {
@@ -701,7 +822,7 @@ class EventStudioService {
   }
 
   public async updateFacility(id: string, updates: Partial<CampFacility>): Promise<CampFacility> {
-    const res = await apiClient.request<CampFacility>('/api/campsite/facilities/update', {
+    const res = await this.request<CampFacility>('/api/campsite/facilities/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -713,8 +834,13 @@ class EventStudioService {
     throw new Error(res.error || 'Gagal memperbarui fasilitas.');
   }
 
-  public deleteFacility(id: string): void {
+  public async deleteFacility(id: string): Promise<void> {
+    const res = await this.request<CampFacility>('/api/campsite/facilities/archive', {
+      data: { id },
+    });
+    if (!res.success) throw new Error(res.error || 'Gagal mengarsipkan fasilitas.');
     this.facilities = this.facilities.filter(f => f.id !== id);
+    await this.refreshAudit();
     this.notify();
   }
 
@@ -725,7 +851,7 @@ class EventStudioService {
   }
 
   public async createCompetitionType(competitionType: Omit<CompetitionType, 'id'>): Promise<CompetitionType> {
-    const res = await apiClient.request<CompetitionType>('/api/competitions/types/create', {
+    const res = await this.request<CompetitionType>('/api/competitions/types/create', {
       data: { competitionType },
     });
     if (res.success && res.data) {
@@ -746,7 +872,7 @@ class EventStudioService {
   }
 
   public async createCompetition(competition: Omit<Competition, 'id' | 'registeredEntries'>): Promise<Competition> {
-    const res = await apiClient.request<Competition>('/api/competitions/create', {
+    const res = await this.request<Competition>('/api/competitions/create', {
       data: { competition },
     });
     if (res.success && res.data) {
@@ -763,7 +889,7 @@ class EventStudioService {
   }
 
   public async updateCompetition(id: string, updates: Partial<Competition>): Promise<Competition> {
-    const res = await apiClient.request<Competition>('/api/competitions/update', {
+    const res = await this.request<Competition>('/api/competitions/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -775,8 +901,13 @@ class EventStudioService {
     throw new Error(res.error || 'Gagal memperbarui lomba.');
   }
 
-  public deleteCompetition(id: string): void {
+  public async deleteCompetition(id: string): Promise<void> {
+    const res = await this.request<Competition>('/api/competitions/archive', {
+      data: { id },
+    });
+    if (!res.success) throw new Error(res.error || 'Gagal mengarsipkan lomba.');
     this.competitions = this.competitions.filter(c => c.id !== id);
+    await this.refreshAudit();
     this.notify();
   }
 
@@ -793,7 +924,7 @@ class EventStudioService {
     const valid = totalWeight === 100;
     this.criteria = criteria;
 
-    const res = await apiClient.request<{ valid: boolean; totalWeight: number; criteria: JudgingCriterion[] }>('/api/competitions/criteria/configure', {
+    const res = await this.request<{ valid: boolean; totalWeight: number; criteria: JudgingCriterion[] }>('/api/competitions/criteria/configure', {
       data: { criteria },
     });
 
@@ -807,8 +938,16 @@ class EventStudioService {
   }
 
   public updateJudgingCriteria(criteria: JudgingCriterion[]): { valid: boolean; totalWeight: number } {
-    this.configureCriteria(criteria);
     const totalWeight = criteria.reduce((sum, c) => sum + Number(c.weight || 0), 0);
+    void this.configureCriteria(criteria).catch((err: any) => {
+      this.saveState = {
+        ...this.saveState,
+        hasUnsaved: true,
+        status: 'Save Failed',
+        errorMessage: err?.message || 'Gagal menyimpan kriteria penilaian.',
+      };
+      this.notify();
+    });
     return { valid: totalWeight === 100, totalWeight };
   }
 
@@ -821,7 +960,7 @@ class EventStudioService {
   }
 
   public async assignJudges(judge: Omit<CompetitionJudge, 'id'>): Promise<CompetitionJudge> {
-    const res = await apiClient.request<CompetitionJudge>('/api/competitions/judges/assign', {
+    const res = await this.request<CompetitionJudge>('/api/competitions/judges/assign', {
       data: { judge },
     });
     if (res.success && res.data) {
@@ -838,7 +977,7 @@ class EventStudioService {
   }
 
   public async toggleJudgeLock(judgeId: string): Promise<CompetitionJudge> {
-    const res = await apiClient.request<CompetitionJudge>('/api/competitions/judges/toggle-lock', {
+    const res = await this.request<CompetitionJudge>('/api/competitions/judges/toggle-lock', {
       data: { judgeId },
     });
     if (res.success && res.data) {
@@ -850,8 +989,13 @@ class EventStudioService {
     throw new Error(res.error || 'Gagal mengubah kunci juri.');
   }
 
-  public deleteJudge(judgeId: string): void {
+  public async deleteJudge(judgeId: string): Promise<void> {
+    const res = await this.request<CompetitionJudge>('/api/competitions/judges/archive', {
+      data: { id: judgeId },
+    });
+    if (!res.success) throw new Error(res.error || 'Gagal mengarsipkan juri.');
     this.judges = this.judges.filter(j => j.id !== judgeId);
+    await this.refreshAudit();
     this.notify();
   }
 
@@ -860,7 +1004,7 @@ class EventStudioService {
   }
 
   public async configureVoting(config: Partial<VotingConfig>): Promise<VotingConfig> {
-    const res = await apiClient.request<VotingConfig>('/api/competitions/voting/configure', {
+    const res = await this.request<VotingConfig>('/api/competitions/voting/configure', {
       data: { config },
     });
     if (res.success && res.data) {
@@ -883,7 +1027,7 @@ class EventStudioService {
   }
 
   public async updateRegistrationSettings(settings: Partial<RegistrationSettings>): Promise<RegistrationSettings> {
-    const res = await apiClient.request<RegistrationSettings>('/api/registration/settings/update', {
+    const res = await this.request<RegistrationSettings>('/api/registration/settings/update', {
       data: { settings },
     });
     if (res.success && res.data) {
@@ -904,7 +1048,7 @@ class EventStudioService {
   }
 
   public async createDynamicField(field: Omit<RegistrationFieldConfig, 'id'>): Promise<RegistrationFieldConfig> {
-    const res = await apiClient.request<RegistrationFieldConfig>('/api/registration/fields/create', {
+    const res = await this.request<RegistrationFieldConfig>('/api/registration/fields/create', {
       data: { field },
     });
     if (res.success && res.data) {
@@ -921,7 +1065,7 @@ class EventStudioService {
   }
 
   public async updateDynamicField(id: string, updates: Partial<RegistrationFieldConfig>): Promise<RegistrationFieldConfig> {
-    const res = await apiClient.request<RegistrationFieldConfig>('/api/registration/fields/update', {
+    const res = await this.request<RegistrationFieldConfig>('/api/registration/fields/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -948,7 +1092,7 @@ class EventStudioService {
   }
 
   public async createPointRule(rule: Omit<PointRuleConfig, 'id'>): Promise<PointRuleConfig> {
-    const res = await apiClient.request<PointRuleConfig>('/api/gamification/points/create', {
+    const res = await this.request<PointRuleConfig>('/api/gamification/points/create', {
       data: { rule },
     });
     if (res.success && res.data) {
@@ -965,7 +1109,7 @@ class EventStudioService {
   }
 
   public async updatePointRule(id: string, updates: Partial<PointRuleConfig>): Promise<PointRuleConfig> {
-    const res = await apiClient.request<PointRuleConfig>('/api/gamification/points/update', {
+    const res = await this.request<PointRuleConfig>('/api/gamification/points/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -977,8 +1121,13 @@ class EventStudioService {
     throw new Error(res.error || 'Gagal memperbarui aturan XP.');
   }
 
-  public deletePointRule(id: string): void {
+  public async deletePointRule(id: string): Promise<void> {
+    const res = await this.request<PointRuleConfig>('/api/gamification/points/archive', {
+      data: { id },
+    });
+    if (!res.success) throw new Error(res.error || 'Gagal mengarsipkan aturan XP.');
     this.pointRules = this.pointRules.filter(r => r.id !== id);
+    await this.refreshAudit();
     this.notify();
   }
 
@@ -991,7 +1140,7 @@ class EventStudioService {
   }
 
   public async createBadge(badge: Omit<BadgeConfig, 'id'>): Promise<BadgeConfig> {
-    const res = await apiClient.request<BadgeConfig>('/api/gamification/badges/create', {
+    const res = await this.request<BadgeConfig>('/api/gamification/badges/create', {
       data: { badge },
     });
     if (res.success && res.data) {
@@ -1008,7 +1157,7 @@ class EventStudioService {
   }
 
   public async updateBadge(id: string, updates: Partial<BadgeConfig>): Promise<BadgeConfig> {
-    const res = await apiClient.request<BadgeConfig>('/api/gamification/badges/update', {
+    const res = await this.request<BadgeConfig>('/api/gamification/badges/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -1020,8 +1169,13 @@ class EventStudioService {
     throw new Error(res.error || 'Gagal memperbarui lencana.');
   }
 
-  public deleteBadge(id: string): void {
+  public async deleteBadge(id: string): Promise<void> {
+    const res = await this.request<BadgeConfig>('/api/gamification/badges/archive', {
+      data: { id },
+    });
+    if (!res.success) throw new Error(res.error || 'Gagal mengarsipkan lencana.');
     this.badges = this.badges.filter(b => b.id !== id);
+    await this.refreshAudit();
     this.notify();
   }
 
@@ -1034,7 +1188,7 @@ class EventStudioService {
   }
 
   public async createCheckpoint(checkpoint: Omit<QrCheckpoint, 'id' | 'scanCount'>): Promise<QrCheckpoint> {
-    const res = await apiClient.request<QrCheckpoint>('/api/gamification/checkpoints/create', {
+    const res = await this.request<QrCheckpoint>('/api/gamification/checkpoints/create', {
       data: { checkpoint },
     });
     if (res.success && res.data) {
@@ -1051,7 +1205,7 @@ class EventStudioService {
   }
 
   public async updateCheckpoint(id: string, updates: Partial<QrCheckpoint>): Promise<QrCheckpoint> {
-    const res = await apiClient.request<QrCheckpoint>('/api/gamification/checkpoints/update', {
+    const res = await this.request<QrCheckpoint>('/api/gamification/checkpoints/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -1063,13 +1217,18 @@ class EventStudioService {
     throw new Error(res.error || 'Gagal memperbarui checkpoint.');
   }
 
-  public deleteCheckpoint(id: string): void {
+  public async deleteCheckpoint(id: string): Promise<void> {
+    const res = await this.request<QrCheckpoint>('/api/gamification/checkpoints/archive', {
+      data: { id },
+    });
+    if (!res.success) throw new Error(res.error || 'Gagal mengarsipkan checkpoint.');
     this.checkpoints = this.checkpoints.filter(c => c.id !== id);
+    await this.refreshAudit();
     this.notify();
   }
 
   public async regenerateCheckpointQr(id: string): Promise<string> {
-    const res = await apiClient.request<{ qrCode: string }>('/api/gamification/checkpoints/regenerate', {
+    const res = await this.request<{ qrCode: string }>('/api/gamification/checkpoints/regenerate', {
       data: { id },
     });
     if (res.success && res.data) {
@@ -1088,7 +1247,7 @@ class EventStudioService {
   }
 
   public async updateEventFeature(featureKey: keyof ScoutEvent['features'], enabled: boolean): Promise<ScoutEvent['features']> {
-    const res = await apiClient.request<ScoutEvent['features']>('/api/features/update', {
+    const res = await this.request<ScoutEvent['features']>('/api/features/update', {
       data: { featureKey, enabled },
     });
     if (res.success && res.data) {
@@ -1106,7 +1265,7 @@ class EventStudioService {
   }
 
   public async reorderHomepageSections(sections: HomeSectionConfig[]): Promise<HomeSectionConfig[]> {
-    const res = await apiClient.request<HomeSectionConfig[]>('/api/features/home-sections/reorder', {
+    const res = await this.request<HomeSectionConfig[]>('/api/features/home-sections/reorder', {
       data: { sections },
     });
     if (res.success && res.data) {
@@ -1133,7 +1292,7 @@ class EventStudioService {
   }
 
   public async createEventPage(page: Omit<CustomInfoPage, 'id'>): Promise<CustomInfoPage> {
-    const res = await apiClient.request<CustomInfoPage>('/api/content/pages/create', {
+    const res = await this.request<CustomInfoPage>('/api/content/pages/create', {
       data: { page },
     });
     if (res.success && res.data) {
@@ -1150,7 +1309,7 @@ class EventStudioService {
   }
 
   public async updateEventPage(id: string, updates: Partial<CustomInfoPage>): Promise<CustomInfoPage> {
-    const res = await apiClient.request<CustomInfoPage>('/api/content/pages/update', {
+    const res = await this.request<CustomInfoPage>('/api/content/pages/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -1166,8 +1325,13 @@ class EventStudioService {
     return this.updateEventPage(id, updates);
   }
 
-  public deleteCustomPage(id: string): void {
+  public async deleteCustomPage(id: string): Promise<void> {
+    const res = await this.request<CustomInfoPage>('/api/content/pages/archive', {
+      data: { id },
+    });
+    if (!res.success) throw new Error(res.error || 'Gagal mengarsipkan halaman informasi.');
     this.customPages = this.customPages.filter(p => p.id !== id);
+    await this.refreshAudit();
     this.notify();
   }
 
@@ -1176,7 +1340,7 @@ class EventStudioService {
   }
 
   public async createEventContact(contact: Omit<EventContactItem, 'id'>): Promise<EventContactItem> {
-    const res = await apiClient.request<EventContactItem>('/api/content/contacts/create', {
+    const res = await this.request<EventContactItem>('/api/content/contacts/create', {
       data: { contact },
     });
     if (res.success && res.data) {
@@ -1189,7 +1353,7 @@ class EventStudioService {
   }
 
   public async updateEventContact(id: string, updates: Partial<EventContactItem>): Promise<EventContactItem> {
-    const res = await apiClient.request<EventContactItem>('/api/content/contacts/update', {
+    const res = await this.request<EventContactItem>('/api/content/contacts/update', {
       data: { id, updates },
     });
     if (res.success && res.data) {
@@ -1212,19 +1376,28 @@ class EventStudioService {
   }
 
   public addAuditLogEntry(action: string, details: string, user: string = 'Administrator Sistem'): void {
-    const entry: AuditLog = {
-      id: `aud_${Date.now()}`,
-      timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-      user,
-      action,
-      details,
-    };
-    this.auditLogs.unshift(entry);
-    this.notify();
+    // Preserve the existing synchronous UI contract, but persist the entry
+    // authoritatively and refresh from Spreadsheet after success.
+    void this.request<{ saved: boolean }>('/api/audit/create', {
+      data: { action, details, user, target: this.event.id },
+    }).then(async (res) => {
+      if (!res.success) {
+        this.saveState = {
+          ...this.saveState,
+          hasUnsaved: true,
+          status: 'Save Failed',
+          errorMessage: res.error || 'Gagal menyimpan audit log.',
+        };
+        this.notify();
+        return;
+      }
+      await this.refreshAudit();
+      this.notify();
+    });
   }
 
   private async refreshAudit(): Promise<void> {
-    const res = await apiClient.request<AuditLog[]>('/api/audit/list', {
+    const res = await this.request<AuditLog[]>('/api/audit/list', {
       data: { eventId: this.event.id },
     });
     if (res.success && res.data) {
@@ -1239,7 +1412,7 @@ class EventStudioService {
   }
 
   public async createOrganization(organization: Omit<Organization, 'organization_id'>): Promise<Organization> {
-    const res = await apiClient.request<Organization>('/api/organizations/create', {
+    const res = await this.request<Organization>('/api/organizations/create', {
       data: { organization },
     });
     if (res.success && res.data) {
@@ -1254,7 +1427,7 @@ class EventStudioService {
   // ==================== OPERATIONAL INTEGRITY & READINESS ====================
 
   public async getEventReadiness(): Promise<EventReadinessReport> {
-    const res = await apiClient.request<EventReadinessReport>('/api/readiness/get');
+    const res = await this.request<EventReadinessReport>('/api/readiness/get');
     if (res.success && res.data) {
       return res.data;
     }
@@ -1262,7 +1435,7 @@ class EventStudioService {
   }
 
   public async detectScheduleConflicts(): Promise<ScheduleConflict[]> {
-    const res = await apiClient.request<ScheduleConflict[]>('/api/conflicts/schedules');
+    const res = await this.request<ScheduleConflict[]>('/api/conflicts/schedules');
     if (res.success && res.data) {
       return res.data;
     }
@@ -1270,7 +1443,7 @@ class EventStudioService {
   }
 
   public async validateCampsiteCapacity(): Promise<CampsiteCapacityReport> {
-    const res = await apiClient.request<CampsiteCapacityReport>('/api/campsite/capacity-check');
+    const res = await this.request<CampsiteCapacityReport>('/api/campsite/capacity-check');
     if (res.success && res.data) {
       return res.data;
     }
@@ -1278,7 +1451,7 @@ class EventStudioService {
   }
 
   public async validateCompetitionReadiness(competitionId?: string): Promise<CompetitionReadiness[]> {
-    const res = await apiClient.request<CompetitionReadiness[]>('/api/competitions/readiness', {
+    const res = await this.request<CompetitionReadiness[]>('/api/competitions/readiness', {
       data: { competitionId },
     });
     if (res.success && res.data) {
@@ -1288,7 +1461,7 @@ class EventStudioService {
   }
 
   public async listDevices(): Promise<RegisteredDevice[]> {
-    const res = await apiClient.request<RegisteredDevice[]>('/api/devices/list');
+    const res = await this.request<RegisteredDevice[]>('/api/devices/list');
     if (res.success && res.data) {
       return res.data;
     }
@@ -1296,7 +1469,7 @@ class EventStudioService {
   }
 
   public async revokeDevice(deviceId: string): Promise<RegisteredDevice> {
-    const res = await apiClient.request<RegisteredDevice>('/api/devices/revoke', {
+    const res = await this.request<RegisteredDevice>('/api/devices/revoke', {
       data: { deviceId },
     });
     if (res.success && res.data) {
@@ -1307,7 +1480,7 @@ class EventStudioService {
   }
 
   public async activateDevice(deviceId: string): Promise<RegisteredDevice> {
-    const res = await apiClient.request<RegisteredDevice>('/api/devices/activate', {
+    const res = await this.request<RegisteredDevice>('/api/devices/activate', {
       data: { deviceId },
     });
     if (res.success && res.data) {
@@ -1318,7 +1491,7 @@ class EventStudioService {
   }
 
   public async downloadRoleScopedSnapshot(): Promise<RoleScopedSnapshot | null> {
-    const res = await apiClient.request<RoleScopedSnapshot>('/api/sync/snapshot');
+    const res = await this.request<RoleScopedSnapshot>('/api/sync/snapshot');
     if (res.success && res.data) {
       return res.data;
     }
