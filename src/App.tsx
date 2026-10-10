@@ -438,6 +438,16 @@ export default function App() {
         return;
       }
 
+      if (res.authenticated) {
+        setAuthError(null);
+        setAuthSuccess(
+          res.message || 'Perangkat tepercaya dikenali. Berhasil masuk tanpa OTP.'
+        );
+        setIsLoggedIn(true);
+        setActiveTab('home');
+        return;
+      }
+
       const nextChallengeId = String(res.challengeId || '').trim();
       if (!nextChallengeId) {
         setAuthError(
