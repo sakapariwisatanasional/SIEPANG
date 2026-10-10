@@ -59,6 +59,8 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
   required = false,
   className = '',
 }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(currentPhotoUrl);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [mode, setMode] = useState<'CHOOSER' | 'CAMERA' | 'CROPPER'>('CHOOSER');
@@ -275,12 +277,13 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
   };
 
   // Render final 512x512 crop
-  const handleSaveCrop = () => {
+  const handleSaveCrop = async () => {
+    if (isUploading) return;
     if (!rawImageSrc) return;
 
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => {
+    img.onload = async () => {
       const outputCanvas = document.createElement('canvas');
       outputCanvas.width = 512;
       outputCanvas.height = 512;
@@ -326,7 +329,10 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
       const thumbUrl = thumbCanvas.toDataURL('image/webp', 0.80);
 
       // Store in profilePhotoService
-      const saved = profilePhotoService.uploadPhoto({
+      setIsUploading(true);
+      setUploadError('');
+      try {
+      const saved = await profilePhotoService.uploadPhoto({
         entity_type: entityType,
         entity_id: entityId,
         entity_name: entityName,
@@ -336,12 +342,17 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
         height: 512,
       });
 
-      setPhotoUrl(optimizedWebp);
+      setPhotoUrl(saved.profile_photo_url);
       if (onPhotoSaved) {
         onPhotoSaved(saved);
       }
 
       closeModal();
+      } catch (error: any) {
+        setUploadError(error?.message || 'Gagal menyimpan foto ke Drive.');
+      } finally {
+        setIsUploading(false);
+      }
     };
     img.src = rawImageSrc;
   };
@@ -363,6 +374,8 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
 
   return (
     <div className={`space-y-2.5 ${className}`}>
+      {isUploading && <div role="status" className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">Mengunggah foto ke Google Drive…</div>}
+      {uploadError && <div role="alert" className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{uploadError}</div>}
       {/* Hidden file picker */}
       <input
         ref={fileInputRef}
@@ -733,12 +746,13 @@ export const ProfilePhotoUploader: React.FC<ProfilePhotoUploaderProps> = ({
                   <button
                     type="button"
                     onClick={handleSaveCrop}
+                    disabled={isUploading}
                     className="px-4 sm:px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 active:scale-95 cursor-pointer min-h-[44px]"
                     title="Simpan & Terapkan Foto"
                     aria-label="Simpan Foto"
                   >
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Simpan</span>
+                    <span>{isUploading ? 'Mengunggah…' : 'Simpan'}</span>
                   </button>
                 </div>
               </div>
