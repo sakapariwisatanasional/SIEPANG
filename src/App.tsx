@@ -373,6 +373,8 @@ export default function App() {
   // Synchronous guard against duplicate submit events before React has time
   // to render the disabled button state.
   const loginOtpRequestLockRef = useRef(false);
+  const loginOtpVerifyLockRef = useRef(false);
+  const registerOtpVerifyLockRef = useRef(false);
 
   // 1. Startup Auto-Login Session Validation (Requirement 9 & 10)
   useEffect(() => {
@@ -457,30 +459,55 @@ export default function App() {
 
   const handleVerifyLoginOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (loginOtpVerifyLockRef.current || isSubmittingAuth) {
+      return;
+    }
+
     const otp = otpInput.trim();
     if (otp.length !== 6) {
       setAuthError('Masukkan 6 digit kode verifikasi.');
       return;
     }
 
+    if (!challengeId.trim()) {
+      setAuthError('ID verifikasi tidak tersedia. Silakan minta kode OTP baru.');
+      return;
+    }
+
+    loginOtpVerifyLockRef.current = true;
     setAuthError(null);
+    setAuthSuccess(null);
     setIsSubmittingAuth(true);
 
-    const res = await authService.verifyLoginOtp({
-      challengeId,
-      email: loginEmail.trim().toLowerCase(),
-      otp,
-    });
-    setIsSubmittingAuth(false);
+    try {
+      const res = await authService.verifyLoginOtp({
+        challengeId: challengeId.trim(),
+        email: loginEmail.trim().toLowerCase(),
+        otp,
+      });
 
-    if (!res.success) {
-      setAuthError(res.error || 'Kode verifikasi tidak valid atau telah kedaluwarsa.');
-    } else {
-      setAuthSuccess('✓ Berhasil masuk. Perangkat terdaftar sebagai perangkat tepercaya.');
-      setTimeout(() => {
-        setIsLoggedIn(true);
-        setActiveTab('home');
-      }, 500);
+      if (!res.success) {
+        setAuthError(
+          res.error ||
+            'Kode verifikasi tidak valid atau telah kedaluwarsa.'
+        );
+        return;
+      }
+
+      setAuthError(null);
+      setAuthSuccess(
+        '✓ Berhasil masuk. Perangkat terdaftar sebagai perangkat tepercaya.'
+      );
+
+      // Authentication state has already been persisted by authService.
+      // Move to the dashboard immediately so no second submit can consume
+      // the same one-time OTP challenge.
+      setIsLoggedIn(true);
+      setActiveTab('home');
+    } finally {
+      setIsSubmittingAuth(false);
+      loginOtpVerifyLockRef.current = false;
     }
   };
 
@@ -516,31 +543,50 @@ export default function App() {
 
   const handleVerifyRegisterOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (registerOtpVerifyLockRef.current || isSubmittingAuth) {
+      return;
+    }
+
     const otp = otpInput.trim();
     if (otp.length !== 6) {
       setAuthError('Masukkan 6 digit kode verifikasi.');
       return;
     }
 
+    if (!challengeId.trim()) {
+      setAuthError('ID verifikasi tidak tersedia. Silakan minta kode OTP baru.');
+      return;
+    }
+
+    registerOtpVerifyLockRef.current = true;
     setAuthError(null);
+    setAuthSuccess(null);
     setIsSubmittingAuth(true);
 
-    const res = await authService.verifyRegisterOtp({
-      challengeId,
-      email: regEmail.trim().toLowerCase(),
-      otp,
-      name: regName.trim(),
-    });
-    setIsSubmittingAuth(false);
+    try {
+      const res = await authService.verifyRegisterOtp({
+        challengeId: challengeId.trim(),
+        email: regEmail.trim().toLowerCase(),
+        otp,
+        name: regName.trim(),
+      });
 
-    if (!res.success) {
-      setAuthError(res.error || 'Kode verifikasi tidak valid atau telah kedaluwarsa.');
-    } else {
+      if (!res.success) {
+        setAuthError(
+          res.error ||
+            'Kode verifikasi tidak valid atau telah kedaluwarsa.'
+        );
+        return;
+      }
+
+      setAuthError(null);
       setAuthSuccess('✓ Email berhasil diverifikasi. Akun SiEpang Anda sudah aktif.');
-      setTimeout(() => {
-        setIsLoggedIn(true);
-        setActiveTab('home');
-      }, 1000);
+      setIsLoggedIn(true);
+      setActiveTab('home');
+    } finally {
+      setIsSubmittingAuth(false);
+      registerOtpVerifyLockRef.current = false;
     }
   };
 
