@@ -23,50 +23,55 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
   const [tokenInput, setTokenInput] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAlreadyReady, setIsAlreadyReady] = useState(false);
-  const [backendReachable, setBackendReachable] = useState(true);
+  const [backendReachable, setBackendReachable] = useState<boolean | null>(null);
+  const [forceShowForm, setForceShowForm] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successResult, setSuccessResult] = useState<any | null>(null);
 
+  const checkStatus = async () => {
+    setIsCheckingStatus(true);
+    try {
+      const status = await bootstrapService.getStatus();
+      setIsAlreadyReady(status.installation_ready);
+      setBackendReachable(status.backend_reachable);
+    } catch {
+      setBackendReachable(false);
+    } finally {
+      setIsCheckingStatus(false);
+      setIsLoadingStatus(false);
+    }
+  };
+
   useEffect(() => {
-    let mounted = true;
-    const checkStatus = async () => {
-      try {
-        const status = await bootstrapService.getStatus();
-        if (mounted) {
-          setIsAlreadyReady(status.installation_ready);
-          setBackendReachable(status.backend_reachable);
-          setIsLoadingStatus(false);
-        }
-      } catch {
-        if (mounted) {
-          setIsLoadingStatus(false);
-        }
-      }
-    };
     checkStatus();
-    return () => {
-      mounted = false;
-    };
   }, []);
 
   const handleRunBootstrap = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tokenInput.trim() || isSubmitting) return;
+    const token = tokenInput.trim();
+    if (!token || isSubmitting) return;
 
     setErrorMessage(null);
     setIsSubmitting(true);
 
     try {
-      const res = await bootstrapService.initialize(tokenInput.trim());
+      // ALWAYS sends network request to backend (no cached early-return)
+      const res = await bootstrapService.initialize(token);
       if (res.success && res.data) {
         setSuccessResult(res.data);
       } else {
-        setErrorMessage(
-          res.error?.message ||
-            'Token bootstrap tidak valid atau sistem telah selesai diinisialisasi.'
-        );
+        if (res.error?.code === 'BACKEND_UNREACHABLE') {
+          setErrorMessage(res.error.message || 'Koneksi ke backend Google Apps Script gagal. Periksa URL atau koneksi jaringan.');
+        } else if (res.error?.code === 'INVALID_BOOTSTRAP_TOKEN') {
+          setErrorMessage('Token bootstrap tidak valid atau sudah kedaluwarsa.');
+        } else if (res.error?.code === 'BOOTSTRAP_ALREADY_COMPLETED') {
+          setErrorMessage('Inisialisasi awal sudah selesai. Endpoint bootstrap tidak dapat diakses lagi.');
+        } else {
+          setErrorMessage(res.error?.message || 'Gagal menjalankan inisialisasi awal backend.');
+        }
       }
     } catch (err: any) {
       setErrorMessage(err?.message || 'Gagal menjalankan inisialisasi awal backend.');
@@ -86,12 +91,14 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
             Memeriksa Status Backend SiEpang...
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Menghubungkan ke layanan Google Apps Script
+            Menghubungkan ke layanan Google Apps Script (bootstrap.status)
           </p>
         </div>
       </div>
     );
   }
+
+  const showForm = !isAlreadyReady || forceShowForm;
 
   return (
     <div className="min-h-screen flex flex-col justify-between bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-4 sm:p-6 selection:bg-[#E1306C] selection:text-white">
@@ -109,10 +116,25 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
               First Bootstrap · Sistem Informasi Perkemahan Pramuka
             </p>
           </div>
+
+          {/* Backend Reachability Indicator */}
+          <div className="pt-1 flex items-center justify-center">
+            {backendReachable === true ? (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Backend GAS Terhubung</span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-[11px] font-bold text-amber-700 dark:text-amber-300">
+                <span className="w-2 h-2 rounded-full bg-amber-500" />
+                <span>Memeriksa Backend GAS</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* State A: Installation already complete */}
-        {isAlreadyReady && !successResult && (
+        {/* State A: Installation already complete (with option to force entry) */}
+        {isAlreadyReady && !forceShowForm && !successResult && (
           <div className="space-y-4">
             <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-200 text-xs space-y-2">
               <div className="flex items-center gap-2 font-bold text-sm">
@@ -131,6 +153,15 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
               <span>Menuju Halaman Masuk</span>
               <ArrowRight className="w-4 h-4" />
             </button>
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={() => setForceShowForm(true)}
+                className="text-[11px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 underline cursor-pointer"
+              >
+                Masukkan setup secret lain / ulangi bootstrap
+              </button>
+            </div>
           </div>
         )}
 
@@ -178,8 +209,8 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
           </div>
         )}
 
-        {/* State C: Normal unbootstrapped form */}
-        {!isAlreadyReady && !successResult && (
+        {/* State C: Form - always interactive, never blocked by cached reachability */}
+        {showForm && !successResult && (
           <form onSubmit={handleRunBootstrap} className="space-y-4">
             <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 text-xs space-y-1">
               <div className="font-bold flex items-center gap-1.5">
@@ -190,6 +221,24 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
                 Masukkan setup secret satu kali (<strong>SIEPANG_BOOTSTRAP_TOKEN</strong>) dari Script Properties Google Apps Script backend. Token ini hanya berlaku satu kali untuk inisialisasi awal.
               </p>
             </div>
+
+            {backendReachable === false && (
+              <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 text-amber-900 dark:text-amber-200 text-xs flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span className="text-[11px]">Backend SiEpang belum terhubung atau sedang dalam proses deploy. Anda tetap dapat mencoba mengirim token.</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={checkStatus}
+                  disabled={isCheckingStatus}
+                  className="px-2.5 py-1 bg-amber-200/60 dark:bg-amber-800/40 hover:bg-amber-200 text-amber-900 dark:text-amber-100 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer shrink-0"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isCheckingStatus ? 'animate-spin' : ''}`} />
+                  <span>Cek Ulang</span>
+                </button>
+              </div>
+            )}
 
             {errorMessage && (
               <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 text-rose-800 dark:text-rose-200 text-xs flex items-start gap-2.5 animate-in fade-in">
@@ -233,7 +282,7 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
               {isSubmitting ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin" />
-                  <span>Menginisialisasi Sistem...</span>
+                  <span>Menghubungi Backend SiEpang...</span>
                 </>
               ) : (
                 <>
@@ -258,3 +307,5 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
     </div>
   );
 };
+
+
