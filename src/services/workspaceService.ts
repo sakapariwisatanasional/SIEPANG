@@ -78,15 +78,21 @@ class WorkspaceService {
   }
 
   private hydrateFromInstallation(): void {
-    const record = customerInstallationService.getInstallationRecord();
-    if (record && record.workspace_id) {
-      this.currentWorkspace = {
-        ...this.currentWorkspace,
-        id: record.workspace_id,
-        name: record.organization_name || this.currentWorkspace.name,
-        organization: record.organization_name || this.currentWorkspace.organization,
-        activeEventId: record.active_event_id || this.currentWorkspace.activeEventId,
-      };
+    try {
+      if (typeof customerInstallationService !== 'undefined' && typeof customerInstallationService.getInstallationRecord === 'function') {
+        const record = customerInstallationService.getInstallationRecord();
+        if (record && record.workspace_id) {
+          this.currentWorkspace = {
+            ...this.currentWorkspace,
+            id: record.workspace_id,
+            name: record.organization_name || this.currentWorkspace.name,
+            organization: record.organization_name || this.currentWorkspace.organization,
+            activeEventId: record.active_event_id || this.currentWorkspace.activeEventId,
+          };
+        }
+      }
+    } catch {
+      // Ignored during module initialization circular resolution
     }
   }
 
