@@ -561,8 +561,10 @@ export default function App() {
       if (res.success) {
         setChallengeId(res.challengeId || '');
         setDevOtpHint(res.devOtp || null);
+        setOtpInput('');
+        setAuthError(null);
         setResendCooldown(60);
-        setAuthSuccess(`Kode verifikasi baru telah dikirim ke ${loginEmail}.`);
+        setAuthSuccess(`Kode verifikasi baru telah dikirim ke ${loginEmail}. Gunakan kode terbaru dari email.`);
       } else {
         setAuthError(res.error || 'Gagal mengirim ulang kode.');
       }
@@ -572,8 +574,10 @@ export default function App() {
       if (res.success) {
         setChallengeId(res.challengeId || '');
         setDevOtpHint(res.devOtp || null);
+        setOtpInput('');
+        setAuthError(null);
         setResendCooldown(60);
-        setAuthSuccess(`Kode verifikasi baru telah dikirim ke ${regEmail}.`);
+        setAuthSuccess(`Kode verifikasi baru telah dikirim ke ${regEmail}. Gunakan kode terbaru dari email.`);
       } else {
         setAuthError(res.error || 'Gagal mengirim ulang kode.');
       }
