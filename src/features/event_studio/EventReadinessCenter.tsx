@@ -36,39 +36,387 @@ interface EventReadinessCenterProps {
   onNavigateSection: (section: StudioSection) => void;
 }
 
+
+type BackendReadinessSummary = {
+  eventId?: string;
+  ready?: boolean;
+  scheduleCount?: number;
+  activityCount?: number;
+  campsiteLotCount?: number;
+  competitionCount?: number;
+  scorePercentage?: number;
+  calculatedAt?: string;
+  status?: string;
+  sections?: Record<string, any>;
+  actionableWarnings?: any[];
+};
+
+const asFiniteNumber = (value: unknown, fallback = 0): number => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const normalizeReadinessReport = (raw: unknown): EventReadinessReport => {
+  const source = (raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? raw
+    : {}) as BackendReadinessSummary & Record<string, any>;
+
+  // Preserve the richer legacy report unchanged when the backend already sends it.
+  if (
+    typeof source.scorePercentage === 'number' &&
+    source.sections &&
+    typeof source.sections === 'object' &&
+    Array.isArray(source.actionableWarnings)
+  ) {
+    return {
+      ...source,
+      calculatedAt: String(source.calculatedAt || new Date().toLocaleTimeString('id-ID')),
+      status: String(source.status || 'operational_check'),
+      scorePercentage: Math.max(0, Math.min(100, asFiniteNumber(source.scorePercentage))),
+      actionableWarnings: source.actionableWarnings,
+    } as unknown as EventReadinessReport;
+  }
+
+  const event = eventStudioService.getEvent();
+  const scheduleCount = asFiniteNumber(source.scheduleCount);
+  const activityCount = asFiniteNumber(source.activityCount);
+  const campsiteLotCount = asFiniteNumber(source.campsiteLotCount);
+  const competitionCount = asFiniteNumber(source.competitionCount);
+
+  const hasIdentity = Boolean(
+    source.ready &&
+    event?.id &&
+    event?.name &&
+    event?.status
+  );
+
+  const contacts = event?.contacts || {};
+  const hasEmergencyContact = Boolean(
+    contacts.medical ||
+    contacts.health ||
+    contacts.security ||
+    contacts.emergency ||
+    contacts.helpdesk ||
+    contacts.info
+  );
+
+  const enabledFeatures = event?.features
+    ? Object.values(event.features).filter(Boolean).length
+    : 0;
+
+  const checks = [
+    hasIdentity,
+    scheduleCount > 0,
+    activityCount > 0,
+    campsiteLotCount > 0,
+    competitionCount > 0,
+    hasEmergencyContact,
+    enabledFeatures > 0,
+  ];
+
+  const completed = checks.filter(Boolean).length;
+  const scorePercentage = Math.round((completed / checks.length) * 100);
+
+  const makeSection = (ready: boolean, summary: string, extra: Record<string, any> = {}) => ({
+    ready,
+    summary,
+    ...extra,
+  });
+
+  const warnings: any[] = [];
+  const pushWarning = (
+    id: string,
+    title: string,
+    message: string,
+    targetTab: StudioSection
+  ) => {
+    warnings.push({ id, title, message, targetTab });
+  };
+
+  if (!hasIdentity) {
+    pushWarning(
+      'identity',
+      'Identitas kegiatan belum lengkap',
+      'Lengkapi identitas dan status kegiatan pada Pengaturan Umum Event.',
+      'general'
+    );
+  }
+  if (scheduleCount === 0) {
+    pushWarning(
+      'schedule',
+      'Jadwal kegiatan masih kosong',
+      'Tambahkan minimal satu agenda agar kesiapan jadwal dapat diperiksa.',
+      'schedule'
+    );
+  }
+  if (activityCount === 0) {
+    pushWarning(
+      'activities',
+      'Aktivitas belum tersedia',
+      'Tambahkan aktivitas operasional yang digunakan dalam kegiatan.',
+      'schedule'
+    );
+  }
+  if (campsiteLotCount === 0) {
+    pushWarning(
+      'campsite',
+      'Kavling perkemahan belum tersedia',
+      'Tambahkan kavling atau area perkemahan untuk memvalidasi kapasitas.',
+      'campsite'
+    );
+  }
+  if (competitionCount === 0) {
+    pushWarning(
+      'competitions',
+      'Cabang lomba belum tersedia',
+      'Tambahkan cabang lomba bila fitur kompetisi digunakan.',
+      'competitions'
+    );
+  }
+  if (!hasEmergencyContact) {
+    pushWarning(
+      'contacts',
+      'Kontak darurat belum lengkap',
+      'Isi sedikitnya satu kontak posko medis, keamanan, atau helpdesk.',
+      'pages_contacts'
+    );
+  }
+
+  const featureWarnings: string[] = [];
+  if (event?.features?.leaderboard && !event?.features?.xp) {
+    featureWarnings.push('Leaderboard aktif tetapi modul XP tidak aktif.');
+  }
+  if (event?.features?.voting && !event?.features?.competition) {
+    featureWarnings.push('Voting aktif tetapi modul kompetisi tidak aktif.');
+  }
+  if (event?.features?.qrCheckpoint && !event?.features?.xp) {
+    featureWarnings.push('Pos QR aktif tetapi modul XP tidak aktif.');
+  }
+
+  if (featureWarnings.length > 0) {
+    pushWarning(
+      'features',
+      'Dependensi fitur perlu diperiksa',
+      featureWarnings.join(' '),
+      'features'
+    );
+  }
+
+  const status =
+    scorePercentage >= 90
+      ? 'siap_operasional'
+      : scorePercentage >= 70
+      ? 'perlu_perhatian'
+      : 'belum_siap';
+
+  return {
+    eventId: String(source.eventId || event?.id || ''),
+    calculatedAt: new Date().toLocaleTimeString('id-ID'),
+    scorePercentage,
+    status,
+    actionableWarnings: warnings,
+    sections: {
+      identity: makeSection(hasIdentity, hasIdentity ? 'Identitas event tersedia' : 'Belum lengkap'),
+      registration: makeSection(
+        asFiniteNumber(event?.registeredCount) > 0,
+        `${asFiniteNumber(event?.registeredCount)} peserta terdaftar`
+      ),
+      schedule: makeSection(scheduleCount > 0, `${scheduleCount} agenda`),
+      campsite: makeSection(campsiteLotCount > 0, `${campsiteLotCount} kavling`),
+      activities: makeSection(activityCount > 0, `${activityCount} aktivitas`),
+      competitions: makeSection(competitionCount > 0, `${competitionCount} lomba`),
+      certificates: makeSection(
+        Boolean(event?.features?.certificate),
+        event?.features?.certificate ? 'Modul sertifikat aktif' : 'Modul sertifikat tidak aktif'
+      ),
+      contacts: makeSection(
+        hasEmergencyContact,
+        hasEmergencyContact ? 'Kontak darurat tersedia' : 'Belum diisi'
+      ),
+      features: makeSection(
+        featureWarnings.length === 0,
+        featureWarnings.length === 0 ? 'Dependensi konsisten' : `${featureWarnings.length} peringatan`,
+        { dependencyWarnings: featureWarnings }
+      ),
+    },
+  } as unknown as EventReadinessReport;
+};
+
+const normalizeScheduleConflicts = (raw: unknown): ScheduleConflict[] => {
+  if (!Array.isArray(raw)) return [];
+
+  return raw.map((item: any, index: number) => ({
+    ...item,
+    id: String(item?.id || `conflict_${index}`),
+    type: item?.type || 'venue',
+    timeSlot: String(item?.timeSlot || item?.time_slot || ''),
+    conflictDetail: String(
+      item?.conflictDetail ||
+      item?.reason ||
+      'Terdapat bentrok pada jadwal kegiatan.'
+    ),
+  })) as ScheduleConflict[];
+};
+
+const normalizeCampsiteReport = (raw: unknown): CampsiteCapacityReport => {
+  const source = (raw && typeof raw === 'object' && !Array.isArray(raw)
+    ? raw
+    : {}) as Record<string, any>;
+
+  const totalCapacity = asFiniteNumber(source.totalCapacity);
+  const totalAssigned = asFiniteNumber(
+    source.totalAssigned ?? source.assignedCapacity
+  );
+  const remainingCapacity = asFiniteNumber(
+    source.remainingCapacity ?? source.availableCapacity,
+    Math.max(0, totalCapacity - totalAssigned)
+  );
+
+  return {
+    ...source,
+    totalCapacity,
+    totalAssigned,
+    remainingCapacity,
+    isOverflow:
+      typeof source.isOverflow === 'boolean'
+        ? source.isOverflow
+        : totalAssigned > totalCapacity && totalCapacity > 0,
+    contingentsWithoutCampsite: Array.isArray(source.contingentsWithoutCampsite)
+      ? source.contingentsWithoutCampsite
+      : [],
+  } as unknown as CampsiteCapacityReport;
+};
+
+const normalizeCompetitionReadiness = (raw: unknown): CompetitionReadiness[] => {
+  if (!Array.isArray(raw)) return [];
+
+  const competitions = eventStudioService.getCompetitions();
+
+  return raw.map((item: any) => {
+    const competitionId = String(item?.competitionId || item?.id || '');
+    const existing = competitions.find(c => String(c.id) === competitionId);
+    const judgeCount = asFiniteNumber(item?.checks?.judgeCount ?? item?.judgeCount);
+    const criteriaCount = asFiniteNumber(item?.criteriaCount);
+    const ready =
+      typeof item?.isReady === 'boolean'
+        ? item.isReady
+        : Boolean(item?.ready);
+
+    const issues = Array.isArray(item?.issues)
+      ? item.issues
+      : [
+          ...(criteriaCount === 0 ? ['Kriteria penilaian belum tersedia.'] : []),
+          ...(judgeCount === 0 ? ['Juri belum ditugaskan.'] : []),
+        ];
+
+    const completionPercentage =
+      typeof item?.completionPercentage === 'number'
+        ? item.completionPercentage
+        : ready
+        ? 100
+        : Math.round(
+            ((criteriaCount > 0 ? 1 : 0) + (judgeCount > 0 ? 1 : 0)) / 2 * 100
+          );
+
+    return {
+      ...item,
+      competitionId,
+      competitionTitle:
+        String(item?.competitionTitle || existing?.title || existing?.name || 'Cabang Lomba'),
+      isReady: ready,
+      completionPercentage,
+      issues,
+      checks: {
+        ...(item?.checks || {}),
+        judgeCount,
+        criteriaCount,
+      },
+    };
+  }) as CompetitionReadiness[];
+};
+
 export const EventReadinessCenter: React.FC<EventReadinessCenterProps> = ({ onNavigateSection }) => {
   const [report, setReport] = useState<EventReadinessReport | null>(null);
   const [conflicts, setConflicts] = useState<ScheduleConflict[]>([]);
   const [campsiteReport, setCampsiteReport] = useState<CampsiteCapacityReport | null>(null);
   const [compReadiness, setCompReadiness] = useState<CompetitionReadiness[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = async () => {
     setIsLoading(true);
+    setLoadError(null);
+
     try {
-      const [rep, conf, camp, comp] = await Promise.all([
+      const [repResult, confResult, campResult, compResult] = await Promise.allSettled([
         eventStudioService.getEventReadiness(),
         eventStudioService.detectScheduleConflicts(),
         eventStudioService.validateCampsiteCapacity(),
         eventStudioService.validateCompetitionReadiness(),
       ]);
-      setReport(rep);
-      setConflicts(conf);
-      setCampsiteReport(camp);
-      setCompReadiness(comp);
-    } catch (e) {
+
+      if (repResult.status === 'fulfilled') {
+        setReport(normalizeReadinessReport(repResult.value));
+      } else {
+        console.error('Readiness summary failed:', repResult.reason);
+        setLoadError(
+          repResult.reason?.message ||
+            'Laporan kesiapan utama gagal dimuat.'
+        );
+      }
+
+      if (confResult.status === 'fulfilled') {
+        setConflicts(normalizeScheduleConflicts(confResult.value));
+      } else {
+        console.error('Schedule conflict check failed:', confResult.reason);
+        setConflicts([]);
+      }
+
+      if (campResult.status === 'fulfilled') {
+        setCampsiteReport(normalizeCampsiteReport(campResult.value));
+      } else {
+        console.error('Campsite capacity check failed:', campResult.reason);
+        setCampsiteReport(normalizeCampsiteReport(null));
+      }
+
+      if (compResult.status === 'fulfilled') {
+        setCompReadiness(normalizeCompetitionReadiness(compResult.value));
+      } else {
+        console.error('Competition readiness check failed:', compResult.reason);
+        setCompReadiness([]);
+      }
+    } catch (e: any) {
       console.error('Error loading readiness report:', e);
+      setLoadError(e?.message || 'Gagal memuat pusat kesiapan event.');
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    loadData();
+    let mounted = true;
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const safeLoad = async () => {
+      if (!mounted) return;
+      await loadData();
+    };
+
+    void safeLoad();
+
+    // Debounce service notifications. Event Studio performs a large initial sync
+    // and can notify several times in quick succession; readiness should not
+    // fan those notifications into parallel GAS request storms.
     const unsub = eventStudioService.subscribe(() => {
-      loadData();
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => {
+        if (mounted) void safeLoad();
+      }, 350);
     });
+
     return () => {
+      mounted = false;
+      if (reloadTimer) clearTimeout(reloadTimer);
       unsub();
     };
   }, []);
@@ -82,9 +430,33 @@ export const EventReadinessCenter: React.FC<EventReadinessCenterProps> = ({ onNa
     );
   }
 
-  if (!report) return null;
+  if (!report) {
+    return (
+      <div className="p-6 rounded-[28px] bg-white dark:bg-[#141418] border border-rose-200 dark:border-rose-500/30 space-y-3 shadow-xs">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-[#171717] dark:text-white">
+              Pusat Kesiapan belum dapat dimuat
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              {loadError || 'Backend belum mengembalikan laporan kesiapan yang dapat ditampilkan.'}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={loadData}
+          disabled={isLoading}
+          className="px-3.5 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold flex items-center gap-2 disabled:opacity-60"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+          <span>Coba Muat Ulang</span>
+        </button>
+      </div>
+    );
+  }
 
-  const score = report.scorePercentage;
+  const score = Math.max(0, Math.min(100, asFiniteNumber(report.scorePercentage)));
   const scoreColor =
     score >= 90
       ? 'from-emerald-500 to-teal-400 text-emerald-300 border-emerald-500/40'
@@ -119,7 +491,7 @@ export const EventReadinessCenter: React.FC<EventReadinessCenterProps> = ({ onNa
                 {score}%
               </div>
               <div className="text-[9px] font-bold mt-0.5 capitalize">
-                {report.status.replace(/_/g, ' ')}
+                {String(report.status || 'belum_siap').replace(/_/g, ' ')}
               </div>
             </div>
 
@@ -150,7 +522,7 @@ export const EventReadinessCenter: React.FC<EventReadinessCenterProps> = ({ onNa
 
         {/* Operational Checklist Quick Badges */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 pt-2">
-          {Object.entries(report.sections).map(([key, sec]) => {
+          {Object.entries(report.sections || {}).map(([key, sec]) => {
             if (!sec) return null;
             const labelMap: Record<string, string> = {
               identity: 'Event Config',
@@ -185,18 +557,18 @@ export const EventReadinessCenter: React.FC<EventReadinessCenterProps> = ({ onNa
       </div>
 
       {/* 2. Actionable Integrity Warnings */}
-      {report.actionableWarnings.length > 0 && (
+      {(report.actionableWarnings || []).length > 0 && (
         <div className="p-5 rounded-[28px] bg-amber-50/60 dark:bg-[#141418] border border-amber-200 dark:border-amber-500/30 space-y-3 shadow-xs">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#171717] dark:text-white flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
-              <span>Perhatian Operasional & Catatan Integritas ({report.actionableWarnings.length})</span>
+              <span>Perhatian Operasional & Catatan Integritas ({(report.actionableWarnings || []).length})</span>
             </h3>
             <span className="text-[11px] text-slate-500 dark:text-slate-400">Klik 'Perbaiki' untuk membuka modul</span>
           </div>
 
           <div className="space-y-2.5">
-            {report.actionableWarnings.map(warn => (
+            {(report.actionableWarnings || []).map(warn => (
               <div
                 key={warn.id}
                 className="p-3.5 rounded-2xl bg-white dark:bg-black/40 border border-[#ECECEF] dark:border-white/5 hover:border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs transition-colors shadow-xs"
@@ -368,20 +740,20 @@ export const EventReadinessCenter: React.FC<EventReadinessCenterProps> = ({ onNa
               <h3 className="text-sm font-bold text-[#171717] dark:text-white">Konsistensi Dependensi Fitur</h3>
             </div>
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              report.sections.features.ready ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-transparent' : 'bg-amber-50 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-transparent'
+              report.sections?.features?.ready ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-transparent' : 'bg-amber-50 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-transparent'
             }`}>
-              {report.sections.features.ready ? '✓ Sinkron' : '⚠️ Perlu Penyesuaian'}
+              {report.sections?.features?.ready ? '✓ Sinkron' : '⚠️ Perlu Penyesuaian'}
             </span>
           </div>
 
-          {report.sections.features.dependencyWarnings.length === 0 ? (
+          {(report.sections?.features?.dependencyWarnings || []).length === 0 ? (
             <div className="p-4 rounded-2xl bg-[#FAFAFA] dark:bg-black/30 border border-[#ECECEF] dark:border-white/5 text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>Seluruh relasi fitur (XP, Leaderboard, Voting, Pos QR) saling konsisten.</span>
             </div>
           ) : (
             <div className="space-y-2 text-xs">
-              {report.sections.features.dependencyWarnings.map((w, idx) => (
+              {(report.sections?.features?.dependencyWarnings || []).map((w, idx) => (
                 <div key={idx} className="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-500/30 text-[11px] text-amber-800 dark:text-amber-200">
                   {w}
                 </div>
