@@ -121,14 +121,14 @@ export const GeneralEventEditor: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-bold text-[#171717] dark:text-white tracking-tight flex items-center gap-2">
-              <Layers className="w-4 h-4 text-[#E1306C]" />
+              <Layers className="w-4 h-4 text-[#F47743]" />
               <span>Status Operasional Event</span>
             </h2>
             <p className="text-[11px] text-[#6B7280] dark:text-slate-400 mt-0.5">
               Menentukan hak akses sistem dan alur kegiatan kepramukaan saat ini.
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full text-xs font-black border uppercase tracking-wider bg-pink-50 text-[#E1306C] border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800">
+          <span className="px-3 py-1 rounded-full text-xs font-black border uppercase tracking-wider bg-pink-50 text-[#F47743] border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800">
             {formData.status}
           </span>
         </div>
@@ -155,7 +155,7 @@ export const GeneralEventEditor: React.FC = () => {
       {/* 2. Core Identity Fields */}
       <div className="p-5 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 space-y-4 shadow-xs">
         <h2 className="text-sm font-bold text-[#171717] dark:text-white tracking-tight flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-[#E1306C]" />
+          <Building2 className="w-4 h-4 text-[#F47743]" />
           <span>Identitas & Tingkat Organisasi</span>
         </h2>
 
@@ -166,7 +166,7 @@ export const GeneralEventEditor: React.FC = () => {
               type="text"
               value={formData.name}
               onChange={e => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white font-medium focus:border-[#E1306C] focus:outline-none"
+              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white font-medium focus:border-[#F47743] focus:outline-none"
               placeholder="Contoh: Jambore Ranting / Cabang 2026"
               required
             />
@@ -178,7 +178,7 @@ export const GeneralEventEditor: React.FC = () => {
               type="text"
               value={formData.shortName}
               onChange={e => setFormData({ ...formData, shortName: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white font-medium focus:border-[#E1306C] focus:outline-none"
+              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white font-medium focus:border-[#F47743] focus:outline-none"
               placeholder="Contoh: Jamcab BWI 2026"
               required
             />
@@ -190,7 +190,7 @@ export const GeneralEventEditor: React.FC = () => {
               type="text"
               value={formData.eventCode}
               onChange={e => setFormData({ ...formData, eventCode: e.target.value.toUpperCase() })}
-              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#E1306C] font-mono font-bold focus:border-[#E1306C] focus:outline-none"
+              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#F47743] font-mono font-bold focus:border-[#F47743] focus:outline-none"
               placeholder="JC-BWI-2026"
               required
             />
@@ -201,7 +201,7 @@ export const GeneralEventEditor: React.FC = () => {
             <select
               value={formData.category}
               onChange={e => setFormData({ ...formData, category: e.target.value as EventCategory })}
-              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white focus:border-[#E1306C] focus:outline-none"
+              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white focus:border-[#F47743] focus:outline-none"
             >
               <option value="Jambore">Jambore (Penggalang)</option>
               <option value="Raimuna">Raimuna (Penegak/Pandega)</option>
@@ -232,7 +232,7 @@ export const GeneralEventEditor: React.FC = () => {
               type="text"
               value={formData.theme}
               onChange={e => setFormData({ ...formData, theme: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-amber-700 dark:text-amber-300 font-medium italic focus:border-[#E1306C] focus:outline-none"
+              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-amber-700 dark:text-amber-300 font-medium italic focus:border-[#F47743] focus:outline-none"
               placeholder="Pramuka Tangguh, Berkarakter & Melek Digital Menuju Generasi Emas"
             />
           </div>
@@ -243,7 +243,7 @@ export const GeneralEventEditor: React.FC = () => {
               rows={3}
               value={formData.description}
               onChange={e => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white focus:border-[#E1306C] focus:outline-none"
+              className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white focus:border-[#F47743] focus:outline-none"
               placeholder="Jelaskan tujuan, sasaran peserta, dan keunikan kegiatan perkemahan ini..."
             />
           </div>
@@ -254,7 +254,7 @@ export const GeneralEventEditor: React.FC = () => {
       <div className="p-5 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 space-y-4 shadow-xs">
         <div>
           <h2 className="text-sm font-bold text-[#171717] dark:text-white tracking-tight flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#E1306C]" />
+            <Users className="w-4 h-4 text-[#F47743]" />
             <span>Cakupan Partisipasi & Organisasi Kepramukaan (Participation Scope)</span>
           </h2>
           <p className="text-[11px] text-[#6B7280] dark:text-slate-400 mt-0.5">
@@ -296,14 +296,14 @@ export const GeneralEventEditor: React.FC = () => {
               onClick={() => setFormData({ ...formData, participation_scope: scope.id })}
               className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
                 formData.participation_scope === scope.id
-                  ? 'bg-pink-50 border-[#E1306C] text-[#E1306C] font-bold shadow-xs dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800'
+                  ? 'bg-pink-50 border-[#F47743] text-[#F47743] font-bold shadow-xs dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800'
                   : 'bg-[#FAFAFA] border-[#ECECEF] text-[#6B7280] hover:bg-gray-100 hover:text-[#171717] dark:bg-white/5 dark:border-white/5 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white'
               }`}
             >
               <div className="flex items-center justify-between w-full mb-1">
                 <span className="text-xs">{scope.label}</span>
                 {formData.participation_scope === scope.id && (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#E1306C] shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#F47743] shrink-0" />
                 )}
               </div>
               <span className="text-[10px] font-normal opacity-75 leading-tight">{scope.desc}</span>
@@ -319,7 +319,7 @@ export const GeneralEventEditor: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="font-semibold text-[#171717] dark:text-slate-300 flex items-center gap-1.5">
                 <span>Daftar Organisasi / Kwartir yang Memenuhi Syarat:</span>
-                <span className="px-2 py-0.5 rounded-full bg-pink-50 text-[#E1306C] border border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 font-mono text-[10px]">
+                <span className="px-2 py-0.5 rounded-full bg-pink-50 text-[#F47743] border border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 font-mono text-[10px]">
                   {formData.allowed_organization_ids.length} Dipilih
                 </span>
               </div>
@@ -331,7 +331,7 @@ export const GeneralEventEditor: React.FC = () => {
                     const allIds = allOrgs.map(o => o.organization_id);
                     setFormData({ ...formData, allowed_organization_ids: allIds });
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-pink-50 hover:bg-pink-100 text-[#E1306C] border border-pink-200 text-[10px] font-bold cursor-pointer"
+                  className="px-2.5 py-1 rounded-lg bg-pink-50 hover:bg-pink-100 text-[#F47743] border border-pink-200 text-[10px] font-bold cursor-pointer"
                 >
                   Pilih Semua ({allOrgs.length})
                 </button>
@@ -351,7 +351,7 @@ export const GeneralEventEditor: React.FC = () => {
               placeholder="Cari nama kwartir ranting, pangkalan, atau kode organisasi..."
               value={orgSearch}
               onChange={e => setOrgSearch(e.target.value)}
-              className="w-full px-3 py-2 bg-white dark:bg-black/50 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white text-xs placeholder-slate-400 focus:outline-none focus:border-[#E1306C]"
+              className="w-full px-3 py-2 bg-white dark:bg-black/50 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white text-xs placeholder-slate-400 focus:outline-none focus:border-[#F47743]"
             />
 
             {/* List with Toggle Checkboxes */}
@@ -384,7 +384,7 @@ export const GeneralEventEditor: React.FC = () => {
                               : formData.allowed_organization_ids.filter(id => id !== org.organization_id);
                             setFormData({ ...formData, allowed_organization_ids: nextIds });
                           }}
-                          className="accent-[#E1306C] rounded"
+                          className="accent-[#F47743] rounded"
                         />
                         <div className="truncate">
                           <div className="font-semibold text-xs truncate">{org.organization_name}</div>

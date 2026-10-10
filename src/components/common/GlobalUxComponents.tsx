@@ -63,7 +63,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <button
           type="button"
           onClick={action.onClick}
-          className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
+          className="self-start sm:self-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white font-bold text-xs shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer shrink-0"
         >
           {ActionIcon && <ActionIcon className="w-4 h-4" />}
           <span>{action.label}</span>
@@ -105,7 +105,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
     <div
       onClick={onClick}
       className={`p-4 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-xs space-y-1 transition-all ${
-        onClick ? 'cursor-pointer hover:border-[#833AB4]/30 hover:shadow-sm' : ''
+        onClick ? 'cursor-pointer hover:border-[#208C60]/30 hover:shadow-sm' : ''
       }`}
     >
       <div className="flex items-center justify-between">
@@ -155,7 +155,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-9 pr-3.5 py-2.5 bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-xl text-xs text-[#171717] dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#833AB4] transition-colors"
+        className="w-full pl-9 pr-3.5 py-2.5 bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-xl text-xs text-[#171717] dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#208C60] transition-colors"
       />
     </div>
   );
@@ -210,7 +210,7 @@ export const AttentionList: React.FC<AttentionListProps> = ({ items }) => {
               </span>
             </div>
 
-            <div className="flex items-center gap-1 text-[11px] font-bold text-[#833AB4] group-hover:text-[#E1306C] shrink-0">
+            <div className="flex items-center gap-1 text-[11px] font-bold text-[#208C60] group-hover:text-[#F47743] shrink-0">
               <span>{item.actionLabel || 'Selesaikan'}</span>
               <ChevronRight className="w-3.5 h-3.5" />
             </div>
@@ -248,12 +248,12 @@ export const QuickActionGrid: React.FC<QuickActionGridProps> = ({ actions }) => 
             key={action.id}
             type="button"
             onClick={action.onClick}
-            className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#833AB4]/40 dark:hover:border-white/20 shadow-xs flex flex-col items-center justify-center gap-2 transition-all active:scale-95 group cursor-pointer"
+            className="p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#208C60]/40 dark:hover:border-white/20 shadow-xs flex flex-col items-center justify-center gap-2 transition-all active:scale-95 group cursor-pointer"
           >
             <div
               className={`w-10 h-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${
                 action.bgColor || 'bg-slate-50 dark:bg-white/5'
-              } ${action.color || 'text-[#833AB4]'}`}
+              } ${action.color || 'text-[#208C60]'}`}
             >
               <Icon className="w-5 h-5 stroke-[2.2]" />
             </div>
@@ -311,7 +311,7 @@ export const ModuleGroup: React.FC<ModuleGroupProps> = ({
         className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer"
       >
         <div className="flex items-center gap-2.5">
-          {GroupIcon && <GroupIcon className="w-4 h-4 text-[#833AB4]" />}
+          {GroupIcon && <GroupIcon className="w-4 h-4 text-[#208C60]" />}
           <span className="text-xs font-bold text-[#171717] dark:text-white uppercase tracking-wider">
             {title}
           </span>
@@ -322,7 +322,7 @@ export const ModuleGroup: React.FC<ModuleGroupProps> = ({
 
         <ChevronRight
           className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
-            isOpen ? 'rotate-90 text-[#833AB4]' : ''
+            isOpen ? 'rotate-90 text-[#208C60]' : ''
           }`}
         />
       </button>
@@ -339,7 +339,7 @@ export const ModuleGroup: React.FC<ModuleGroupProps> = ({
                 className="p-3 rounded-xl bg-[#FAFAFA] dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 border border-[#ECECEF] dark:border-white/5 flex items-center justify-between gap-2.5 text-left transition-colors cursor-pointer group"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 border border-[#ECECEF] dark:border-white/5 flex items-center justify-center shrink-0 text-[#833AB4]">
+                  <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 border border-[#ECECEF] dark:border-white/5 flex items-center justify-center shrink-0 text-[#208C60]">
                     <ItemIcon className="w-4 h-4" />
                   </div>
                   <span className="text-xs font-bold text-[#171717] dark:text-white truncate">
@@ -400,7 +400,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           <button
             type="button"
             onClick={action.onClick}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white font-bold text-xs shadow-xs hover:opacity-95 cursor-pointer inline-flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white font-bold text-xs shadow-xs hover:opacity-95 cursor-pointer inline-flex items-center gap-1.5"
           >
             <span>{action.label}</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -439,7 +439,7 @@ export const PinnedActionsBar: React.FC<PinnedActionsBarProps> = ({ items, onMan
           <button
             type="button"
             onClick={onManage}
-            className="text-[11px] font-semibold text-[#833AB4] dark:text-[#E1306C] hover:underline cursor-pointer"
+            className="text-[11px] font-semibold text-[#208C60] dark:text-[#F47743] hover:underline cursor-pointer"
           >
             Sesuaikan
           </button>
@@ -454,9 +454,9 @@ export const PinnedActionsBar: React.FC<PinnedActionsBarProps> = ({ items, onMan
               key={item.id}
               type="button"
               onClick={item.onClick}
-              className="p-2.5 rounded-xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#833AB4]/30 flex items-center gap-2 text-left transition-colors cursor-pointer group shadow-xs"
+              className="p-2.5 rounded-xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#208C60]/30 flex items-center gap-2 text-left transition-colors cursor-pointer group shadow-xs"
             >
-              <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 text-[#833AB4] group-hover:scale-105 transition-transform">
+              <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center shrink-0 text-[#208C60] group-hover:scale-105 transition-transform">
                 <Icon className="w-3.5 h-3.5" />
               </div>
               <span className="text-xs font-bold text-[#171717] dark:text-white truncate">
@@ -504,7 +504,7 @@ export const RecentActivityList: React.FC<RecentActivityListProps> = ({
           <button
             type="button"
             onClick={onViewAll ? onViewAll : () => setShowAllModal(true)}
-            className="text-[11px] font-bold text-[#833AB4] dark:text-[#E1306C] hover:underline cursor-pointer"
+            className="text-[11px] font-bold text-[#208C60] dark:text-[#F47743] hover:underline cursor-pointer"
           >
             Lihat Semua ({activities.length})
           </button>
@@ -537,7 +537,7 @@ export const RecentActivityList: React.FC<RecentActivityListProps> = ({
                   {act.time}
                 </span>
                 {act.badge && (
-                  <div className="text-[9px] font-bold text-[#833AB4] dark:text-[#E1306C]">
+                  <div className="text-[9px] font-bold text-[#208C60] dark:text-[#F47743]">
                     {act.badge}
                   </div>
                 )}

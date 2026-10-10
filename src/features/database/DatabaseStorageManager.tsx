@@ -355,7 +355,7 @@ export const DatabaseStorageManager: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowDiagnostics(!showDiagnostics)}
-              className="text-xs font-semibold text-[#833AB4] dark:text-[#E1306C] hover:underline flex items-center gap-1.5 cursor-pointer"
+              className="text-xs font-semibold text-[#208C60] dark:text-[#F47743] hover:underline flex items-center gap-1.5 cursor-pointer"
             >
               <span>{showDiagnostics ? '▼ Sembunyikan Diagnostik Teknis' : '▶ Buka Diagnostik & ID Database'}</span>
             </button>

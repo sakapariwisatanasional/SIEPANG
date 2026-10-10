@@ -62,7 +62,7 @@ export const HealthOfficerHome: React.FC<HealthOfficerHomeProps> = ({ onNavigate
         <button
           type="button"
           onClick={() => onNavigate('health')}
-          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-[#E1306C] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-rose-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
+          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-rose-600 to-[#F47743] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-rose-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
         >
           <Plus className="w-5 h-5 stroke-[2.2]" />
           <span>Catat Pasien / Insiden Baru</span>

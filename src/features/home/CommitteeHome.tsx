@@ -87,7 +87,7 @@ export const CommitteeHome: React.FC<CommitteeHomeProps> = ({
         <button
           type="button"
           onClick={onOpenScanner}
-          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
+          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
         >
           <QrCode className="w-5 h-5 stroke-[2.2]" />
           <span>Pindai Presensi / Pos</span>
@@ -132,7 +132,7 @@ export const CommitteeHome: React.FC<CommitteeHomeProps> = ({
       <div className="p-4 sm:p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-[#171717] dark:text-white uppercase tracking-wider flex items-center gap-2">
-            <Users className="w-4 h-4 text-[#833AB4]" />
+            <Users className="w-4 h-4 text-[#208C60]" />
             <span>Pencarian Cepat Peserta / Kontingen</span>
           </h3>
           <span className="text-[11px] text-slate-400">Verifikasi lapangan</span>
@@ -207,7 +207,7 @@ export const CommitteeHome: React.FC<CommitteeHomeProps> = ({
                 className={`p-3 rounded-xl border flex items-center justify-between gap-3 cursor-pointer transition-colors ${
                   task.done
                     ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-500/20 text-slate-500 dark:text-slate-400'
-                    : 'bg-slate-50 dark:bg-white/5 border-[#ECECEF] dark:border-white/10 text-[#171717] dark:text-white hover:border-[#833AB4]/30'
+                    : 'bg-slate-50 dark:bg-white/5 border-[#ECECEF] dark:border-white/10 text-[#171717] dark:text-white hover:border-[#208C60]/30'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -236,12 +236,12 @@ export const CommitteeHome: React.FC<CommitteeHomeProps> = ({
         <div className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold text-[#171717] dark:text-white uppercase tracking-wider flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#833AB4]" />
+              <Calendar className="w-4 h-4 text-[#208C60]" />
               <span>Jadwal Kegiatan Terdekat</span>
             </h3>
             <button
               onClick={() => onNavigate('schedule')}
-              className="text-[11px] font-bold text-[#833AB4] hover:underline"
+              className="text-[11px] font-bold text-[#208C60] hover:underline"
             >
               Lihat Semua
             </button>
@@ -258,7 +258,7 @@ export const CommitteeHome: React.FC<CommitteeHomeProps> = ({
                   <div className="text-[11px] text-slate-500 mt-0.5">{item.location}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-mono font-bold text-[#833AB4]">{item.time}</div>
+                  <div className="font-mono font-bold text-[#208C60]">{item.time}</div>
                   <span className="text-[10px] text-slate-400 uppercase">{item.category}</span>
                 </div>
               </div>

@@ -49,7 +49,7 @@ export const IOSListRow: React.FC<IOSListRowProps> = ({
           <div
             className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center ${
               withGradientRing
-                ? 'p-[2px] bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45]'
+                ? 'p-[2px] bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A]'
                 : ''
             }`}
           >

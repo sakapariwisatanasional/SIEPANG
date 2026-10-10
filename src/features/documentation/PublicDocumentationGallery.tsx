@@ -218,7 +218,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
       {/* 2. Main Content Container */}
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6 flex-1 w-full">
         {/* Gallery Intro Banner */}
-        <div className="rounded-[28px] bg-gradient-to-r from-[#833AB4]/10 via-[#E1306C]/10 to-amber-500/10 dark:from-[#833AB4]/20 dark:via-[#141418] dark:to-black border border-black/5 dark:border-white/10 p-5 sm:p-6 shadow-xs relative overflow-hidden">
+        <div className="rounded-[28px] bg-gradient-to-r from-[#208C60]/10 via-[#F47743]/10 to-amber-500/10 dark:from-[#208C60]/20 dark:via-[#141418] dark:to-black border border-black/5 dark:border-white/10 p-5 sm:p-6 shadow-xs relative overflow-hidden">
           <div className="relative z-10 max-w-2xl space-y-2">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/15 text-purple-700 dark:text-purple-300 text-[11px] font-bold">
               <Sparkles className="w-3.5 h-3.5" />
@@ -242,7 +242,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
               onClick={() => setActiveTab('photos')}
               className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'photos'
-                  ? 'bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white shadow-xs'
+                  ? 'bg-gradient-to-r from-[#208C60] to-[#F47743] text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -254,7 +254,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
               onClick={() => setActiveTab('videos')}
               className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                 activeTab === 'videos'
-                  ? 'bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white shadow-xs'
+                  ? 'bg-gradient-to-r from-[#208C60] to-[#F47743] text-white shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -271,7 +271,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
               placeholder={activeTab === 'photos' ? 'Cari judul foto atau kegiatan...' : 'Cari video kegiatan...'}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#833AB4] transition-colors"
+              className="w-full pl-9 pr-4 py-2 bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#208C60] transition-colors"
             />
           </div>
         </div>
@@ -288,8 +288,8 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                 onClick={() => setSelectedAlbumId('all')}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border ${
                   selectedAlbumId === 'all'
-                    ? 'bg-[#833AB4] text-white border-[#833AB4]'
-                    : 'bg-white dark:bg-[#121215] text-slate-700 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#833AB4]/40'
+                    ? 'bg-[#208C60] text-white border-[#208C60]'
+                    : 'bg-white dark:bg-[#121215] text-slate-700 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#208C60]/40'
                 }`}
               >
                 Semua Album ({photos.length})
@@ -302,8 +302,8 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                   onClick={() => setSelectedAlbumId(alb.album_id)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${
                     selectedAlbumId === alb.album_id
-                      ? 'bg-[#833AB4] text-white border-[#833AB4]'
-                      : 'bg-white dark:bg-[#121215] text-slate-700 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#833AB4]/40'
+                      ? 'bg-[#208C60] text-white border-[#208C60]'
+                      : 'bg-white dark:bg-[#121215] text-slate-700 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#208C60]/40'
                   }`}
                 >
                   <Layers className="w-3 h-3 text-purple-400" />
@@ -335,7 +335,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                     <div
                       key={photo.media_id}
                       onClick={() => handleOpenLightbox(idx)}
-                      className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#833AB4]/50 transition-all duration-300 shadow-xs flex flex-col"
+                      className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#208C60]/50 transition-all duration-300 shadow-xs flex flex-col"
                     >
                       {/* Image Thumbnail with lazy loading */}
                       <div className="aspect-[4/3] w-full overflow-hidden bg-slate-100 dark:bg-black/40 relative">
@@ -357,7 +357,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                       {/* Meta info */}
                       <div className="p-2.5 flex-1 flex flex-col justify-between">
                         <div>
-                          <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-[#833AB4] dark:group-hover:text-[#E1306C] transition-colors">
+                          <h4 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-[#208C60] dark:group-hover:text-[#F47743] transition-colors">
                             {photo.title}
                           </h4>
                           {photo.caption && (
@@ -381,7 +381,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                     <button
                       type="button"
                       onClick={() => setVisiblePhotoCount(prev => prev + 12)}
-                      className="px-6 py-2.5 rounded-2xl bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 hover:border-[#833AB4] text-xs font-bold text-slate-800 dark:text-slate-200 shadow-xs hover:shadow-md transition-all active:scale-98"
+                      className="px-6 py-2.5 rounded-2xl bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 hover:border-[#208C60] text-xs font-bold text-slate-800 dark:text-slate-200 shadow-xs hover:shadow-md transition-all active:scale-98"
                     >
                       <span>Muat Lebih Banyak Foto ({filteredPhotos.length - visiblePhotoCount} tersisa)</span>
                     </button>
@@ -414,7 +414,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                   <div
                     key={video.media_id}
                     onClick={() => handlePlayVideo(video)}
-                    className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#E1306C]/50 transition-all duration-300 shadow-xs flex flex-col"
+                    className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#F47743]/50 transition-all duration-300 shadow-xs flex flex-col"
                   >
                     {/* Video Thumbnail with centered play icon */}
                     <div className="aspect-video w-full overflow-hidden bg-black/60 relative">
@@ -427,7 +427,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                       />
                       {/* Centered Play Button with subtle gradient ring */}
                       <div className="absolute inset-0 bg-black/30 group-hover:bg-black/15 transition-colors flex items-center justify-center">
-                        <div className="w-12 h-12 rounded-full p-[1.5px] bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] shadow-lg group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 rounded-full p-[1.5px] bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] shadow-lg group-hover:scale-110 transition-transform">
                           <div className="w-full h-full rounded-full bg-black/80 flex items-center justify-center text-white">
                             <Play className="w-5 h-5 fill-white ml-0.5" />
                           </div>
@@ -450,7 +450,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                     {/* Video Info */}
                     <div className="p-3.5 space-y-1.5 flex-1 flex flex-col justify-between">
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-[#E1306C] transition-colors">
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white line-clamp-2 group-hover:text-[#F47743] transition-colors">
                           {video.title}
                         </h4>
                         {video.caption && (
@@ -590,7 +590,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center space-y-4">
-                  <div className="w-16 h-16 rounded-full bg-[#833AB4]/20 text-[#833AB4] dark:text-[#E1306C] flex items-center justify-center text-3xl">
+                  <div className="w-16 h-16 rounded-full bg-[#208C60]/20 text-[#208C60] dark:text-[#F47743] flex items-center justify-center text-3xl">
                     🎬
                   </div>
                   <div className="space-y-1">
@@ -603,7 +603,7 @@ export const PublicDocumentationGallery: React.FC<PublicDocumentationGalleryProp
                     href={activeVideoItem.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-5 py-2.5 bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95"
+                    className="px-5 py-2.5 bg-gradient-to-r from-[#208C60] to-[#F47743] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition-transform active:scale-95"
                   >
                     <span>Buka Video di {activeVideoItem.provider}</span>
                     <ExternalLink className="w-3.5 h-3.5" />

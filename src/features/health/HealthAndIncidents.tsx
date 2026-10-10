@@ -121,7 +121,7 @@ export const HealthAndIncidents: React.FC = () => {
       <div className="bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 sm:p-6 rounded-[28px] shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#E1306C] mb-1.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#F47743] mb-1.5">
               <HeartPulse className="w-3.5 h-3.5" />
               <span>Posko Tanggap Darurat & Ketertiban Buper</span>
             </div>
@@ -136,7 +136,7 @@ export const HealthAndIncidents: React.FC = () => {
           <button
             type="button"
             onClick={() => (activeTab === 'health' ? setShowHealthModal(true) : setShowOpModal(true))}
-            className="flex items-center justify-center gap-1.5 p-2.5 sm:px-4 sm:py-2.5 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 shrink-0 min-w-[44px] min-h-[44px] cursor-pointer"
+            className="flex items-center justify-center gap-1.5 p-2.5 sm:px-4 sm:py-2.5 bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 shrink-0 min-w-[44px] min-h-[44px] cursor-pointer"
             title={activeTab === 'health' ? 'Lapor Kasus Medis Baru' : 'Lapor Insiden Fasilitas/Keamanan'}
             aria-label={activeTab === 'health' ? 'Lapor Medis Baru' : 'Lapor Insiden Buper'}
           >
@@ -154,7 +154,7 @@ export const HealthAndIncidents: React.FC = () => {
             onClick={() => setActiveTab('health')}
             className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all min-h-[38px] cursor-pointer ${
               activeTab === 'health'
-                ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs'
+                ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -180,13 +180,13 @@ export const HealthAndIncidents: React.FC = () => {
           {healthIncidents.map(inc => (
             <div
               key={inc.id}
-              className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/30 space-y-3 transition-colors shadow-2xs"
+              className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/30 space-y-3 transition-colors shadow-2xs"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-sm font-bold text-[#171717] dark:text-white">{inc.participantName}</h3>
-                    <span className="text-[11px] font-mono text-[#E1306C] font-semibold">{inc.participantCode}</span>
+                    <span className="text-[11px] font-mono text-[#F47743] font-semibold">{inc.participantCode}</span>
                   </div>
                   <div className="text-xs text-[#6B7280] dark:text-slate-400 mt-0.5">
                     {inc.contingentName} · Jenis: <span className="text-amber-600 font-semibold">{inc.type}</span>
@@ -264,7 +264,7 @@ export const HealthAndIncidents: React.FC = () => {
           <div className="w-full max-w-md bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-[28px] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-[#ECECEF] dark:border-white/10">
               <div className="flex items-center gap-2 font-bold text-sm text-[#171717] dark:text-white">
-                <Stethoscope className="w-4 h-4 text-[#E1306C]" />
+                <Stethoscope className="w-4 h-4 text-[#F47743]" />
                 <span>Catat Pemeriksaan Pasien Medis</span>
               </div>
               <button
@@ -285,7 +285,7 @@ export const HealthAndIncidents: React.FC = () => {
                   placeholder="Contoh: Nama Lengkap Pasien / Peserta"
                   value={newHealth.participantName}
                   onChange={e => setNewHealth({ ...newHealth, participantName: e.target.value })}
-                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -296,7 +296,7 @@ export const HealthAndIncidents: React.FC = () => {
                     type="text"
                     value={newHealth.participantCode}
                     onChange={e => setNewHealth({ ...newHealth, participantCode: e.target.value })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C] font-mono"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743] font-mono"
                   />
                 </div>
                 <div className="space-y-1">
@@ -305,7 +305,7 @@ export const HealthAndIncidents: React.FC = () => {
                     type="text"
                     value={newHealth.contingentName}
                     onChange={e => setNewHealth({ ...newHealth, contingentName: e.target.value })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   />
                 </div>
               </div>
@@ -316,7 +316,7 @@ export const HealthAndIncidents: React.FC = () => {
                   <select
                     value={newHealth.severity}
                     onChange={e => setNewHealth({ ...newHealth, severity: e.target.value as any })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   >
                     <option value="ringan">Ringan (Cukup P3K)</option>
                     <option value="sedang">Sedang (Perlu Rehidrasi / Observasi)</option>
@@ -329,7 +329,7 @@ export const HealthAndIncidents: React.FC = () => {
                     type="text"
                     value={newHealth.type}
                     onChange={e => setNewHealth({ ...newHealth, type: e.target.value })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   />
                 </div>
               </div>
@@ -340,7 +340,7 @@ export const HealthAndIncidents: React.FC = () => {
                   type="text"
                   value={newHealth.location}
                   onChange={e => setNewHealth({ ...newHealth, location: e.target.value })}
-                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -350,7 +350,7 @@ export const HealthAndIncidents: React.FC = () => {
                   rows={2}
                   value={newHealth.treatment}
                   onChange={e => setNewHealth({ ...newHealth, treatment: e.target.value })}
-                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -364,7 +364,7 @@ export const HealthAndIncidents: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white rounded-xl font-bold text-xs shadow-md shadow-pink-500/20"
+                  className="flex-1 py-2.5 bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white rounded-xl font-bold text-xs shadow-md shadow-pink-500/20"
                 >
                   Simpan Laporan Medis
                 </button>
@@ -401,7 +401,7 @@ export const HealthAndIncidents: React.FC = () => {
                   placeholder="Contoh: Temuan Jam Tangan Digital di Lapangan"
                   value={newOp.title}
                   onChange={e => setNewOp({ ...newOp, title: e.target.value })}
-                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -411,7 +411,7 @@ export const HealthAndIncidents: React.FC = () => {
                   <select
                     value={newOp.category}
                     onChange={e => setNewOp({ ...newOp, category: e.target.value as any })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   >
                     <option value="Barang Hilang / Temuan">Barang Hilang / Temuan</option>
                     <option value="Kerusakan Fasilitas">Kerusakan Fasilitas</option>
@@ -424,7 +424,7 @@ export const HealthAndIncidents: React.FC = () => {
                   <select
                     value={newOp.severity}
                     onChange={e => setNewOp({ ...newOp, severity: e.target.value as any })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   >
                     <option value="rendah">Rendah (Pencegahan)</option>
                     <option value="sedang">Sedang (Perlu Penanganan)</option>
@@ -439,7 +439,7 @@ export const HealthAndIncidents: React.FC = () => {
                   type="text"
                   value={newOp.location}
                   onChange={e => setNewOp({ ...newOp, location: e.target.value })}
-                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -449,7 +449,7 @@ export const HealthAndIncidents: React.FC = () => {
                   rows={3}
                   value={newOp.description}
                   onChange={e => setNewOp({ ...newOp, description: e.target.value })}
-                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 

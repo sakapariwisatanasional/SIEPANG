@@ -52,7 +52,7 @@ export const LogisticsInventory: React.FC = () => {
         {items.map(item => (
           <div
             key={item.id}
-            className="p-5 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/30 space-y-4 transition-colors shadow-2xs"
+            className="p-5 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/30 space-y-4 transition-colors shadow-2xs"
           >
             <div className="flex items-start justify-between">
               <div>
@@ -92,7 +92,7 @@ export const LogisticsInventory: React.FC = () => {
                 type="button"
                 onClick={() => handleQuickBorrow(item.id)}
                 disabled={item.availableStock === 0}
-                className="flex-1 py-2.5 px-3 rounded-xl bg-[#FFF0F4] hover:bg-[#FFE0E8] text-[#E1306C] border border-[#FFE0E8] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px] cursor-pointer"
+                className="flex-1 py-2.5 px-3 rounded-xl bg-[#FFF0F4] hover:bg-[#FFE0E8] text-[#F47743] border border-[#FFE0E8] text-xs font-bold flex items-center justify-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed min-h-[44px] cursor-pointer"
                 title="Catat Peminjaman"
               >
                 <ArrowUpRight className="w-4 h-4" />

@@ -191,7 +191,7 @@ export const EventManagementStudio: React.FC<EventManagementStudioProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-1.5">
-              <span className="px-3 py-1 rounded-full bg-[#833AB4]/10 text-[#833AB4] dark:text-[#E1306C] text-xs font-bold flex items-center gap-1.5">
+              <span className="px-3 py-1 rounded-full bg-[#208C60]/10 text-[#208C60] dark:text-[#F47743] text-xs font-bold flex items-center gap-1.5">
                 <ShieldCheck className="w-3.5 h-3.5" />
                 <span>Kelola Kegiatan</span>
               </span>
@@ -261,7 +261,7 @@ export const EventManagementStudio: React.FC<EventManagementStudioProps> = ({
               onClick={() => setShowQrPrintCenter(true)}
               className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-800 dark:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <QrCode className="w-3.5 h-3.5 text-[#833AB4]" />
+              <QrCode className="w-3.5 h-3.5 text-[#208C60]" />
               <span>Cetak QR</span>
             </button>
 
@@ -322,7 +322,7 @@ export const EventManagementStudio: React.FC<EventManagementStudioProps> = ({
         <div className="p-5 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 space-y-3 animate-in fade-in shadow-xs">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold text-[#171717] dark:text-white flex items-center gap-2">
-              <History className="w-4 h-4 text-[#E1306C]" />
+              <History className="w-4 h-4 text-[#F47743]" />
               <span>Log Audit Perubahan Event (Enterprise Compliance)</span>
             </h3>
             <button onClick={() => setShowAuditDrawer(false)} className="text-[#6B7280] hover:text-[#171717] dark:text-slate-400 dark:hover:text-white text-xs cursor-pointer">Tutup</button>
@@ -333,7 +333,7 @@ export const EventManagementStudio: React.FC<EventManagementStudioProps> = ({
               <div key={log.id} className="p-3 rounded-2xl bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/5 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-md bg-pink-50 text-[#E1306C] border border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800 font-mono text-[10px] font-bold">
+                    <span className="px-2 py-0.5 rounded-md bg-pink-50 text-[#F47743] border border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800 font-mono text-[10px] font-bold">
                       {log.module || 'Audit'}
                     </span>
                     <span className="font-semibold text-[#171717] dark:text-white">{log.action}</span>

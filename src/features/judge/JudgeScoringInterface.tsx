@@ -164,7 +164,7 @@ export const JudgeScoringInterface: React.FC = () => {
           <select
             value={selectedCompId}
             onChange={e => setSelectedCompId(e.target.value)}
-            className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+            className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
           >
             {competitions.map(c => (
               <option key={c.id} value={c.id}>
@@ -188,7 +188,7 @@ export const JudgeScoringInterface: React.FC = () => {
               onClick={() => setSelectedContingentId(c.id)}
               className={`p-3 rounded-2xl border text-left text-xs transition-all cursor-pointer ${
                 selectedContingentId === c.id
-                  ? 'bg-[#FFF0F4] text-[#E1306C] border-[#E1306C]/30 font-semibold shadow-xs'
+                  ? 'bg-[#FFF0F4] text-[#F47743] border-[#F47743]/30 font-semibold shadow-xs'
                   : 'bg-[#FAFAFA] dark:bg-white/5 text-[#6B7280] dark:text-slate-400 border-[#ECECEF] dark:border-white/5 hover:border-slate-300'
               }`}
             >
@@ -232,7 +232,7 @@ export const JudgeScoringInterface: React.FC = () => {
                   : '💾 DRAFT_LOCAL'}
               </span>
               <div className="text-[10px] text-[#6B7280] uppercase tracking-wider mt-0.5 font-bold">Total Skor</div>
-              <div className="text-2xl font-black text-[#E1306C] font-mono">{totalScore}</div>
+              <div className="text-2xl font-black text-[#F47743] font-mono">{totalScore}</div>
             </div>
           </div>
         </div>
@@ -245,7 +245,7 @@ export const JudgeScoringInterface: React.FC = () => {
               <span className="font-semibold text-[#171717] dark:text-slate-200">
                 1. Kreativitas & Inovasi (30%)
               </span>
-              <span className="font-mono font-bold text-[#E1306C]">{scores.kreativitas}</span>
+              <span className="font-mono font-bold text-[#F47743]">{scores.kreativitas}</span>
             </div>
             <input
               type="range"
@@ -254,7 +254,7 @@ export const JudgeScoringInterface: React.FC = () => {
               disabled={isLocked}
               value={scores.kreativitas}
               onChange={e => setScores({ ...scores, kreativitas: Number(e.target.value) })}
-              className="w-full accent-[#E1306C] cursor-pointer"
+              className="w-full accent-[#F47743] cursor-pointer"
             />
           </div>
 
@@ -264,7 +264,7 @@ export const JudgeScoringInterface: React.FC = () => {
               <span className="font-semibold text-[#171717] dark:text-slate-200">
                 2. Kesesuaian Tema Pramuka (25%)
               </span>
-              <span className="font-mono font-bold text-[#E1306C]">{scores.kesesuaianTema}</span>
+              <span className="font-mono font-bold text-[#F47743]">{scores.kesesuaianTema}</span>
             </div>
             <input
               type="range"
@@ -273,7 +273,7 @@ export const JudgeScoringInterface: React.FC = () => {
               disabled={isLocked}
               value={scores.kesesuaianTema}
               onChange={e => setScores({ ...scores, kesesuaianTema: Number(e.target.value) })}
-              className="w-full accent-[#E1306C] cursor-pointer"
+              className="w-full accent-[#F47743] cursor-pointer"
             />
           </div>
 
@@ -283,7 +283,7 @@ export const JudgeScoringInterface: React.FC = () => {
               <span className="font-semibold text-[#171717] dark:text-slate-200">
                 3. Ketepatan Teknik / Simpul (30%)
               </span>
-              <span className="font-mono font-bold text-[#E1306C]">{scores.teknikPramuka}</span>
+              <span className="font-mono font-bold text-[#F47743]">{scores.teknikPramuka}</span>
             </div>
             <input
               type="range"
@@ -292,7 +292,7 @@ export const JudgeScoringInterface: React.FC = () => {
               disabled={isLocked}
               value={scores.teknikPramuka}
               onChange={e => setScores({ ...scores, teknikPramuka: Number(e.target.value) })}
-              className="w-full accent-[#E1306C] cursor-pointer"
+              className="w-full accent-[#F47743] cursor-pointer"
             />
           </div>
 
@@ -302,7 +302,7 @@ export const JudgeScoringInterface: React.FC = () => {
               <span className="font-semibold text-[#171717] dark:text-slate-200">
                 4. Kerapian & Keindahan (15%)
               </span>
-              <span className="font-mono font-bold text-[#E1306C]">{scores.kerapian}</span>
+              <span className="font-mono font-bold text-[#F47743]">{scores.kerapian}</span>
             </div>
             <input
               type="range"
@@ -311,7 +311,7 @@ export const JudgeScoringInterface: React.FC = () => {
               disabled={isLocked}
               value={scores.kerapian}
               onChange={e => setScores({ ...scores, kerapian: Number(e.target.value) })}
-              className="w-full accent-[#E1306C] cursor-pointer"
+              className="w-full accent-[#F47743] cursor-pointer"
             />
           </div>
 
@@ -325,7 +325,7 @@ export const JudgeScoringInterface: React.FC = () => {
               disabled={isLocked}
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              className="w-full p-3 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+              className="w-full p-3 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
             />
           </div>
         </div>
@@ -361,7 +361,7 @@ export const JudgeScoringInterface: React.FC = () => {
             type="button"
             onClick={handleSaveScore}
             disabled={isLocked}
-            className="flex-1 py-3 px-4 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-pink-500/20 disabled:opacity-50 min-h-[44px] cursor-pointer"
+            className="flex-1 py-3 px-4 bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shadow-pink-500/20 disabled:opacity-50 min-h-[44px] cursor-pointer"
           >
             <Save className="w-4 h-4" />
             <span>Simpan Nilai Kontingen</span>

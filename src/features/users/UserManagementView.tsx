@@ -294,7 +294,7 @@ export const UserManagementView: React.FC = () => {
       {/* Top Banner & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 sm:p-6 rounded-[28px] shadow-xs">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#E1306C] mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#F47743] mb-2">
             <Shield className="w-3.5 h-3.5" />
             <span>Manajemen Pengguna & RBAC Otoritatif</span>
           </div>
@@ -311,7 +311,7 @@ export const UserManagementView: React.FC = () => {
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 transition-all min-h-[44px] cursor-pointer"
+            className="flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 transition-all min-h-[44px] cursor-pointer"
             title="Undang / Tambah Pengguna Baru"
             aria-label="Undang / Tambah Pengguna"
           >
@@ -379,7 +379,7 @@ export const UserManagementView: React.FC = () => {
                 onClick={() => setUserSubTab(tab.id)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                   userSubTab === tab.id
-                    ? 'bg-[#E1306C] text-white shadow-xs'
+                    ? 'bg-[#F47743] text-white shadow-xs'
                     : 'bg-white dark:bg-[#141418] text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white border border-[#ECECEF] dark:border-white/10'
                 }`}
               >
@@ -402,7 +402,7 @@ export const UserManagementView: React.FC = () => {
                 placeholder="Cari berdasarkan nama, email, atau kwartir..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E1306C]"
+                className="w-full pl-9 pr-3 py-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#F47743]"
               />
             </div>
 
@@ -411,7 +411,7 @@ export const UserManagementView: React.FC = () => {
               <select
                 value={selectedRoleFilter}
                 onChange={e => setSelectedRoleFilter(e.target.value)}
-                className="p-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                className="p-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
               >
                 <option value="ALL">Semua Peran (Roles)</option>
                 {Object.entries(ROLE_LABELS).map(([key, val]) => (
@@ -436,7 +436,7 @@ export const UserManagementView: React.FC = () => {
               return (
                 <div
                   key={user.id}
-                  className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/40 transition-all space-y-3.5 flex flex-col justify-between shadow-xs"
+                  className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/40 transition-all space-y-3.5 flex flex-col justify-between shadow-xs"
                 >
                   <div className="space-y-3">
                     {/* User Header */}
@@ -477,7 +477,7 @@ export const UserManagementView: React.FC = () => {
                     <div className="bg-[#FAFAFA] dark:bg-white/5 p-2.5 rounded-2xl border border-[#ECECEF] dark:border-white/5 space-y-1 text-[11px]">
                       <div className="flex justify-between text-[#6B7280] dark:text-slate-400">
                         <span>Workspace:</span>
-                        <span className="text-[#833AB4] dark:text-purple-400 font-medium truncate max-w-[140px]">
+                        <span className="text-[#208C60] dark:text-purple-400 font-medium truncate max-w-[140px]">
                           {ws ? ws.name : user.workspaceId}
                         </span>
                       </div>
@@ -503,7 +503,7 @@ export const UserManagementView: React.FC = () => {
                         className="px-2.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-[#171717] dark:text-white text-[11px] font-bold flex items-center gap-1.5 transition-colors flex-1 justify-center min-h-[38px] cursor-pointer"
                         title={`Lihat Detail & Perangkat ${user.name}`}
                       >
-                        <Eye className="w-3.5 h-3.5 text-[#E1306C]" />
+                        <Eye className="w-3.5 h-3.5 text-[#F47743]" />
                         <span>Detail</span>
                       </button>
 
@@ -563,7 +563,7 @@ export const UserManagementView: React.FC = () => {
               <select
                 value={matrixRole}
                 onChange={e => setMatrixRole(e.target.value as UserRole)}
-                className="p-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C] font-semibold"
+                className="p-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743] font-semibold"
               >
                 {Object.entries(ROLE_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>
@@ -613,7 +613,7 @@ export const UserManagementView: React.FC = () => {
                     className="w-full p-4 flex items-center justify-between text-left hover:bg-[#FAFAFA] dark:hover:bg-white/5 transition-colors gap-3 cursor-pointer"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-xl bg-[#FFF0F4] dark:bg-white/5 border border-[#FFE0E8] dark:border-white/10 flex items-center justify-center text-xs font-bold text-[#E1306C]">
+                      <div className="w-7 h-7 rounded-xl bg-[#FFF0F4] dark:bg-white/5 border border-[#FFE0E8] dark:border-white/10 flex items-center justify-center text-xs font-bold text-[#F47743]">
                         {grantedInGroup.length}/{group.permissions.length}
                       </div>
                       <div>
@@ -757,7 +757,7 @@ export const UserManagementView: React.FC = () => {
           <div className="bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl relative space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
               <h3 className="text-base font-bold text-[#171717] dark:text-white flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-[#833AB4]" />
+                <UserPlus className="w-5 h-5 text-[#208C60]" />
                 <span>{editingUser.id ? 'Edit Akun Pengguna' : 'Tambah / Undang Pengguna'}</span>
               </h3>
               <button
@@ -780,7 +780,7 @@ export const UserManagementView: React.FC = () => {
                   placeholder="Contoh: Kak Siti Aminah, S.Pd."
                   value={editingUser.name || ''}
                   onChange={e => setEditingUser({ ...editingUser, name: e.target.value })}
-                  className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -792,7 +792,7 @@ export const UserManagementView: React.FC = () => {
                   placeholder="Contoh: siti.aminah@pramuka.or.id"
                   value={editingUser.email || ''}
                   onChange={e => setEditingUser({ ...editingUser, email: e.target.value })}
-                  className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -801,7 +801,7 @@ export const UserManagementView: React.FC = () => {
                 <select
                   value={editingUser.role}
                   onChange={e => setEditingUser({ ...editingUser, role: e.target.value as UserRole })}
-                  className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C] font-semibold"
+                  className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743] font-semibold"
                 >
                   {Object.entries(ROLE_LABELS).map(([k, v]) => (
                     <option key={k} value={k}>
@@ -854,7 +854,7 @@ export const UserManagementView: React.FC = () => {
                   placeholder="Contoh: Kwartir Cabang / Ranting / Pangkalan"
                   value={editingUser.organizationName || ''}
                   onChange={e => setEditingUser({ ...editingUser, organizationName: e.target.value })}
-                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -874,7 +874,7 @@ export const UserManagementView: React.FC = () => {
                       name="user_status"
                       checked={editingUser.status === 'active'}
                       onChange={() => setEditingUser({ ...editingUser, status: 'active' })}
-                      className="accent-[#E1306C]"
+                      className="accent-[#F47743]"
                     />
                     <span>Aktif</span>
                   </label>
@@ -904,7 +904,7 @@ export const UserManagementView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 cursor-pointer min-h-[44px] flex items-center gap-1.5"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 cursor-pointer min-h-[44px] flex items-center gap-1.5"
                 >
                   <Check className="w-4 h-4" />
                   <span>{editingUser?.id ? 'Simpan Perubahan' : 'Tambahkan Pengguna'}</span>
@@ -921,7 +921,7 @@ export const UserManagementView: React.FC = () => {
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#833AB4] to-[#E1306C] flex items-center justify-center text-white text-sm shadow-xs">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#208C60] to-[#F47743] flex items-center justify-center text-white text-sm shadow-xs">
                   <UserCheck className="w-4 h-4" />
                 </div>
                 <div>

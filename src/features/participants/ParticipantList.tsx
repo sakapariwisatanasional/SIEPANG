@@ -327,7 +327,7 @@ export const ParticipantList: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 rounded-[28px] shadow-xs">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#FFF0F4] text-[#E1306C] border border-[#FFE0E8] text-[10px] font-bold">
+            <span className="px-2.5 py-0.5 rounded-full bg-[#FFF0F4] text-[#F47743] border border-[#FFE0E8] text-[10px] font-bold">
               Manajemen Peserta Online v1.1
             </span>
             <span className="text-xs text-[#6B7280] dark:text-slate-400">Total {participants.length} Terdaftar</span>
@@ -362,7 +362,7 @@ export const ParticipantList: React.FC = () => {
               <ShieldCheck className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Verifikasi Berkas</span>
               {pendingVerificationList.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full bg-[#E1306C] text-white font-bold text-[10px]">
+                <span className="px-1.5 py-0.2 rounded-full bg-[#F47743] text-white font-bold text-[10px]">
                   {pendingVerificationList.length}
                 </span>
               )}
@@ -376,7 +376,7 @@ export const ParticipantList: React.FC = () => {
             title="Kebijakan & Aturan Wajib Foto"
             aria-label="Kebijakan & Aturan Wajib Foto"
           >
-            <Camera className="w-4 h-4 text-[#833AB4] dark:text-purple-400" />
+            <Camera className="w-4 h-4 text-[#208C60] dark:text-purple-400" />
             <span className="hidden sm:inline sm:ml-1.5">Kebijakan Foto</span>
           </button>
 
@@ -397,7 +397,7 @@ export const ParticipantList: React.FC = () => {
               setRegStep(1);
               setShowStepRegModal(true);
             }}
-            className="flex items-center justify-center p-2.5 sm:px-4 sm:py-2 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 shrink-0 min-w-[44px] min-h-[44px] cursor-pointer"
+            className="flex items-center justify-center p-2.5 sm:px-4 sm:py-2 bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 shrink-0 min-w-[44px] min-h-[44px] cursor-pointer"
             title="Registrasi Peserta Baru"
             aria-label="Registrasi Peserta Baru"
           >
@@ -419,14 +419,14 @@ export const ParticipantList: React.FC = () => {
                 placeholder="Cari nama, nomor NTA, kode peserta (cth: PST-2026), atau kontingen..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-2xl text-base sm:text-xs text-[#171717] dark:text-white placeholder-[#9CA3AF] focus:outline-none focus:border-[#E1306C]"
+                className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-2xl text-base sm:text-xs text-[#171717] dark:text-white placeholder-[#9CA3AF] focus:outline-none focus:border-[#F47743]"
               />
             </div>
 
             <select
               value={contingentFilter}
               onChange={e => setContingentFilter(e.target.value)}
-              className="bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-2xl px-3 py-2 text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+              className="bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-2xl px-3 py-2 text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
             >
               <option value="all">Semua Kontingen ({contingents.length})</option>
               {contingents.map(c => (
@@ -437,7 +437,7 @@ export const ParticipantList: React.FC = () => {
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value as any)}
-              className="bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-2xl px-3 py-2 text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+              className="bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-2xl px-3 py-2 text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
             >
               <option value="all">Semua Status</option>
               <option value="approved">Approved (Disetujui)</option>
@@ -452,7 +452,7 @@ export const ParticipantList: React.FC = () => {
           {selectedIds.length > 0 && (
             <div className="p-3 sm:p-4 rounded-2xl bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs shadow-xs animate-in fade-in">
               <div className="flex items-center gap-2 font-bold text-[#171717] dark:text-white">
-                <span className="w-6 h-6 rounded-lg bg-[#FFF0F4] text-[#E1306C] flex items-center justify-center font-mono text-xs font-black">
+                <span className="w-6 h-6 rounded-lg bg-[#FFF0F4] text-[#F47743] flex items-center justify-center font-mono text-xs font-black">
                   {selectedIds.length}
                 </span>
                 <span>Peserta Terpilih</span>
@@ -547,7 +547,7 @@ export const ParticipantList: React.FC = () => {
                         if (e.target.checked) setSelectedIds(participants.map(p => p.id));
                         else setSelectedIds([]);
                       }}
-                      className="accent-[#E1306C] rounded"
+                      className="accent-[#F47743] rounded"
                     />
                   </th>
                   <th className="py-3 px-3">Peserta & Identitas</th>
@@ -578,7 +578,7 @@ export const ParticipantList: React.FC = () => {
                               if (e.target.checked) setSelectedIds([...selectedIds, p.id]);
                               else setSelectedIds(selectedIds.filter(id => id !== p.id));
                             }}
-                            className="accent-[#E1306C] rounded"
+                            className="accent-[#F47743] rounded"
                           />
                         </td>
                         <td className="py-3 px-3">
@@ -614,7 +614,7 @@ export const ParticipantList: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-3 px-3">
-                          <div className="font-bold text-[#E1306C] font-mono">⚡ {p.xp} XP</div>
+                          <div className="font-bold text-[#F47743] font-mono">⚡ {p.xp} XP</div>
                           <div className="text-[10px] text-[#6B7280] dark:text-slate-400">{p.attendanceCount} Kegiatan Hadir</div>
                         </td>
                         <td className="py-3 px-3 text-center">
@@ -635,7 +635,7 @@ export const ParticipantList: React.FC = () => {
                             <button
                               type="button"
                               onClick={() => setSelectedQrParticipant(p)}
-                              className="p-2 rounded-xl bg-[#FAFAFA] hover:bg-pink-50 text-[#E1306C] border border-[#ECECEF] dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 transition-colors min-w-[38px] min-h-[38px] flex items-center justify-center cursor-pointer"
+                              className="p-2 rounded-xl bg-[#FAFAFA] hover:bg-pink-50 text-[#F47743] border border-[#ECECEF] dark:bg-white/5 dark:hover:bg-white/10 dark:border-white/10 transition-colors min-w-[38px] min-h-[38px] flex items-center justify-center cursor-pointer"
                               title="Buka QR Pass"
                               aria-label={`Buka QR Pass ${p.name}`}
                             >
@@ -677,14 +677,14 @@ export const ParticipantList: React.FC = () => {
           <div className="p-4 rounded-3xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-[#171717] dark:text-white flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#E1306C]" />
+                <ShieldCheck className="w-4 h-4 text-[#F47743]" />
                 <span>Antrean Verifikasi Berkas Peserta (Registration Officers Workspace)</span>
               </h3>
               <p className="text-xs text-[#6B7280] dark:text-slate-400 mt-0.5">
                 Periksa kelengkapan KTA, surat mandat, izin orang tua, dan surat sehat sebelum disetujui.
               </p>
             </div>
-            <span className="px-3 py-1 rounded-full bg-pink-50 text-[#E1306C] border border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800 text-xs font-bold shrink-0 self-start sm:self-auto">
+            <span className="px-3 py-1 rounded-full bg-pink-50 text-[#F47743] border border-pink-200 dark:bg-pink-950/40 dark:text-pink-300 dark:border-pink-800 text-xs font-bold shrink-0 self-start sm:self-auto">
               {pendingVerificationList.length} Menunggu Verifikasi
             </span>
           </div>
@@ -700,14 +700,14 @@ export const ParticipantList: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {pendingVerificationList.map(p => (
-                <div key={p.id} className="p-5 rounded-3xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/40 transition-all space-y-3 shadow-xs">
+                <div key={p.id} className="p-5 rounded-3xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/40 transition-all space-y-3 shadow-xs">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <img src={p.photoUrl} alt={p.name} className="w-12 h-12 rounded-2xl object-cover border border-[#ECECEF] dark:border-white/10" />
                       <div>
                         <h4 className="text-sm font-bold text-[#171717] dark:text-white">{p.name}</h4>
                         <div className="text-xs text-[#6B7280] dark:text-slate-300">{p.contingentName} · {p.role}</div>
-                        <div className="text-[10px] text-[#E1306C] font-mono mt-0.5">
+                        <div className="text-[10px] text-[#F47743] font-mono mt-0.5">
                           {p.code} | NTA: {p.membershipNumber || '-'}
                         </div>
                       </div>
@@ -881,7 +881,7 @@ export const ParticipantList: React.FC = () => {
           <div className="w-full max-w-md bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-[28px] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
               <div>
-                <span className="text-[10px] text-[#E1306C] font-bold font-mono uppercase">Riwayat Status Berkas</span>
+                <span className="text-[10px] text-[#F47743] font-bold font-mono uppercase">Riwayat Status Berkas</span>
                 <h3 className="text-sm font-bold text-[#171717] dark:text-white">{statusHistoryTarget.name}</h3>
               </div>
               <button onClick={() => setStatusHistoryTarget(null)} className="p-1 text-[#6B7280] hover:text-[#171717] dark:text-slate-400 dark:hover:text-white cursor-pointer">✕</button>
@@ -896,7 +896,7 @@ export const ParticipantList: React.FC = () => {
                 statusHistoryTarget.statusHistory?.map((item, idx) => (
                   <div key={idx} className="p-3 rounded-2xl bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/5 text-xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#171717] dark:text-white uppercase text-[10px] px-2 py-0.5 rounded bg-pink-50 dark:bg-pink-950/40 text-[#E1306C] border border-pink-200 dark:border-pink-800">
+                      <span className="font-bold text-[#171717] dark:text-white uppercase text-[10px] px-2 py-0.5 rounded bg-pink-50 dark:bg-pink-950/40 text-[#F47743] border border-pink-200 dark:border-pink-800">
                         {item.previous_status} → {item.new_status}
                       </span>
                       <span className="text-[10px] text-[#9CA3AF] dark:text-slate-500 font-mono">{item.timestamp}</span>
@@ -976,7 +976,7 @@ export const ParticipantList: React.FC = () => {
               </button>
               <button
                 onClick={handleExecuteBulkAction}
-                className="px-5 py-2.5 bg-[#E1306C] hover:bg-[#C13584] text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                className="px-5 py-2.5 bg-[#F47743] hover:bg-[#E78B3C] text-white font-bold rounded-xl shadow-xs cursor-pointer"
               >
                 Konfirmasi & Jalankan
               </button>
@@ -990,11 +990,11 @@ export const ParticipantList: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
           <form
             onSubmit={handleFinishStepReg}
-            className="w-full max-w-lg bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-[28px] p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
+            className="siepang-participant-registration w-full max-w-lg bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-[28px] p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
               <div>
-                <span className="text-[10px] text-[#E1306C] font-bold font-mono">LANGKAH {regStep} DARI 6</span>
+                <span className="text-[10px] text-[#F47743] font-bold font-mono">LANGKAH {regStep} DARI 6</span>
                 <h3 className="text-base font-bold text-[#171717] dark:text-white">Formulir Pendaftaran Peserta</h3>
               </div>
               <button type="button" onClick={() => setShowStepRegModal(false)} className="p-1 text-[#6B7280] hover:text-[#171717] dark:text-slate-400 dark:hover:text-white cursor-pointer">✕</button>
@@ -1023,7 +1023,7 @@ export const ParticipantList: React.FC = () => {
                     placeholder="Contoh: Rian Anggara"
                     value={stepData.name}
                     onChange={e => setStepData({ ...stepData, name: e.target.value })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1032,7 +1032,7 @@ export const ParticipantList: React.FC = () => {
                     <select
                       value={stepData.gender}
                       onChange={e => setStepData({ ...stepData, gender: e.target.value as any })}
-                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                     >
                       <option value="M">Putra</option>
                       <option value="F">Putri</option>
@@ -1043,7 +1043,7 @@ export const ParticipantList: React.FC = () => {
                     <select
                       value={stepData.role}
                       onChange={e => setStepData({ ...stepData, role: e.target.value as any })}
-                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                     >
                       <option value="Penggalang">Penggalang</option>
                       <option value="Penegak">Penegak</option>
@@ -1059,7 +1059,7 @@ export const ParticipantList: React.FC = () => {
                     placeholder="Contoh: 10.01.002.0451"
                     value={stepData.membershipNumber}
                     onChange={e => setStepData({ ...stepData, membershipNumber: e.target.value })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#F47743]"
                   />
                 </div>
               </div>
@@ -1081,7 +1081,7 @@ export const ParticipantList: React.FC = () => {
                         contingentName: found?.name || '',
                       });
                     }}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   >
                     <option value="">-- Pilih Kontingen --</option>
                     {contingents.map(c => (
@@ -1096,7 +1096,7 @@ export const ParticipantList: React.FC = () => {
                     placeholder="Contoh: SMP Negeri 1 Pangkalan / Gudep"
                     value={stepData.schoolPangkalan}
                     onChange={e => setStepData({ ...stepData, schoolPangkalan: e.target.value })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   />
                 </div>
               </div>
@@ -1112,7 +1112,7 @@ export const ParticipantList: React.FC = () => {
                     <select
                       value={stepData.bloodType}
                       onChange={e => setStepData({ ...stepData, bloodType: e.target.value })}
-                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                     >
                       <option value="A+">A+</option>
                       <option value="B+">B+</option>
@@ -1128,7 +1128,7 @@ export const ParticipantList: React.FC = () => {
                       placeholder="0812-3456-7890"
                       value={stepData.emergencyContact}
                       onChange={e => setStepData({ ...stepData, emergencyContact: e.target.value })}
-                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#E1306C]"
+                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#F47743]"
                     />
                   </div>
                 </div>
@@ -1139,7 +1139,7 @@ export const ParticipantList: React.FC = () => {
                     placeholder="Contoh: Riwayat asma dingin"
                     value={stepData.medicalNotes}
                     onChange={e => setStepData({ ...stepData, medicalNotes: e.target.value })}
-                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-xl text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   />
                 </div>
               </div>
@@ -1188,7 +1188,7 @@ export const ParticipantList: React.FC = () => {
                       type="checkbox"
                       checked={stepData.docKta}
                       onChange={e => setStepData({ ...stepData, docKta: e.target.checked })}
-                      className="accent-[#E1306C] rounded"
+                      className="accent-[#F47743] rounded"
                     />
                     <span className="text-[#171717] dark:text-slate-200">KTA / NTA Pramuka (Digital / Fisik Terlampir)</span>
                   </label>
@@ -1197,7 +1197,7 @@ export const ParticipantList: React.FC = () => {
                       type="checkbox"
                       checked={stepData.docIzin}
                       onChange={e => setStepData({ ...stepData, docIzin: e.target.checked })}
-                      className="accent-[#E1306C] rounded"
+                      className="accent-[#F47743] rounded"
                     />
                     <span className="text-[#171717] dark:text-slate-200">Surat Izin Mengikuti Perkemahan dari Orang Tua / Gugus Depan</span>
                   </label>
@@ -1206,7 +1206,7 @@ export const ParticipantList: React.FC = () => {
                       type="checkbox"
                       checked={stepData.docSehat}
                       onChange={e => setStepData({ ...stepData, docSehat: e.target.checked })}
-                      className="accent-[#E1306C] rounded"
+                      className="accent-[#F47743] rounded"
                     />
                     <span className="text-[#171717] dark:text-slate-200">Surat Keterangan Sehat dari Fasilitas Kesehatan / Dokter</span>
                   </label>
@@ -1227,7 +1227,7 @@ export const ParticipantList: React.FC = () => {
                     />
                     <div>
                       <div className="font-bold text-[#171717] dark:text-white text-sm">{stepData.name || '-'}</div>
-                      <div className="text-[#E1306C] font-mono text-[10px]">
+                      <div className="text-[#F47743] font-mono text-[10px]">
                         {stepData.role} · {stepData.gender === 'M' ? 'Putra' : 'Putri'}
                       </div>
                       <div className="text-[10px] text-[#6B7280] dark:text-slate-400">
@@ -1235,7 +1235,7 @@ export const ParticipantList: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex justify-between"><span className="text-[#6B7280] dark:text-slate-400">Kontingen:</span><span className="text-[#E1306C] font-semibold">{stepData.contingentName}</span></div>
+                  <div className="flex justify-between"><span className="text-[#6B7280] dark:text-slate-400">Kontingen:</span><span className="text-[#F47743] font-semibold">{stepData.contingentName}</span></div>
                   <div className="flex justify-between"><span className="text-[#6B7280] dark:text-slate-400">Pangkalan:</span><span className="text-[#171717] dark:text-white">{stepData.schoolPangkalan}</span></div>
                   <div className="flex justify-between"><span className="text-[#6B7280] dark:text-slate-400">Gol. Darah:</span><span className="text-[#171717] dark:text-white">{stepData.bloodType}</span></div>
                   <div className="flex justify-between"><span className="text-[#6B7280] dark:text-slate-400">NTA / KTA:</span><span className="text-[#171717] dark:text-white font-mono">{stepData.membershipNumber || '-'}</span></div>
@@ -1277,7 +1277,7 @@ export const ParticipantList: React.FC = () => {
                   type="button"
                   disabled={regStep === 1 && !stepData.name}
                   onClick={() => setRegStep(regStep + 1)}
-                  className="px-5 py-2.5 bg-[#E1306C] hover:bg-[#C13584] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
+                  className="px-5 py-2.5 bg-[#F47743] hover:bg-[#E78B3C] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 disabled:opacity-40 cursor-pointer"
                 >
                   <span>Lanjutkan</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -1315,19 +1315,19 @@ export const ParticipantList: React.FC = () => {
             {importStep === 'upload' && (
               <div className="space-y-3 text-xs">
                 <p className="text-[#6B7280] dark:text-slate-300">
-                  Tempelkan baris data CSV dengan kolom: <code className="text-[#E1306C] font-mono bg-pink-50 dark:bg-pink-950/40 px-1 py-0.5 rounded">Nama Lengkap, Jenis Kelamin, Tingkatan, NTA, Kontingen, Telepon</code>.
+                  Tempelkan baris data CSV dengan kolom: <code className="text-[#F47743] font-mono bg-pink-50 dark:bg-pink-950/40 px-1 py-0.5 rounded">Nama Lengkap, Jenis Kelamin, Tingkatan, NTA, Kontingen, Telepon</code>.
                 </p>
                 <textarea
                   rows={6}
                   value={rawCsvText}
                   onChange={e => setRawCsvText(e.target.value)}
-                  className="w-full p-3 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white font-mono text-[11px] focus:outline-none focus:border-[#E1306C]"
+                  className="w-full p-3 bg-[#FAFAFA] dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white font-mono text-[11px] focus:outline-none focus:border-[#F47743]"
                 />
                 <div className="flex justify-end gap-2 pt-2">
                   <button onClick={() => setShowImportModal(false)} className="px-4 py-2 bg-[#FAFAFA] hover:bg-gray-100 dark:bg-white/5 dark:hover:bg-white/10 rounded-xl text-[#6B7280] dark:text-slate-300 cursor-pointer border border-[#ECECEF] dark:border-white/10">Batal</button>
                   <button
                     onClick={handleProcessImport}
-                    className="px-5 py-2.5 bg-[#E1306C] hover:bg-[#C13584] text-white font-bold rounded-xl shadow-xs cursor-pointer"
+                    className="px-5 py-2.5 bg-[#F47743] hover:bg-[#E78B3C] text-white font-bold rounded-xl shadow-xs cursor-pointer"
                   >
                     Validasi & Impor
                   </button>
@@ -1365,7 +1365,7 @@ export const ParticipantList: React.FC = () => {
                       setShowImportModal(false);
                       setImportStep('upload');
                     }}
-                    className="px-5 py-2 bg-[#E1306C] hover:bg-[#C13584] text-white rounded-xl font-bold cursor-pointer"
+                    className="px-5 py-2 bg-[#F47743] hover:bg-[#E78B3C] text-white rounded-xl font-bold cursor-pointer"
                   >
                     Selesai & Lihat Database
                   </button>
@@ -1421,7 +1421,7 @@ export const ParticipantList: React.FC = () => {
                       value={r}
                       checked={photoRejectReason === r}
                       onChange={() => setPhotoRejectReason(r)}
-                      className="accent-[#E1306C]"
+                      className="accent-[#F47743]"
                     />
                     <span>{r}</span>
                   </label>
@@ -1461,7 +1461,7 @@ export const ParticipantList: React.FC = () => {
           <div className="w-full max-w-md bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-[28px] p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
               <div className="text-sm font-bold text-[#171717] dark:text-white flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-[#E1306C]" />
+                <Sliders className="w-4 h-4 text-[#F47743]" />
                 <span>Pengaturan Kebijakan Foto Profil</span>
               </div>
               <button
@@ -1539,7 +1539,7 @@ export const ParticipantList: React.FC = () => {
                       key={pol.key}
                       className={`flex items-start gap-2.5 p-2.5 rounded-xl border cursor-pointer ${
                         photoPolicy === pol.key
-                          ? 'bg-pink-50 border-pink-200 text-[#171717] dark:bg-pink-950/40 dark:border-[#E1306C]/40 dark:text-white'
+                          ? 'bg-pink-50 border-pink-200 text-[#171717] dark:bg-pink-950/40 dark:border-[#F47743]/40 dark:text-white'
                           : 'bg-[#FAFAFA] border-[#ECECEF] text-[#6B7280] hover:text-[#171717] dark:bg-white/5 dark:border-white/5 dark:text-slate-300'
                       }`}
                     >
@@ -1552,7 +1552,7 @@ export const ParticipantList: React.FC = () => {
                           setPhotoPolicy(pol.key as any);
                           profilePhotoService.setReplacementPolicy(pol.key as any);
                         }}
-                        className="accent-[#E1306C] mt-0.5"
+                        className="accent-[#F47743] mt-0.5"
                       />
                       <div>
                         <div className="font-bold text-xs">{pol.label}</div>
@@ -1570,7 +1570,7 @@ export const ParticipantList: React.FC = () => {
                     setShowPhotoConfigModal(false);
                     showToast('✓ Pengaturan kebijakan foto berhasil disimpan.');
                   }}
-                  className="px-5 py-2.5 bg-[#E1306C] hover:bg-[#C13584] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                  className="px-5 py-2.5 bg-[#F47743] hover:bg-[#E78B3C] text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
                 >
                   Tutup & Simpan
                 </button>
@@ -1590,11 +1590,11 @@ export const ParticipantList: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4">
-              <img src={selectedDetail.photoUrl} alt={selectedDetail.name} className="w-16 h-16 rounded-2xl object-cover border-2 border-pink-200 dark:border-[#E1306C]/30" />
+              <img src={selectedDetail.photoUrl} alt={selectedDetail.name} className="w-16 h-16 rounded-2xl object-cover border-2 border-pink-200 dark:border-[#F47743]/30" />
               <div>
                 <h3 className="text-base font-bold text-[#171717] dark:text-white">{selectedDetail.name}</h3>
                 <p className="text-xs text-[#6B7280] dark:text-slate-400">{selectedDetail.role} · {selectedDetail.contingentName}</p>
-                <p className="text-xs font-mono text-[#E1306C] mt-0.5">{selectedDetail.code}</p>
+                <p className="text-xs font-mono text-[#F47743] mt-0.5">{selectedDetail.code}</p>
               </div>
             </div>
 

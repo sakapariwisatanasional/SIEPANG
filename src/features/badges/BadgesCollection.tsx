@@ -53,7 +53,7 @@ export const BadgesCollection: React.FC = () => {
     <div className="space-y-5 max-w-xl mx-auto pb-8">
       {/* Profile Summary Card */}
       <div className="bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-6 rounded-[28px] text-center space-y-4 shadow-xs relative overflow-hidden">
-        <div className="w-20 h-20 mx-auto rounded-full p-[2.5px] bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] shadow-sm">
+        <div className="w-20 h-20 mx-auto rounded-full p-[2.5px] bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] shadow-sm">
           <img
             src={participant.photoUrl}
             alt={participant.name}
@@ -66,13 +66,13 @@ export const BadgesCollection: React.FC = () => {
           <p className="text-xs text-[#6B7280] dark:text-slate-400">
             {participant.role} · {participant.contingentName}
           </p>
-          <p className="text-xs font-mono text-[#E1306C] mt-1 font-semibold">{participant.code}</p>
+          <p className="text-xs font-mono text-[#F47743] mt-1 font-semibold">{participant.code}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-2 pt-3 border-t border-[#ECECEF] dark:border-white/10 text-center">
           <div className="p-3 bg-[#FAFAFA] dark:bg-white/5 rounded-2xl border border-[#ECECEF] dark:border-white/5">
             <div className="text-[10px] text-[#6B7280] dark:text-slate-400 font-semibold uppercase tracking-wider">Total XP</div>
-            <div className="text-base font-bold text-[#E1306C] font-mono mt-0.5">{participant.xp}</div>
+            <div className="text-base font-bold text-[#F47743] font-mono mt-0.5">{participant.xp}</div>
           </div>
           <div className="p-3 bg-[#FAFAFA] dark:bg-white/5 rounded-2xl border border-[#ECECEF] dark:border-white/5">
             <div className="text-[10px] text-[#6B7280] dark:text-slate-400 font-semibold uppercase tracking-wider">Level</div>
@@ -92,7 +92,7 @@ export const BadgesCollection: React.FC = () => {
             <h2 className="text-sm font-bold text-[#171717] dark:text-white">Lencana Kehormatan Pramuka</h2>
             <p className="text-[11px] text-[#6B7280] dark:text-slate-400">Koleksi pencapaian selama perkemahan</p>
           </div>
-          <span className="text-xs text-[#E1306C] font-mono font-bold bg-[#FFF0F4] px-2.5 py-1 rounded-full border border-[#FFE0E8]">
+          <span className="text-xs text-[#F47743] font-mono font-bold bg-[#FFF0F4] px-2.5 py-1 rounded-full border border-[#FFE0E8]">
             {badges.filter(b => b.unlocked).length} / {badges.length} Terbuka
           </span>
         </div>
@@ -146,7 +146,7 @@ export const BadgesCollection: React.FC = () => {
                 <div className="font-semibold text-[#171717] dark:text-white">{tx.reason}</div>
                 <div className="text-[10px] text-[#6B7280] dark:text-slate-400">{tx.timestamp}</div>
               </div>
-              <div className="font-mono font-bold text-[#E1306C] text-xs">+{tx.amount} XP</div>
+              <div className="font-mono font-bold text-[#F47743] text-xs">+{tx.amount} XP</div>
             </div>
           ))}
         </div>

@@ -55,7 +55,7 @@ export const LogisticsOfficerHome: React.FC<LogisticsOfficerHomeProps> = ({
         <button
           type="button"
           onClick={() => onNavigate('logistics')}
-          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-600 via-orange-600 to-[#E1306C] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
+          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-amber-600 via-orange-600 to-[#F47743] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-orange-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
         >
           <Plus className="w-5 h-5 stroke-[2.2]" />
           <span>Catat Peminjaman / Distribusi</span>
@@ -105,7 +105,7 @@ export const LogisticsOfficerHome: React.FC<LogisticsOfficerHomeProps> = ({
           </h3>
           <button
             onClick={() => onNavigate('logistics')}
-            className="text-[11px] font-bold text-[#833AB4] hover:underline"
+            className="text-[11px] font-bold text-[#208C60] hover:underline"
           >
             Buka Inventaris Lengkap ›
           </button>

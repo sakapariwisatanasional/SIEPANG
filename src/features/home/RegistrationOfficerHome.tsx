@@ -79,7 +79,7 @@ export const RegistrationOfficerHome: React.FC<RegistrationOfficerHomeProps> = (
           <button
             type="button"
             onClick={onOpenScanner}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] hover:opacity-95 text-white font-bold text-xs shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] hover:opacity-95 text-white font-bold text-xs shadow-xs transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
           >
             <UserCheck className="w-4 h-4" />
             <span>Scan Check-in QR</span>

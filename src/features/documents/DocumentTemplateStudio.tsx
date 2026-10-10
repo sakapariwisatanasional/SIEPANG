@@ -186,7 +186,7 @@ export const DocumentTemplateStudio: React.FC = () => {
       <div className="p-6 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-50 text-[#E1306C] border border-pink-200 dark:bg-pink-950/80 dark:text-pink-300 dark:border-pink-800 text-[10px] font-bold mb-1.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-50 text-[#F47743] border border-pink-200 dark:bg-pink-950/80 dark:text-pink-300 dark:border-pink-800 text-[10px] font-bold mb-1.5">
               <span>CANVA-LIKE DOCUMENT STUDIO v1.8</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-[#171717] dark:text-white tracking-tight">
@@ -396,7 +396,7 @@ export const DocumentTemplateStudio: React.FC = () => {
           <div className="p-6 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 space-y-5 shadow-xs">
             <div>
               <h2 className="text-base font-bold text-[#171717] dark:text-white flex items-center gap-2">
-                <FolderArchive className="w-5 h-5 text-[#E1306C]" />
+                <FolderArchive className="w-5 h-5 text-[#F47743]" />
                 <span>Penerbitan Dokumen Massal (Batch Generator)</span>
               </h2>
               <p className="text-xs text-[#6B7280] dark:text-slate-400 mt-1">

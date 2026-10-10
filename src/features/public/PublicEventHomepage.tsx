@@ -286,7 +286,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
           <div className="rounded-[28px] bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 p-5 sm:p-7 shadow-xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#833AB4]/10 text-[#833AB4] dark:text-[#E1306C] text-xs font-bold">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#208C60]/10 text-[#208C60] dark:text-[#F47743] text-xs font-bold">
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>{event.organizationalLevel || 'Kwartir'} · Resmi</span>
                 </div>
@@ -294,7 +294,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                   {event.name}
                 </h1>
                 {event.theme && (
-                  <p className="text-sm font-semibold text-[#E1306C] italic">
+                  <p className="text-sm font-semibold text-[#F47743] italic">
                     "{event.theme}"
                   </p>
                 )}
@@ -304,7 +304,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenScanner?.()}
-                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
+                  className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white text-xs font-bold transition-all shadow-md flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <QrCode className="w-4 h-4" />
                   <span>Scan QR</span>
@@ -325,7 +325,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-black/40 border border-black/5 dark:border-white/5 space-y-0.5">
                 <div className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-[#E1306C]" />
+                  <MapPin className="w-3 h-3 text-[#F47743]" />
                   <span>Lokasi:</span>
                 </div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
@@ -375,7 +375,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
         className="relative overflow-hidden rounded-[36px] bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:from-[#141418] dark:via-[#101014] dark:to-black border border-black/5 dark:border-white/10 p-6 sm:p-10 lg:p-12 shadow-sm space-y-6"
       >
         <div className="max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#833AB4]/10 dark:bg-[#833AB4]/20 border border-[#833AB4]/20 text-[#833AB4] dark:text-[#E1306C] text-xs font-bold">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#208C60]/10 dark:bg-[#208C60]/20 border border-[#208C60]/20 text-[#208C60] dark:text-[#F47743] text-xs font-bold">
             <Sparkles className="w-3.5 h-3.5" />
             <span>SiEpang — Sistem Informasi Perkemahan</span>
           </div>
@@ -405,7 +405,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
           <button
             type="button"
             onClick={() => onOpenScanner?.()}
-            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all inline-flex items-center gap-2 cursor-pointer active:scale-95"
+            className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all inline-flex items-center gap-2 cursor-pointer active:scale-95"
           >
             <QrCode className="w-4 h-4" />
             <span>Buka Scanner QR</span>
@@ -560,7 +560,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
               >
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-mono text-xs font-bold text-[#E1306C] flex items-center gap-1">
+                    <span className="font-mono text-xs font-bold text-[#F47743] flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5" />
                       <span>{sch.time || `${sch.startTime || ''} - ${sch.endTime || ''}`}</span>
                     </span>
@@ -582,7 +582,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                     Hari ke-{sch.dayNumber || 1}
                   </span>
                   {sch.xpReward > 0 && (
-                    <span className="font-bold text-[#E1306C]">+{sch.xpReward} XP</span>
+                    <span className="font-bold text-[#F47743]">+{sch.xpReward} XP</span>
                   )}
                 </div>
               </div>
@@ -652,7 +652,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                   </span>
                 </div>
 
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-[#833AB4] to-[#E1306C] p-[1.5px] mt-2">
+                <div className="w-12 h-12 rounded-full overflow-hidden bg-gradient-to-tr from-[#208C60] to-[#F47743] p-[1.5px] mt-2">
                   <div className="w-full h-full rounded-full bg-slate-100 dark:bg-black overflow-hidden flex items-center justify-center font-bold text-xs text-slate-600 dark:text-slate-300">
                     {entry.avatar ? (
                       <img
@@ -675,7 +675,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                   </p>
                 </div>
 
-                <div className="w-full pt-1.5 border-t border-black/5 dark:border-white/5 flex items-center justify-center gap-1 text-xs font-black text-[#E1306C]">
+                <div className="w-full pt-1.5 border-t border-black/5 dark:border-white/5 flex items-center justify-center gap-1 text-xs font-black text-[#F47743]">
                   <Zap className="w-3.5 h-3.5 fill-current" />
                   <span>{entry.xp} XP</span>
                 </div>
@@ -727,7 +727,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
               <div
                 key={photo.media_id}
                 onClick={() => onNavigateToGallery?.('photos')}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#833AB4]/50 transition-all duration-300 flex flex-col shadow-xs"
+                className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#208C60]/50 transition-all duration-300 flex flex-col shadow-xs"
               >
                 <div className="aspect-square w-full overflow-hidden bg-slate-100 dark:bg-black/40">
                   <img
@@ -739,7 +739,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                   />
                 </div>
                 <div className="p-2.5">
-                  <h3 className="text-[11px] font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-[#833AB4] dark:group-hover:text-[#E1306C] transition-colors">
+                  <h3 className="text-[11px] font-bold text-slate-900 dark:text-white line-clamp-1 group-hover:text-[#208C60] dark:group-hover:text-[#F47743] transition-colors">
                     {photo.title}
                   </h3>
                   <div className="text-[9px] text-slate-400 font-mono mt-0.5">
@@ -759,7 +759,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
       <section id="section-video-gallery" className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Film className="w-5 h-5 text-[#E1306C]" />
+            <Film className="w-5 h-5 text-[#F47743]" />
             <div>
               <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight">
                 Galeri Video & Siaran Resmi
@@ -794,7 +794,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
               <div
                 key={video.media_id}
                 onClick={() => setActiveVideoModal(video)}
-                className="group relative cursor-pointer overflow-hidden rounded-[24px] bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#E1306C]/50 transition-all shadow-xs flex flex-col"
+                className="group relative cursor-pointer overflow-hidden rounded-[24px] bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 hover:border-[#F47743]/50 transition-all shadow-xs flex flex-col"
               >
                 <div className="aspect-video w-full overflow-hidden bg-black/80 relative">
                   <img
@@ -805,7 +805,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute inset-0 bg-black/30 group-hover:bg-black/15 transition-colors flex items-center justify-center">
-                    <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] shadow-2xl group-hover:scale-110 transition-transform">
+                    <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] shadow-2xl group-hover:scale-110 transition-transform">
                       <div className="w-full h-full rounded-full bg-black/75 backdrop-blur-xs flex items-center justify-center text-white">
                         <Play className="w-5 h-5 fill-white ml-0.5" />
                       </div>
@@ -819,7 +819,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                 </div>
 
                 <div className="p-3.5 space-y-1">
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#E1306C] transition-colors line-clamp-1">
+                  <h3 className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#F47743] transition-colors line-clamp-1">
                     {video.title}
                   </h3>
                   {video.caption && (
@@ -839,13 +839,13 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
   const renderQrScannerSection = () => {
     return (
       <section id="section-qr-scanner">
-        <div className="rounded-[32px] bg-gradient-to-br from-[#833AB4]/10 via-[#E1306C]/10 to-amber-500/10 dark:from-[#833AB4]/20 dark:via-[#141418] dark:to-black border border-black/5 dark:border-white/10 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+        <div className="rounded-[32px] bg-gradient-to-br from-[#208C60]/10 via-[#F47743]/10 to-amber-500/10 dark:from-[#208C60]/20 dark:via-[#141418] dark:to-black border border-black/5 dark:border-white/10 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
           <div className="flex items-start gap-4 max-w-xl">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] text-white flex items-center justify-center shrink-0 shadow-lg text-2xl">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] text-white flex items-center justify-center shrink-0 shadow-lg text-2xl">
               <QrCode className="w-8 h-8" />
             </div>
             <div className="space-y-1.5">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/80 dark:bg-black/60 border border-black/5 dark:border-white/10 text-[10px] font-bold text-[#E1306C]">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/80 dark:bg-black/60 border border-black/5 dark:border-white/10 text-[10px] font-bold text-[#F47743]">
                 <span>FITUR UTAMA PERKEMAHAN</span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -861,7 +861,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
             <button
               type="button"
               onClick={() => onOpenScanner?.()}
-              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
               <QrCode className="w-5 h-5" />
               <span>Buka Scanner QR</span>
@@ -924,7 +924,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
               <button
                 type="button"
                 onClick={() => setShowVisitorModal(true)}
-                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white font-bold text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
               >
                 <Users className="w-4 h-4" />
                 <span>Daftar Visitor Pass</span>
@@ -962,7 +962,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                 value={certQuery}
                 onChange={e => setCertQuery(e.target.value)}
                 placeholder="Masukkan Nomor Seri Piagam (contoh: PGM/JAMRAN/2026/001)..."
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-2xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-[#E1306C]"
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-black/40 border border-black/10 dark:border-white/10 rounded-2xl text-xs text-slate-900 dark:text-white font-mono focus:outline-none focus:border-[#F47743]"
               />
             </div>
             <button
@@ -1078,7 +1078,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-[#E1306C] selection:text-white transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-black text-slate-900 dark:text-slate-100 flex flex-col justify-between selection:bg-[#F47743] selection:text-white transition-colors">
       {/* 1. Header Bar with Status & Quick Navigation */}
       <div className="bg-white/95 dark:bg-[#121215]/95 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-3.5 sm:px-6 py-2 flex items-center justify-between text-xs z-40 sticky top-0 transition-colors">
         <div className="flex items-center gap-2">
@@ -1107,7 +1107,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
               onClick={() => setDeviceViewport('desktop')}
               className={`p-1 rounded-md transition-colors ${
                 deviceViewport === 'desktop'
-                  ? 'bg-white dark:bg-black/50 text-[#E1306C] shadow-xs'
+                  ? 'bg-white dark:bg-black/50 text-[#F47743] shadow-xs'
                   : 'text-slate-400 hover:text-slate-600'
               }`}
               title="Desktop 100%"
@@ -1119,7 +1119,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
               onClick={() => setDeviceViewport('tablet')}
               className={`p-1 rounded-md transition-colors ${
                 deviceViewport === 'tablet'
-                  ? 'bg-white dark:bg-black/50 text-[#E1306C] shadow-xs'
+                  ? 'bg-white dark:bg-black/50 text-[#F47743] shadow-xs'
                   : 'text-slate-400 hover:text-slate-600'
               }`}
               title="Tablet 768px"
@@ -1131,7 +1131,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
               onClick={() => setDeviceViewport('mobile')}
               className={`p-1 rounded-md transition-colors ${
                 deviceViewport === 'mobile'
-                  ? 'bg-white dark:bg-black/50 text-[#E1306C] shadow-xs'
+                  ? 'bg-white dark:bg-black/50 text-[#F47743] shadow-xs'
                   : 'text-slate-400 hover:text-slate-600'
               }`}
               title="Mobile 390px"
@@ -1144,7 +1144,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
             <button
               type="button"
               onClick={() => onNavigateToLogin()}
-              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-[#833AB4]/10 hover:bg-[#833AB4]/20 text-[#833AB4] dark:text-[#E1306C] border border-[#833AB4]/30 font-semibold transition-colors text-xs flex items-center justify-center gap-1.5 min-w-[38px] min-h-[38px] cursor-pointer"
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-[#208C60]/10 hover:bg-[#208C60]/20 text-[#208C60] dark:text-[#F47743] border border-[#208C60]/30 font-semibold transition-colors text-xs flex items-center justify-center gap-1.5 min-w-[38px] min-h-[38px] cursor-pointer"
               title="Masuk"
             >
               <LogIn className="w-3.5 h-3.5" />
@@ -1160,7 +1160,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
         <nav className="bg-white/90 dark:bg-[#121215]/90 backdrop-blur-md border-b border-black/5 dark:border-white/10 px-4 sm:px-8 py-3.5 sticky top-10 z-30 transition-colors">
           <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] p-[1.5px] shadow-sm flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] p-[1.5px] shadow-sm flex items-center justify-center shrink-0">
                 <div className="w-full h-full rounded-[14px] bg-white dark:bg-[#121215] flex items-center justify-center font-black text-lg">
                   ⚜️
                 </div>
@@ -1182,49 +1182,49 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
               <button
                 type="button"
                 onClick={() => scrollToSection('section-hero')}
-                className="px-2.5 py-1.5 rounded-lg hover:text-[#E1306C] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg hover:text-[#F47743] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 Beranda
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('section-schedule')}
-                className="px-2.5 py-1.5 rounded-lg hover:text-[#E1306C] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg hover:text-[#F47743] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 Jadwal
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('section-leaderboard')}
-                className="px-2.5 py-1.5 rounded-lg hover:text-[#E1306C] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg hover:text-[#F47743] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 Ranking
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('section-photo-gallery')}
-                className="px-2.5 py-1.5 rounded-lg hover:text-[#E1306C] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg hover:text-[#F47743] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 Galeri
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('section-qr-scanner')}
-                className="px-2.5 py-1.5 rounded-lg hover:text-[#E1306C] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg hover:text-[#F47743] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 Scan QR
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('section-visitor')}
-                className="px-2.5 py-1.5 rounded-lg hover:text-[#E1306C] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg hover:text-[#F47743] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 Visitor
               </button>
               <button
                 type="button"
                 onClick={() => scrollToSection('section-verification')}
-                className="px-2.5 py-1.5 rounded-lg hover:text-[#E1306C] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                className="px-2.5 py-1.5 rounded-lg hover:text-[#F47743] hover:bg-slate-100 dark:hover:bg-white/5 transition-colors cursor-pointer"
               >
                 Verifikasi
               </button>
@@ -1235,7 +1235,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
               <button
                 type="button"
                 onClick={() => onOpenScanner?.()}
-                className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 min-w-[38px] min-h-[38px] cursor-pointer"
+                className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 min-w-[38px] min-h-[38px] cursor-pointer"
                 title="Buka Scanner QR"
               >
                 <QrCode className="w-4 h-4" />
@@ -1405,7 +1405,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                 />
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center text-white space-y-3">
-                  <Play className="w-12 h-12 text-[#E1306C]" />
+                  <Play className="w-12 h-12 text-[#F47743]" />
                   <p className="text-xs text-slate-300">
                     Video eksternal disematkan dari tautan resmi.
                   </p>
@@ -1413,7 +1413,7 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
                     href={activeVideoModal.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white text-xs font-bold flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white text-xs font-bold flex items-center gap-1.5"
                   >
                     <span>Buka Video di Tab Baru</span>
                     <ExternalLink className="w-3.5 h-3.5" />

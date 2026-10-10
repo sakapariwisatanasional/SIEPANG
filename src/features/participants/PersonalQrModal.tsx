@@ -36,7 +36,7 @@ export const PersonalQrModal: React.FC<PersonalQrModalProps> = ({ isOpen, onClos
         className={`w-full max-w-sm rounded-[32px] p-[2px] shadow-2xl transition-colors duration-300 ${
           highBrightness
             ? 'bg-slate-200'
-            : 'bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45]'
+            : 'bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A]'
         }`}
       >
         <div
@@ -141,7 +141,7 @@ export const PersonalQrModal: React.FC<PersonalQrModalProps> = ({ isOpen, onClos
               <p className={`text-xs ${highBrightness ? 'text-slate-600' : 'text-slate-400'}`}>
                 {participant.role} · {participant.contingentName}
               </p>
-              <p className="text-[11px] font-semibold text-[#E1306C] dark:text-[#F77737] mt-0.5">
+              <p className="text-[11px] font-semibold text-[#F47743] dark:text-[#F4A53A] mt-0.5">
                 Tenda: {participant.tentNumber} ({participant.subCamp})
               </p>
             </div>

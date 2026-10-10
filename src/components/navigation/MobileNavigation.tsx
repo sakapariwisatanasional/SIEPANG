@@ -105,7 +105,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           onClick={() => onTabChange('home')}
           className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] transition-all select-none ${
             activeTab === 'home'
-              ? 'text-[#E1306C] font-bold scale-105'
+              ? 'text-[#F47743] font-bold scale-105'
               : 'text-[#9CA3AF] hover:text-[#171717] dark:hover:text-slate-200'
           }`}
         >
@@ -119,7 +119,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           onClick={() => onTabChange(tab2.id)}
           className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] transition-all select-none ${
             activeTab === tab2.id
-              ? 'text-[#E1306C] font-bold scale-105'
+              ? 'text-[#F47743] font-bold scale-105'
               : 'text-[#9CA3AF] hover:text-[#171717] dark:hover:text-slate-200'
           }`}
         >
@@ -132,7 +132,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           <button
             type="button"
             onClick={onOpenScanner}
-            className="w-14 h-14 -mt-6 rounded-full bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] text-white flex items-center justify-center shadow-lg shadow-pink-500/25 border-4 border-white dark:border-[#121215] active:scale-90 transition-all duration-150 cursor-pointer"
+            className="w-14 h-14 -mt-6 rounded-full bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] text-white flex items-center justify-center shadow-lg shadow-pink-500/25 border-4 border-white dark:border-[#121215] active:scale-90 transition-all duration-150 cursor-pointer"
             aria-label="Pindai Kode QR Pramuka"
           >
             <QrCode className="w-7 h-7 stroke-[2.5] text-white" />
@@ -145,7 +145,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           onClick={() => onTabChange(tab4.id)}
           className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] transition-all select-none ${
             activeTab === tab4.id
-              ? 'text-[#E1306C] font-bold scale-105'
+              ? 'text-[#F47743] font-bold scale-105'
               : 'text-[#9CA3AF] hover:text-[#171717] dark:hover:text-slate-200'
           }`}
         >
@@ -159,7 +159,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           onClick={() => setMoreMenuOpen(true)}
           className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] transition-all select-none ${
             isMoreMenuOpen || (!['home', tab2.id, tab4.id].includes(activeTab))
-              ? 'text-[#E1306C] font-bold scale-105'
+              ? 'text-[#F47743] font-bold scale-105'
               : 'text-[#9CA3AF] hover:text-[#171717] dark:hover:text-slate-200'
           }`}
           aria-label="Buka Menu Lainnya"

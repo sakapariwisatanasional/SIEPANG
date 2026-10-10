@@ -253,7 +253,7 @@ export const AdminDaerahDashboard: React.FC<AdminDaerahDashboardProps> = ({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="min-w-0 flex-1">
             <div className="inline-flex items-center gap-2 mb-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#833AB4]/10 text-[#833AB4] dark:text-[#E1306C] text-xs font-bold">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#208C60]/10 text-[#208C60] dark:text-[#F47743] text-xs font-bold">
                 ⛺ {event.category || 'Perkemahan'}
               </span>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold flex items-center gap-1">
@@ -277,7 +277,7 @@ export const AdminDaerahDashboard: React.FC<AdminDaerahDashboardProps> = ({
             <button
               type="button"
               onClick={() => onNavigate('event_studio')}
-              className="px-4 py-2.5 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white rounded-xl font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white rounded-xl font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
             >
               <Sliders className="w-4 h-4" />
               <span>Kelola Event</span>
@@ -361,7 +361,7 @@ export const AdminDaerahDashboard: React.FC<AdminDaerahDashboardProps> = ({
                     className="w-full p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 flex items-center justify-between text-xs text-left transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-[#833AB4]">
+                      <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-white/10 flex items-center justify-center text-[#208C60]">
                         <ItemIcon className="w-4 h-4" />
                       </div>
                       <div>
@@ -403,7 +403,7 @@ export const AdminDaerahDashboard: React.FC<AdminDaerahDashboardProps> = ({
                 key={action.id}
                 type="button"
                 onClick={action.onClick}
-                className="p-3 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#833AB4]/30 shadow-xs flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 group cursor-pointer"
+                className="p-3 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#208C60]/30 shadow-xs flex flex-col items-center justify-center gap-1.5 transition-all active:scale-95 group cursor-pointer"
               >
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${action.bgColor} ${action.color}`}>
                   <Icon className="w-4 h-4 stroke-[2.2]" />

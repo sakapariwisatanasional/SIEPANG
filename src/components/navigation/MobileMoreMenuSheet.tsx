@@ -211,11 +211,11 @@ export const MobileMoreMenuSheet: React.FC<MobileMoreMenuSheetProps> = ({
                       }}
                       className={`p-3 rounded-2xl border text-left flex items-center gap-2.5 transition-all cursor-pointer ${
                         isActive
-                          ? 'bg-[#833AB4]/10 border-[#833AB4]/30 text-[#833AB4] dark:text-[#E1306C] font-bold'
-                          : 'bg-slate-50 dark:bg-white/5 border-[#ECECEF] dark:border-white/5 text-[#171717] dark:text-white hover:border-[#833AB4]/30'
+                          ? 'bg-[#208C60]/10 border-[#208C60]/30 text-[#208C60] dark:text-[#F47743] font-bold'
+                          : 'bg-slate-50 dark:bg-white/5 border-[#ECECEF] dark:border-white/5 text-[#171717] dark:text-white hover:border-[#208C60]/30'
                       }`}
                     >
-                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-white/10 flex items-center justify-center text-[#833AB4] shrink-0 shadow-2xs">
+                      <div className="w-8 h-8 rounded-xl bg-white dark:bg-white/10 flex items-center justify-center text-[#208C60] shrink-0 shadow-2xs">
                         <Icon className="w-4 h-4 stroke-[2.2]" />
                       </div>
                       <span className="text-xs font-bold truncate">{item.label}</span>

@@ -85,7 +85,7 @@ export const InstallationNotConfiguredScreen: React.FC<InstallationNotConfigured
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-4 sm:p-6 lg:p-8 selection:bg-[#E1306C] selection:text-white">
+    <div className="min-h-screen flex flex-col justify-between bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-4 sm:p-6 lg:p-8 selection:bg-[#F47743] selection:text-white">
       <div className="w-full max-w-3xl mx-auto space-y-6 my-auto pt-6 pb-12">
         {/* Header Hero Card */}
         <div className="rounded-[32px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-6 sm:p-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] text-center space-y-4">
@@ -212,7 +212,7 @@ export const InstallationNotConfiguredScreen: React.FC<InstallationNotConfigured
             onClick={() => setShowGuide(!showGuide)}
           >
             <div className="flex items-center gap-2">
-              <Settings className="w-4 h-4 text-[#833AB4] dark:text-pink-400" />
+              <Settings className="w-4 h-4 text-[#208C60] dark:text-pink-400" />
               <h3 className="text-sm font-bold text-[#171717] dark:text-white">
                 Panduan Menyetel Script Properties di Google Apps Script
               </h3>
@@ -228,7 +228,7 @@ export const InstallationNotConfiguredScreen: React.FC<InstallationNotConfigured
             <div className="space-y-3 pt-2 text-xs text-[#6B7280] dark:text-slate-400 leading-relaxed border-t border-black/5 dark:border-white/5">
               <ol className="list-decimal pl-5 space-y-2">
                 <li>
-                  Buka proyek backend Google Apps Script Anda di <a href="https://script.google.com" target="_blank" rel="noreferrer" className="text-[#833AB4] dark:text-pink-400 font-semibold underline inline-flex items-center gap-0.5">Google Apps Script <ExternalLink className="w-3 h-3" /></a>.
+                  Buka proyek backend Google Apps Script Anda di <a href="https://script.google.com" target="_blank" rel="noreferrer" className="text-[#208C60] dark:text-pink-400 font-semibold underline inline-flex items-center gap-0.5">Google Apps Script <ExternalLink className="w-3 h-3" /></a>.
                 </li>
                 <li>
                   Klik menu <strong>Project Settings</strong> (ikon roda gigi di bilah navigasi sebelah kiri).

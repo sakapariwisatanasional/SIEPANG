@@ -308,7 +308,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
         <div
           className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 my-1.5 rounded-2xl border transition-all ${
             node.status === 'active'
-              ? 'bg-white dark:bg-[#141418] border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/40 shadow-xs'
+              ? 'bg-white dark:bg-[#141418] border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/40 shadow-xs'
               : 'bg-[#FAFAFA] dark:bg-black/30 border-[#ECECEF] dark:border-white/5 opacity-70 hover:opacity-100'
           }`}
           style={{ marginLeft: `${Math.min(depth * 20, 120)}px` }}
@@ -317,7 +317,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
           <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
             {/* Visual branch connector for tree view */}
             {depth > 0 && (
-              <span className="font-mono text-[#833AB4] dark:text-purple-400 font-bold select-none text-xs hidden sm:inline">
+              <span className="font-mono text-[#208C60] dark:text-purple-400 font-bold select-none text-xs hidden sm:inline">
                 {branchPrefix}
               </span>
             )}
@@ -326,7 +326,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
             {hasChildren ? (
               <button
                 onClick={() => toggleExpand(node.organization_id)}
-                className="p-1 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-[#FFF0F4] text-[#6B7280] hover:text-[#E1306C] transition-colors shrink-0 mt-0.5 sm:mt-0 cursor-pointer"
+                className="p-1 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-[#FFF0F4] text-[#6B7280] hover:text-[#F47743] transition-colors shrink-0 mt-0.5 sm:mt-0 cursor-pointer"
                 title={isExpanded ? 'Tutup cabang' : 'Buka cabang'}
               >
                 {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
@@ -437,7 +437,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
               {NEXT_LEVEL_MAP[node.organization_level] && (
                 <button
                   onClick={() => handleOpenCreateChild(node)}
-                  className="p-1.5 rounded-xl bg-[#FFF0F4] hover:bg-[#FFE0E8] text-[#E1306C] border border-[#FFE0E8] dark:bg-white/5 dark:border-white/10 text-xs transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  className="p-1.5 rounded-xl bg-[#FFF0F4] hover:bg-[#FFE0E8] text-[#F47743] border border-[#FFE0E8] dark:bg-white/5 dark:border-white/10 text-xs transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                   title={`Tambah ${NEXT_LEVEL_MAP[node.organization_level]} di bawah ${node.organization_name}`}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -473,7 +473,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
       {/* Top Banner & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 sm:p-6 rounded-[28px] shadow-xs relative overflow-hidden">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#E1306C] mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#F47743] mb-2">
             <FolderTree className="w-3.5 h-3.5" />
             <span>Kwarnas → Kwarda → Kwarcab → Kwarran → Gudep</span>
           </div>
@@ -489,7 +489,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={handleOpenCreate}
-            className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 transition-all min-h-[44px] cursor-pointer"
+            className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-pink-500/20 transition-all min-h-[44px] cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Tambah Organisasi</span>
@@ -556,7 +556,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
             placeholder="Cari organisasi, kode, pangkalan, atau wilayah..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E1306C]"
+            className="w-full pl-9 pr-3 py-2 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#F47743]"
           />
         </div>
 
@@ -625,7 +625,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={expandAll}
-                className="px-2.5 py-1 text-[11px] font-medium text-[#E1306C] bg-[#FFF0F4] hover:bg-[#FFE0E8] border border-[#FFE0E8] rounded-lg transition-colors cursor-pointer"
+                className="px-2.5 py-1 text-[11px] font-medium text-[#F47743] bg-[#FFF0F4] hover:bg-[#FFE0E8] border border-[#FFE0E8] rounded-lg transition-colors cursor-pointer"
               >
                 Buka Semua Cabang
               </button>
@@ -686,7 +686,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                   <span className={`px-2 py-0.5 rounded text-[10px] font-black ${LEVEL_COLORS[currentDrilldownOrg.organization_level].badge}`}>
                     {currentDrilldownOrg.organization_level}
                   </span>
-                  <span className="font-mono text-xs text-[#833AB4] dark:text-purple-400">{currentDrilldownOrg.organization_code}</span>
+                  <span className="font-mono text-xs text-[#208C60] dark:text-purple-400">{currentDrilldownOrg.organization_code}</span>
                 </div>
                 <h3 className="text-base font-bold text-[#171717] dark:text-white">{currentDrilldownOrg.organization_name}</h3>
                 {currentDrilldownOrg.base_institution && (
@@ -705,7 +705,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                 {NEXT_LEVEL_MAP[currentDrilldownOrg.organization_level] && (
                   <button
                     onClick={() => handleOpenCreateChild(currentDrilldownOrg)}
-                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer min-h-[40px]"
+                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer min-h-[40px]"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>Tambah {NEXT_LEVEL_MAP[currentDrilldownOrg.organization_level]}</span>
@@ -745,7 +745,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                   return (
                     <div
                       key={child.organization_id}
-                      className="p-4 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-2xs hover:border-[#E1306C]/30 transition-all space-y-3"
+                      className="p-4 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-2xs hover:border-[#F47743]/30 transition-all space-y-3"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>
@@ -753,7 +753,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                             <span className={`px-2 py-0.5 rounded text-[10px] font-black ${LEVEL_COLORS[child.organization_level].badge}`}>
                               {child.organization_level}
                             </span>
-                            <span className="font-mono text-xs text-[#833AB4] dark:text-purple-400 font-semibold">{child.organization_code}</span>
+                            <span className="font-mono text-xs text-[#208C60] dark:text-purple-400 font-semibold">{child.organization_code}</span>
                           </div>
                           <h4 className="text-sm font-bold text-[#171717] dark:text-white">{child.organization_name}</h4>
                           {child.base_institution && (
@@ -816,7 +816,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
             return (
               <div
                 key={org.organization_id}
-                className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/40 transition-all space-y-3.5 flex flex-col justify-between shadow-xs"
+                className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/40 transition-all space-y-3.5 flex flex-col justify-between shadow-xs"
               >
                 <div className="space-y-2.5">
                   {/* Card Header: Level badge, Code & Status */}
@@ -826,7 +826,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                         <span className="mr-1">{levelStyle.icon}</span>
                         <span>{org.organization_level}</span>
                       </span>
-                      <span className="font-mono text-xs text-[#833AB4] dark:text-purple-400 font-semibold">{org.organization_code}</span>
+                      <span className="font-mono text-xs text-[#208C60] dark:text-purple-400 font-semibold">{org.organization_code}</span>
                     </div>
 
                     <button
@@ -845,7 +845,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                   <div>
                     <h3 className="text-sm font-bold text-[#171717] dark:text-white leading-snug">{org.organization_name}</h3>
                     {org.base_institution && (
-                      <p className="text-xs text-[#833AB4] dark:text-purple-300 mt-0.5 flex items-center gap-1">
+                      <p className="text-xs text-[#208C60] dark:text-purple-300 mt-0.5 flex items-center gap-1">
                         <School className="w-3.5 h-3.5" />
                         <span>{org.base_institution} {org.gudep_number ? `(${org.gudep_number})` : ''}</span>
                       </p>
@@ -902,7 +902,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                     {NEXT_LEVEL_MAP[org.organization_level] && (
                       <button
                         onClick={() => handleOpenCreateChild(org)}
-                        className="p-1.5 rounded-xl bg-[#FFF0F4] hover:bg-[#FFE0E8] text-[#E1306C] border border-[#FFE0E8] dark:bg-white/5 dark:border-white/10 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                        className="p-1.5 rounded-xl bg-[#FFF0F4] hover:bg-[#FFE0E8] text-[#F47743] border border-[#FFE0E8] dark:bg-white/5 dark:border-white/10 cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
                         title={`Tambah ${NEXT_LEVEL_MAP[org.organization_level]}`}
                       >
                         <Plus className="w-4 h-4" />
@@ -930,7 +930,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
               <div>
                 <h3 className="text-base font-bold text-[#171717] dark:text-white flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-[#833AB4]" />
+                  <Building2 className="w-5 h-5 text-[#208C60]" />
                   <span>
                     {modalMode === 'edit'
                       ? 'Edit Data Organisasi'
@@ -964,7 +964,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                   <select
                     value={editingOrg.organization_level}
                     onChange={e => setEditingOrg({ ...editingOrg, organization_level: e.target.value as OrganizationLevel })}
-                    className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                     disabled={modalMode === 'child'}
                   >
                     <option value="KWARNAS">Kwartir Nasional (KWARNAS)</option>
@@ -980,7 +980,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                   <select
                     value={editingOrg.parent_organization_id || ''}
                     onChange={e => setEditingOrg({ ...editingOrg, parent_organization_id: e.target.value || null })}
-                    className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                     disabled={modalMode === 'child' || editingOrg.organization_level === 'KWARNAS'}
                   >
                     <option value="">-- Tanpa Induk (Puncak Nasional) --</option>
@@ -1005,7 +1005,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                     placeholder="Contoh: 13.10.05"
                     value={editingOrg.organization_code || ''}
                     onChange={e => setEditingOrg({ ...editingOrg, organization_code: e.target.value })}
-                    className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#F47743]"
                   />
                 </div>
 
@@ -1017,7 +1017,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                     placeholder="Contoh: Kwartir Ranting Singojuruh"
                     value={editingOrg.organization_name || ''}
                     onChange={e => setEditingOrg({ ...editingOrg, organization_name: e.target.value })}
-                    className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                    className="w-full p-2.5 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                   />
                 </div>
               </div>
@@ -1038,7 +1038,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                         placeholder="Contoh: 01.001 - 01.002"
                         value={editingOrg.gudep_number || ''}
                         onChange={e => setEditingOrg({ ...editingOrg, gudep_number: e.target.value })}
-                        className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                        className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                       />
                     </div>
 
@@ -1049,7 +1049,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                         placeholder="Contoh: SMAN 1 Pangkalan / Gudep"
                         value={editingOrg.base_institution || ''}
                         onChange={e => setEditingOrg({ ...editingOrg, base_institution: e.target.value, pangkalan: e.target.value })}
-                        className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                        className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                       />
                     </div>
                   </div>
@@ -1066,7 +1066,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                       placeholder="Provinsi (Contoh: Jawa Timur)"
                       value={editingOrg.province_name || ''}
                       onChange={e => setEditingOrg({ ...editingOrg, province_name: e.target.value })}
-                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                     />
                   </div>
                   <div>
@@ -1075,7 +1075,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                       placeholder="Kabupaten / Kota"
                       value={editingOrg.city_name || ''}
                       onChange={e => setEditingOrg({ ...editingOrg, city_name: e.target.value })}
-                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                     />
                   </div>
                   <div>
@@ -1084,7 +1084,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                       placeholder="Kecamatan"
                       value={editingOrg.district_name || ''}
                       onChange={e => setEditingOrg({ ...editingOrg, district_name: e.target.value })}
-                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                      className="w-full p-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                     />
                   </div>
                 </div>
@@ -1100,7 +1100,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
                       name="org_status"
                       checked={editingOrg.status === 'active'}
                       onChange={() => setEditingOrg({ ...editingOrg, status: 'active' })}
-                      className="accent-[#E1306C]"
+                      className="accent-[#F47743]"
                     />
                     <span>Aktif</span>
                   </label>
@@ -1148,7 +1148,7 @@ export const OrganizationManagement: React.FC<OrganizationManagementProps> = ({
           <div className="bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-3xl p-6 w-full max-w-md shadow-2xl relative space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10">
               <h3 className="text-base font-bold text-[#171717] dark:text-white flex items-center gap-2">
-                <Server className="w-5 h-5 text-[#833AB4]" />
+                <Server className="w-5 h-5 text-[#208C60]" />
                 <span>Tautkan Workspace Kwartir</span>
               </h3>
               <button

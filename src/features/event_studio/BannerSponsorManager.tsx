@@ -343,7 +343,7 @@ export const BannerSponsorManager: React.FC<BannerSponsorManagerProps> = ({
             <button
               type="button"
               onClick={handleOpenAddSponsor}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white text-xs font-bold flex items-center gap-2 shadow-xs hover:opacity-95 active:scale-98 transition-all"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white text-xs font-bold flex items-center gap-2 shadow-xs hover:opacity-95 active:scale-98 transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Logo Sponsor</span>
@@ -358,7 +358,7 @@ export const BannerSponsorManager: React.FC<BannerSponsorManagerProps> = ({
                 });
                 setShowAddBannerModal(true);
               }}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white text-xs font-bold flex items-center gap-2 shadow-xs hover:opacity-95 active:scale-98 transition-all"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white text-xs font-bold flex items-center gap-2 shadow-xs hover:opacity-95 active:scale-98 transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>{activeTab === 'info_banners' ? 'Tambah Info Banner' : 'Tambah Hero Banner'}</span>
@@ -374,7 +374,7 @@ export const BannerSponsorManager: React.FC<BannerSponsorManagerProps> = ({
           onClick={() => setActiveTab('sponsors')}
           className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'sponsors'
-              ? 'bg-white dark:bg-[#121215] text-[#833AB4] dark:text-[#E1306C] shadow-xs'
+              ? 'bg-white dark:bg-[#121215] text-[#208C60] dark:text-[#F47743] shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
@@ -387,7 +387,7 @@ export const BannerSponsorManager: React.FC<BannerSponsorManagerProps> = ({
           onClick={() => setActiveTab('hero')}
           className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'hero'
-              ? 'bg-white dark:bg-[#121215] text-[#833AB4] dark:text-[#E1306C] shadow-xs'
+              ? 'bg-white dark:bg-[#121215] text-[#208C60] dark:text-[#F47743] shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
@@ -400,7 +400,7 @@ export const BannerSponsorManager: React.FC<BannerSponsorManagerProps> = ({
           onClick={() => setActiveTab('info_banners')}
           className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'info_banners'
-              ? 'bg-white dark:bg-[#121215] text-[#833AB4] dark:text-[#E1306C] shadow-xs'
+              ? 'bg-white dark:bg-[#121215] text-[#208C60] dark:text-[#F47743] shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
@@ -413,7 +413,7 @@ export const BannerSponsorManager: React.FC<BannerSponsorManagerProps> = ({
           onClick={() => setActiveTab('rotator_settings')}
           className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
             activeTab === 'rotator_settings'
-              ? 'bg-white dark:bg-[#121215] text-[#833AB4] dark:text-[#E1306C] shadow-xs'
+              ? 'bg-white dark:bg-[#121215] text-[#208C60] dark:text-[#F47743] shadow-xs'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
@@ -465,7 +465,7 @@ export const BannerSponsorManager: React.FC<BannerSponsorManagerProps> = ({
                   <span className="font-bold text-slate-900 dark:text-white">
                     Kecepatan Putaran Marquee
                   </span>
-                  <span className="font-mono font-bold text-[#833AB4] dark:text-[#E1306C] bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded-md border border-purple-200/50 dark:border-purple-500/30">
+                  <span className="font-mono font-bold text-[#208C60] dark:text-[#F47743] bg-purple-50 dark:bg-purple-900/30 px-2 py-0.5 rounded-md border border-purple-200/50 dark:border-purple-500/30">
                     {carouselConfig.carousel_duration_seconds} detik
                   </span>
                 </div>
@@ -1156,7 +1156,7 @@ export const BannerSponsorManager: React.FC<BannerSponsorManagerProps> = ({
                 <button
                   type="submit"
                   disabled={isValidatingLogo}
-                  className="px-5 py-2 bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white rounded-xl font-bold shadow-xs hover:opacity-90 active:scale-98 transition-all disabled:opacity-50"
+                  className="px-5 py-2 bg-gradient-to-r from-[#208C60] to-[#F47743] text-white rounded-xl font-bold shadow-xs hover:opacity-90 active:scale-98 transition-all disabled:opacity-50"
                 >
                   {editingSponsorId ? 'Simpan Perubahan' : 'Tambahkan Logo'}
                 </button>
@@ -1274,7 +1274,7 @@ export const BannerSponsorManager: React.FC<BannerSponsorManagerProps> = ({
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white rounded-xl font-bold shadow-xs hover:opacity-90 transition-opacity"
+                  className="px-4 py-2 bg-gradient-to-r from-[#208C60] to-[#F47743] text-white rounded-xl font-bold shadow-xs hover:opacity-90 transition-opacity"
                 >
                   Simpan Banner
                 </button>

@@ -285,7 +285,7 @@ export const AdminBrandingManager: React.FC = () => {
           <div className="flex items-center gap-2 pt-1">
             <button
               onClick={() => openReplaceModal('APP_LOGO')}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
+              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Ganti Logo</span>
@@ -345,7 +345,7 @@ export const AdminBrandingManager: React.FC = () => {
           <div className="flex items-center gap-2 pt-1">
             <button
               onClick={() => openReplaceModal('FAVICON')}
-              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
+              className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity flex items-center justify-center gap-2 cursor-pointer"
             >
               <Upload className="w-3.5 h-3.5" />
               <span>Ganti Favicon</span>
@@ -545,7 +545,7 @@ export const AdminBrandingManager: React.FC = () => {
                 type="button"
                 disabled={!validationResult?.valid}
                 onClick={handleSaveAsset}
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white text-xs font-bold shadow-xs hover:opacity-95 disabled:opacity-50 transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white text-xs font-bold shadow-xs hover:opacity-95 disabled:opacity-50 transition-all cursor-pointer"
               >
                 Simpan & Aktifkan
               </button>

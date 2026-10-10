@@ -68,7 +68,7 @@ export const LeaderboardView: React.FC = () => {
             onClick={() => setActiveTab('individual')}
             className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all min-h-[38px] cursor-pointer ${
               activeTab === 'individual'
-                ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs'
+                ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -79,7 +79,7 @@ export const LeaderboardView: React.FC = () => {
             onClick={() => setActiveTab('contingent')}
             className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all min-h-[38px] cursor-pointer ${
               activeTab === 'contingent'
-                ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs'
+                ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -129,7 +129,7 @@ export const LeaderboardView: React.FC = () => {
                     <div className="text-xs font-extrabold text-[#171717] dark:text-white truncate max-w-[100px]">
                       {rank1.name.split(' ')[0]}
                     </div>
-                    <div className="text-xs font-mono font-bold text-[#E1306C]">{rank1.xp.toLocaleString()} XP</div>
+                    <div className="text-xs font-mono font-bold text-[#F47743]">{rank1.xp.toLocaleString()} XP</div>
                   </div>
                   <div className="w-full h-28 bg-gradient-to-t from-amber-200 to-amber-100 dark:from-amber-950/60 dark:to-amber-900/30 rounded-t-2xl flex items-center justify-center font-black text-amber-700 dark:text-amber-300 text-xl border-t border-amber-300 dark:border-amber-500/40">
                     #1
@@ -165,7 +165,7 @@ export const LeaderboardView: React.FC = () => {
           {/* CURRENT USER STICKY POSITION HIGHLIGHT */}
           <div className="p-4 rounded-[24px] bg-[#FFF0F4] dark:bg-[#1A151C] border border-[#FFE0E8] dark:border-pink-500/20 flex items-center justify-between shadow-2xs">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#833AB4] to-[#E1306C] text-white flex items-center justify-center font-black text-xs font-mono shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#208C60] to-[#F47743] text-white flex items-center justify-center font-black text-xs font-mono shadow-xs">
                 #{currentUserEntry.rank}
               </div>
               <img
@@ -176,14 +176,14 @@ export const LeaderboardView: React.FC = () => {
               <div>
                 <div className="text-xs font-bold text-[#171717] dark:text-white flex items-center gap-1.5">
                   <span>{currentUserEntry.name}</span>
-                  <span className="text-[10px] text-[#E1306C] font-semibold">(Posisi Kamu)</span>
+                  <span className="text-[10px] text-[#F47743] font-semibold">(Posisi Kamu)</span>
                 </div>
                 <div className="text-[10px] text-[#6B7280] dark:text-slate-400">Level {currentUserEntry.level} Scout Explorer</div>
               </div>
             </div>
 
             <div className="text-right">
-              <div className="text-sm font-black text-[#E1306C] font-mono">
+              <div className="text-sm font-black text-[#F47743] font-mono">
                 {currentUserEntry.xp.toLocaleString()} XP
               </div>
             </div>
@@ -198,7 +198,7 @@ export const LeaderboardView: React.FC = () => {
             {otherRanks.map(entry => (
               <div
                 key={entry.id}
-                className="p-3.5 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 flex items-center justify-between gap-3 text-xs hover:border-[#E1306C]/30 transition-colors shadow-2xs"
+                className="p-3.5 rounded-2xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 flex items-center justify-between gap-3 text-xs hover:border-[#F47743]/30 transition-colors shadow-2xs"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <span className="w-6 text-center font-mono font-bold text-[#6B7280] dark:text-slate-400">
@@ -216,7 +216,7 @@ export const LeaderboardView: React.FC = () => {
                 </div>
 
                 <div className="text-right shrink-0">
-                  <div className="font-mono font-bold text-[#E1306C]">{entry.xp.toLocaleString()} XP</div>
+                  <div className="font-mono font-bold text-[#F47743]">{entry.xp.toLocaleString()} XP</div>
                   <div className="text-[10px] text-[#9CA3AF]">Lv {entry.level}</div>
                 </div>
               </div>
@@ -230,10 +230,10 @@ export const LeaderboardView: React.FC = () => {
           <div className="p-3.5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 space-y-2 shadow-xs">
             <div className="flex items-center justify-between text-xs font-semibold text-[#171717] dark:text-slate-300">
               <span className="flex items-center gap-1.5">
-                <SlidersHorizontal className="w-3.5 h-3.5 text-[#E1306C]" />
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#F47743]" />
                 <span>Metode Peringkat Kontingen:</span>
               </span>
-              <span className="text-[11px] font-mono text-[#E1306C] font-semibold">
+              <span className="text-[11px] font-mono text-[#F47743] font-semibold">
                 {contingentRankingMethod === 'normalized' ? 'Normalisasi Adil' : 'Total Akumulasi'}
               </span>
             </div>
@@ -244,7 +244,7 @@ export const LeaderboardView: React.FC = () => {
                 onClick={() => setContingentRankingMethod('normalized')}
                 className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-left min-h-[44px] cursor-pointer ${
                   contingentRankingMethod === 'normalized'
-                    ? 'bg-[#FFF0F4] text-[#E1306C] border-[#FFE0E8] shadow-xs font-bold'
+                    ? 'bg-[#FFF0F4] text-[#F47743] border-[#FFE0E8] shadow-xs font-bold'
                     : 'bg-[#FAFAFA] dark:bg-white/5 text-[#6B7280] dark:text-slate-400 border-[#ECECEF] dark:border-white/5 hover:border-slate-300'
                 }`}
               >
@@ -257,7 +257,7 @@ export const LeaderboardView: React.FC = () => {
                 onClick={() => setContingentRankingMethod('total')}
                 className={`py-2 px-3 rounded-xl text-xs font-semibold border transition-all text-left min-h-[44px] cursor-pointer ${
                   contingentRankingMethod === 'total'
-                    ? 'bg-[#FFF0F4] text-[#E1306C] border-[#FFE0E8] shadow-xs font-bold'
+                    ? 'bg-[#FFF0F4] text-[#F47743] border-[#FFE0E8] shadow-xs font-bold'
                     : 'bg-[#FAFAFA] dark:bg-white/5 text-[#6B7280] dark:text-slate-400 border-[#ECECEF] dark:border-white/5 hover:border-slate-300'
                 }`}
               >
@@ -271,7 +271,7 @@ export const LeaderboardView: React.FC = () => {
             {sortedContingents.map((c, index) => (
               <div
                 key={c.id}
-                className="p-4 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/30 flex items-center justify-between gap-3 transition-colors shadow-2xs"
+                className="p-4 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/30 flex items-center justify-between gap-3 transition-colors shadow-2xs"
               >
                 <div className="flex items-center gap-3">
                   <div
@@ -296,7 +296,7 @@ export const LeaderboardView: React.FC = () => {
                 </div>
 
                 <div className="text-right">
-                  <div className="text-xs font-bold text-[#E1306C] font-mono">
+                  <div className="text-xs font-bold text-[#F47743] font-mono">
                     {contingentRankingMethod === 'normalized'
                       ? `${c.avgXp.toLocaleString()} XP / org`
                       : `${c.totalXp.toLocaleString()} XP`}

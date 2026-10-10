@@ -262,7 +262,7 @@ export const OperationsCommandCenter: React.FC<OperationsCommandCenterProps> = (
                       {card.issueDescription}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#833AB4] group-hover:text-[#E1306C] shrink-0">
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-[#208C60] group-hover:text-[#F47743] shrink-0">
                     <span>{card.primaryActionLabel}</span>
                     <ChevronRight className="w-3.5 h-3.5" />
                   </div>
@@ -308,7 +308,7 @@ export const OperationsCommandCenter: React.FC<OperationsCommandCenterProps> = (
             >
               <div className="flex items-center justify-between pb-2 border-b border-[#ECECEF]/60 dark:border-white/5">
                 <div className="text-xs font-bold text-[#171717] dark:text-white uppercase tracking-wider flex items-center gap-2">
-                  <GroupIcon className="w-4 h-4 text-[#833AB4]" />
+                  <GroupIcon className="w-4 h-4 text-[#208C60]" />
                   <span>{group.category}</span>
                 </div>
                 <span className="text-[11px] text-slate-400 font-medium">
@@ -350,7 +350,7 @@ export const OperationsCommandCenter: React.FC<OperationsCommandCenterProps> = (
                         >
                           {card.status}
                         </span>
-                        <div className="text-[10px] font-bold text-[#833AB4] group-hover:text-[#E1306C] mt-1 flex items-center justify-end gap-0.5">
+                        <div className="text-[10px] font-bold text-[#208C60] group-hover:text-[#F47743] mt-1 flex items-center justify-end gap-0.5">
                           <span>Buka</span>
                           <ChevronRight className="w-3 h-3" />
                         </div>
@@ -378,7 +378,7 @@ export const OperationsCommandCenter: React.FC<OperationsCommandCenterProps> = (
           <button
             type="button"
             onClick={() => setActiveModal('point_ledger')}
-            className="p-3 rounded-xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#833AB4]/30 flex items-center justify-between text-left transition-colors cursor-pointer text-xs"
+            className="p-3 rounded-xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#208C60]/30 flex items-center justify-between text-left transition-colors cursor-pointer text-xs"
           >
             <div>
               <div className="font-bold text-[#171717] dark:text-white">Buku Poin XP</div>
@@ -390,7 +390,7 @@ export const OperationsCommandCenter: React.FC<OperationsCommandCenterProps> = (
           <button
             type="button"
             onClick={() => setActiveModal('backup_restore')}
-            className="p-3 rounded-xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#833AB4]/30 flex items-center justify-between text-left transition-colors cursor-pointer text-xs"
+            className="p-3 rounded-xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#208C60]/30 flex items-center justify-between text-left transition-colors cursor-pointer text-xs"
           >
             <div>
               <div className="font-bold text-[#171717] dark:text-white">Backup & Restore</div>
@@ -402,7 +402,7 @@ export const OperationsCommandCenter: React.FC<OperationsCommandCenterProps> = (
           <button
             type="button"
             onClick={() => setActiveModal('health_jobs')}
-            className="p-3 rounded-xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#833AB4]/30 flex items-center justify-between text-left transition-colors cursor-pointer text-xs"
+            className="p-3 rounded-xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#208C60]/30 flex items-center justify-between text-left transition-colors cursor-pointer text-xs"
           >
             <div>
               <div className="font-bold text-[#171717] dark:text-white">Status Sistem & Job</div>

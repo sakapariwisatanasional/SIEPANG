@@ -84,7 +84,7 @@ export const CompetitionList: React.FC = () => {
       <div className="bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 sm:p-6 rounded-[28px] shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#E1306C] mb-1.5">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#F47743] mb-1.5">
               <Flame className="w-3.5 h-3.5" />
               <span>Ajang Prestasi & Kreativitas Kepramukaan</span>
             </div>
@@ -99,7 +99,7 @@ export const CompetitionList: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowSubmitModal(true)}
-            className="flex items-center justify-center gap-1.5 p-2.5 sm:px-4 sm:py-2.5 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 shrink-0 min-w-[44px] min-h-[44px] cursor-pointer"
+            className="flex items-center justify-center gap-1.5 p-2.5 sm:px-4 sm:py-2.5 bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 shrink-0 min-w-[44px] min-h-[44px] cursor-pointer"
             title="Kirim Karya Baru"
             aria-label="Kirim Karya Baru"
           >
@@ -115,7 +115,7 @@ export const CompetitionList: React.FC = () => {
             onClick={() => setActiveTab('gallery')}
             className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all min-h-[38px] cursor-pointer ${
               activeTab === 'gallery'
-                ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs'
+                ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -126,7 +126,7 @@ export const CompetitionList: React.FC = () => {
             onClick={() => setActiveTab('competitions')}
             className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all min-h-[38px] cursor-pointer ${
               activeTab === 'competitions'
-                ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs'
+                ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -159,7 +159,7 @@ export const CompetitionList: React.FC = () => {
               return (
                 <div
                   key={work.id}
-                  className="rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 overflow-hidden hover:border-[#E1306C]/30 transition-all flex flex-col group shadow-2xs"
+                  className="rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 overflow-hidden hover:border-[#F47743]/30 transition-all flex flex-col group shadow-2xs"
                 >
                   {/* Media Thumbnail with Aspect Ratio */}
                   <div className="relative aspect-[4/3] bg-slate-900 overflow-hidden">
@@ -209,7 +209,7 @@ export const CompetitionList: React.FC = () => {
                       onClick={() => handleVoteToggle(work.id)}
                       className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all shrink-0 active:scale-90 min-h-[44px] min-w-[44px] cursor-pointer ${
                         hasVoted
-                          ? 'bg-[#FFF0F4] text-[#E1306C] border border-[#FFE0E8] shadow-xs'
+                          ? 'bg-[#FFF0F4] text-[#F47743] border border-[#FFE0E8] shadow-xs'
                           : 'bg-[#FAFAFA] hover:bg-slate-100 text-[#6B7280] border border-[#ECECEF] dark:bg-white/5 dark:text-slate-300'
                       }`}
                       title={hasVoted ? 'Batal Sukai' : 'Sukai & Vote Karya'}
@@ -217,7 +217,7 @@ export const CompetitionList: React.FC = () => {
                     >
                       <Heart
                         className={`w-4 h-4 transition-transform ${
-                          hasVoted ? 'fill-current text-[#E1306C] scale-110' : 'text-slate-400'
+                          hasVoted ? 'fill-current text-[#F47743] scale-110' : 'text-slate-400'
                         }`}
                       />
                       <span className="font-mono font-bold">{work.votesCount}</span>
@@ -242,7 +242,7 @@ export const CompetitionList: React.FC = () => {
             {competitions.map(c => (
               <div
                 key={c.id}
-                className="p-5 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors shadow-2xs"
+                className="p-5 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors shadow-2xs"
               >
                 <div className="flex items-start gap-3.5">
                   <div className="w-12 h-12 rounded-2xl bg-[#FFF7ED] text-amber-600 border border-[#FED7AA] flex items-center justify-center text-xl shrink-0">
@@ -266,7 +266,7 @@ export const CompetitionList: React.FC = () => {
                     </div>
 
                     {/* Jury + Public Weighting breakdown tag */}
-                    <div className="flex items-center gap-1.5 text-[11px] text-[#E1306C] mt-2 font-semibold">
+                    <div className="flex items-center gap-1.5 text-[11px] text-[#F47743] mt-2 font-semibold">
                       <Scale className="w-3.5 h-3.5" />
                       <span>
                         Bobot Nilai: Juri Dewan ({c.juryWeight}%)
@@ -289,7 +289,7 @@ export const CompetitionList: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setActiveTab('gallery')}
-                    className="px-3.5 py-2 bg-[#FFF0F4] hover:bg-[#FFE0E8] text-[#E1306C] rounded-xl text-xs font-bold border border-[#FFE0E8] transition-colors min-h-[44px] cursor-pointer"
+                    className="px-3.5 py-2 bg-[#FFF0F4] hover:bg-[#FFE0E8] text-[#F47743] rounded-xl text-xs font-bold border border-[#FFE0E8] transition-colors min-h-[44px] cursor-pointer"
                   >
                     Lihat Karya
                   </button>
@@ -330,7 +330,7 @@ export const CompetitionList: React.FC = () => {
                       competitionTitle: comp?.title || '',
                     });
                   }}
-                  className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white shadow-2xs outline-none focus:border-[#E1306C]"
+                  className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white shadow-2xs outline-none focus:border-[#F47743]"
                 >
                   {competitions
                     .filter(c => c.type === 'digital')
@@ -350,7 +350,7 @@ export const CompetitionList: React.FC = () => {
                   placeholder="Contoh: Senja Menggema di Bumi Perkemahan"
                   value={newWork.title}
                   onChange={e => setNewWork({ ...newWork, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white shadow-2xs outline-none focus:border-[#E1306C]"
+                  className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white shadow-2xs outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -362,7 +362,7 @@ export const CompetitionList: React.FC = () => {
                   placeholder="https://instagram.com/reel/... atau https://tiktok.com/..."
                   value={newWork.originalUrl}
                   onChange={e => setNewWork({ ...newWork, originalUrl: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white shadow-2xs outline-none focus:border-[#E1306C] font-mono"
+                  className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white shadow-2xs outline-none focus:border-[#F47743] font-mono"
                 />
               </div>
 
@@ -373,7 +373,7 @@ export const CompetitionList: React.FC = () => {
                   placeholder="Ceritakan pesan kepramukaan di balik karyamu..."
                   value={newWork.description}
                   onChange={e => setNewWork({ ...newWork, description: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white shadow-2xs outline-none focus:border-[#E1306C]"
+                  className="w-full px-3.5 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white shadow-2xs outline-none focus:border-[#F47743]"
                 />
               </div>
             </div>
@@ -388,7 +388,7 @@ export const CompetitionList: React.FC = () => {
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 min-h-[44px]"
+                className="px-5 py-2.5 bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 min-h-[44px]"
               >
                 Kirim Karya & Dapatkan Vote
               </button>

@@ -270,7 +270,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       <div className="h-16 flex items-center justify-between px-4 border-b border-[#ECECEF] dark:border-white/10">
         {!collapsed ? (
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#833AB4] to-[#E1306C] text-white flex items-center justify-center text-sm font-bold shadow-xs shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#208C60] to-[#F47743] text-white flex items-center justify-center text-sm font-bold shadow-xs shrink-0">
               <Tent className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
@@ -283,7 +283,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             </div>
           </div>
         ) : (
-          <div className="mx-auto w-8 h-8 rounded-xl bg-gradient-to-tr from-[#833AB4] to-[#E1306C] text-white flex items-center justify-center text-sm font-bold shadow-xs">
+          <div className="mx-auto w-8 h-8 rounded-xl bg-gradient-to-tr from-[#208C60] to-[#F47743] text-white flex items-center justify-center text-sm font-bold shadow-xs">
             <Tent className="w-4 h-4 text-white" />
           </div>
         )}
@@ -301,7 +301,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
       <div className="p-3">
         <button
           onClick={onOpenScanner}
-          className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer ${
+          className={`w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white font-bold text-xs shadow-xs active:scale-95 transition-all cursor-pointer ${
             collapsed ? 'justify-center' : ''
           }`}
           title="Pindai QR"
@@ -331,14 +331,14 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                   onClick={() => onTabChange(item.id)}
                   className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer group relative ${
                     isActive
-                      ? 'bg-[#833AB4]/10 text-[#833AB4] dark:text-[#E1306C] font-bold shadow-xs'
+                      ? 'bg-[#208C60]/10 text-[#208C60] dark:text-[#F47743] font-bold shadow-xs'
                       : 'text-slate-600 dark:text-slate-400 hover:text-[#171717] dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
                   } ${collapsed ? 'justify-center' : ''}`}
                   title={collapsed ? item.label : undefined}
                 >
                   <Icon
                     className={`w-4 h-4 shrink-0 transition-colors ${
-                      isActive ? 'text-[#833AB4] dark:text-[#E1306C]' : 'text-slate-400 group-hover:text-slate-700 dark:group-hover:text-white'
+                      isActive ? 'text-[#208C60] dark:text-[#F47743]' : 'text-slate-400 group-hover:text-slate-700 dark:group-hover:text-white'
                     }`}
                   />
                   {!collapsed && <span className="truncate">{item.label}</span>}

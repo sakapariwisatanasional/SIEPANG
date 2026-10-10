@@ -107,7 +107,7 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-[28px] bg-white dark:bg-[#121215] border border-black/5 dark:border-white/10 shadow-xs">
           <div className="space-y-1">
-            <div className="text-[11px] font-bold text-[#E1306C] uppercase tracking-wider flex items-center gap-1.5">
+            <div className="text-[11px] font-bold text-[#F47743] uppercase tracking-wider flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Pusat Publikasi & Media Resmi</span>
             </div>
@@ -123,7 +123,7 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
             <button
               type="button"
               onClick={() => onNavigateTab?.('public_home')}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white font-bold text-xs flex items-center gap-2 shadow-xs hover:opacity-90 active:scale-98 transition-all"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white font-bold text-xs flex items-center gap-2 shadow-xs hover:opacity-90 active:scale-98 transition-all"
             >
               <Globe className="w-4 h-4" />
               <span>Buka Portal Publik</span>
@@ -140,8 +140,8 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
             onClick={() => setActiveSection(activeSection === 'albums' ? 'overview' : 'albums')}
             className={`p-4 rounded-3xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
               activeSection === 'albums' || activeSection === 'photos'
-                ? 'bg-[#833AB4]/10 border-[#833AB4]/40 shadow-xs ring-2 ring-[#833AB4]/20'
-                : 'bg-white dark:bg-[#121215] border-black/5 dark:border-white/10 hover:border-[#833AB4]/30 shadow-xs'
+                ? 'bg-[#208C60]/10 border-[#208C60]/40 shadow-xs ring-2 ring-[#208C60]/20'
+                : 'bg-white dark:bg-[#121215] border-black/5 dark:border-white/10 hover:border-[#208C60]/30 shadow-xs'
             }`}
           >
             <div className="flex items-center justify-between text-xs text-purple-600 dark:text-purple-400 mb-2">
@@ -163,8 +163,8 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
             onClick={() => setActiveSection(activeSection === 'videos' ? 'overview' : 'videos')}
             className={`p-4 rounded-3xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
               activeSection === 'videos'
-                ? 'bg-[#E1306C]/10 border-[#E1306C]/40 shadow-xs ring-2 ring-[#E1306C]/20'
-                : 'bg-white dark:bg-[#121215] border-black/5 dark:border-white/10 hover:border-[#E1306C]/30 shadow-xs'
+                ? 'bg-[#F47743]/10 border-[#F47743]/40 shadow-xs ring-2 ring-[#F47743]/20'
+                : 'bg-white dark:bg-[#121215] border-black/5 dark:border-white/10 hover:border-[#F47743]/30 shadow-xs'
             }`}
           >
             <div className="flex items-center justify-between text-xs text-pink-600 dark:text-pink-400 mb-2">
@@ -186,8 +186,8 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
             onClick={() => setActiveSection(activeSection === 'hero_banner' ? 'overview' : 'hero_banner')}
             className={`p-4 rounded-3xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
               activeSection === 'hero_banner' || activeSection === 'info_banner'
-                ? 'bg-[#F77737]/10 border-[#F77737]/40 shadow-xs ring-2 ring-[#F77737]/20'
-                : 'bg-white dark:bg-[#121215] border-black/5 dark:border-white/10 hover:border-[#F77737]/30 shadow-xs'
+                ? 'bg-[#F4A53A]/10 border-[#F4A53A]/40 shadow-xs ring-2 ring-[#F4A53A]/20'
+                : 'bg-white dark:bg-[#121215] border-black/5 dark:border-white/10 hover:border-[#F4A53A]/30 shadow-xs'
             }`}
           >
             <div className="flex items-center justify-between text-xs text-orange-600 dark:text-orange-400 mb-2">
@@ -209,8 +209,8 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
             onClick={() => setActiveSection(activeSection === 'sponsors' ? 'overview' : 'sponsors')}
             className={`p-4 rounded-3xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
               activeSection === 'sponsors'
-                ? 'bg-[#FCAF45]/10 border-[#FCAF45]/40 shadow-xs ring-2 ring-[#FCAF45]/20'
-                : 'bg-white dark:bg-[#121215] border-black/5 dark:border-white/10 hover:border-[#FCAF45]/30 shadow-xs'
+                ? 'bg-[#FFD36A]/10 border-[#FFD36A]/40 shadow-xs ring-2 ring-[#FFD36A]/20'
+                : 'bg-white dark:bg-[#121215] border-black/5 dark:border-white/10 hover:border-[#FFD36A]/30 shadow-xs'
             }`}
           >
             <div className="flex items-center justify-between text-xs text-amber-600 dark:text-amber-400 mb-2">
@@ -301,8 +301,8 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
               onClick={() => setActiveSection('videos')}
               className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${
                 activeSection === 'videos'
-                  ? 'bg-[#E1306C] text-white border-[#E1306C] shadow-xs'
-                  : 'bg-white dark:bg-[#121215] text-slate-600 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#E1306C]/40'
+                  ? 'bg-[#F47743] text-white border-[#F47743] shadow-xs'
+                  : 'bg-white dark:bg-[#121215] text-slate-600 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#F47743]/40'
               }`}
             >
               <Film className="w-3.5 h-3.5" />
@@ -314,8 +314,8 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
               onClick={() => setActiveSection('hero_banner')}
               className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${
                 activeSection === 'hero_banner'
-                  ? 'bg-[#F77737] text-white border-[#F77737] shadow-xs'
-                  : 'bg-white dark:bg-[#121215] text-slate-600 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#F77737]/40'
+                  ? 'bg-[#F4A53A] text-white border-[#F4A53A] shadow-xs'
+                  : 'bg-white dark:bg-[#121215] text-slate-600 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#F4A53A]/40'
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
@@ -327,8 +327,8 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
               onClick={() => setActiveSection('info_banner')}
               className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${
                 activeSection === 'info_banner'
-                  ? 'bg-[#F77737] text-white border-[#F77737] shadow-xs'
-                  : 'bg-white dark:bg-[#121215] text-slate-600 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#F77737]/40'
+                  ? 'bg-[#F4A53A] text-white border-[#F4A53A] shadow-xs'
+                  : 'bg-white dark:bg-[#121215] text-slate-600 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#F4A53A]/40'
               }`}
             >
               <Bell className="w-3.5 h-3.5" />
@@ -340,8 +340,8 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
               onClick={() => setActiveSection('sponsors')}
               className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-colors border flex items-center gap-1.5 ${
                 activeSection === 'sponsors'
-                  ? 'bg-[#FCAF45] text-slate-900 border-[#FCAF45] shadow-xs'
-                  : 'bg-white dark:bg-[#121215] text-slate-600 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#FCAF45]/40'
+                  ? 'bg-[#FFD36A] text-slate-900 border-[#FFD36A] shadow-xs'
+                  : 'bg-white dark:bg-[#121215] text-slate-600 dark:text-slate-300 border-black/5 dark:border-white/10 hover:border-[#FFD36A]/40'
               }`}
             >
               <Award className="w-3.5 h-3.5" />
@@ -477,7 +477,7 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
             <button
               type="button"
               onClick={() => onNavigateTab?.('public_home')}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white font-bold text-xs flex items-center gap-2 shadow-xs shrink-0 hover:opacity-90"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white font-bold text-xs flex items-center gap-2 shadow-xs shrink-0 hover:opacity-90"
             >
               <span>Buka Pratinjau Penuh</span>
               <ExternalLink className="w-3.5 h-3.5" />
@@ -500,7 +500,7 @@ export const PublicationMediaCenter: React.FC<PublicationMediaCenterProps> = ({
             </div>
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-black/30 border border-black/5 dark:border-white/5 space-y-1">
               <span className="text-slate-400 text-[11px] block">Galeri Foto & Video:</span>
-              <span className="font-bold text-[#E1306C] flex items-center gap-1.5">
+              <span className="font-bold text-[#F47743] flex items-center gap-1.5">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>Terhubung ke Google Drive</span>
               </span>

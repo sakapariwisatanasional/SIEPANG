@@ -165,7 +165,7 @@ export const AttendanceScanner: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#E1306C]">
+              <span className="px-2.5 py-0.5 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#F47743]">
                 Operasional Presensi & Check-in v1.1
               </span>
               {connectionState === 'offline' && (
@@ -187,7 +187,7 @@ export const AttendanceScanner: React.FC = () => {
             type="button"
             onClick={() => setActiveTab('individual_checkin')}
             className={`py-2 px-3 rounded-xl transition-all min-h-[38px] cursor-pointer ${
-              activeTab === 'individual_checkin' ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs' : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
+              activeTab === 'individual_checkin' ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs' : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
             🎫 Check-in Peserta
@@ -196,7 +196,7 @@ export const AttendanceScanner: React.FC = () => {
             type="button"
             onClick={() => setActiveTab('contingent_checkin')}
             className={`py-2 px-3 rounded-xl transition-all min-h-[38px] cursor-pointer ${
-              activeTab === 'contingent_checkin' ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs' : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
+              activeTab === 'contingent_checkin' ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs' : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
             🚩 Check-in Kontingen
@@ -205,7 +205,7 @@ export const AttendanceScanner: React.FC = () => {
             type="button"
             onClick={() => setActiveTab('activity_session')}
             className={`py-2 px-3 rounded-xl transition-all min-h-[38px] cursor-pointer ${
-              activeTab === 'activity_session' ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs' : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
+              activeTab === 'activity_session' ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs' : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
             📲 Presensi Sesi / Apel
@@ -214,7 +214,7 @@ export const AttendanceScanner: React.FC = () => {
             type="button"
             onClick={() => setActiveTab('dashboard')}
             className={`py-2 px-3 rounded-xl transition-all min-h-[38px] cursor-pointer ${
-              activeTab === 'dashboard' ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs' : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
+              activeTab === 'dashboard' ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs' : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
             📊 Statistik Kehadiran
@@ -241,14 +241,14 @@ export const AttendanceScanner: React.FC = () => {
                   onKeyDown={e => {
                     if (e.key === 'Enter') handleInspectParticipant(searchQuery);
                   }}
-                  className="w-full pl-10 pr-4 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E1306C] font-mono min-h-[44px]"
+                  className="w-full pl-10 pr-4 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#F47743] font-mono min-h-[44px]"
                 />
               </div>
 
               <button
                 type="button"
                 onClick={() => handleInspectParticipant(searchQuery)}
-                className="px-5 py-2.5 bg-gradient-to-r from-[#833AB4] to-[#E1306C] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 min-h-[44px] cursor-pointer"
+                className="px-5 py-2.5 bg-gradient-to-r from-[#208C60] to-[#F47743] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 min-h-[44px] cursor-pointer"
               >
                 Cari Peserta
               </button>
@@ -267,7 +267,7 @@ export const AttendanceScanner: React.FC = () => {
                     onClick={() => handleInspectParticipant(p.code)}
                     className="px-3 py-1.5 rounded-xl bg-[#FAFAFA] hover:bg-slate-100 text-[#171717] dark:bg-white/5 dark:text-slate-300 border border-[#ECECEF] dark:border-white/10 text-[11px] font-mono flex items-center gap-1.5 min-h-[36px] cursor-pointer"
                   >
-                    <QrCode className="w-3.5 h-3.5 text-[#E1306C]" />
+                    <QrCode className="w-3.5 h-3.5 text-[#F47743]" />
                     <span>{p.name.split(' ')[0]} ({p.code.split('-')[2]})</span>
                   </button>
                 ))}
@@ -277,16 +277,16 @@ export const AttendanceScanner: React.FC = () => {
 
           {/* INSPECTED PARTICIPANT RESULT CARD (Requirement 20) */}
           {inspectedParticipant && (
-            <div className="p-6 rounded-[28px] bg-white dark:bg-[#141418] border-2 border-[#E1306C]/30 shadow-lg space-y-4 animate-in fade-in">
+            <div className="p-6 rounded-[28px] bg-white dark:bg-[#141418] border-2 border-[#F47743]/30 shadow-lg space-y-4 animate-in fade-in">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <img
                     src={inspectedParticipant.photoUrl}
                     alt={inspectedParticipant.name}
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-[#E1306C]/40 shadow-xs"
+                    className="w-16 h-16 rounded-2xl object-cover border-2 border-[#F47743]/40 shadow-xs"
                   />
                   <div>
-                    <span className="text-[10px] font-mono text-[#E1306C] font-bold bg-[#FFF0F4] px-2 py-0.5 rounded-md border border-[#FFE0E8]">
+                    <span className="text-[10px] font-mono text-[#F47743] font-bold bg-[#FFF0F4] px-2 py-0.5 rounded-md border border-[#FFE0E8]">
                       {inspectedParticipant.code}
                     </span>
                     <h3 className="text-base font-bold text-[#171717] dark:text-white mt-1">
@@ -345,7 +345,7 @@ export const AttendanceScanner: React.FC = () => {
                     type="button"
                     onClick={() => handlePerformCheckIn(inspectedParticipant)}
                     disabled={isProcessing}
-                    className="w-full py-3 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-md shadow-pink-500/20 flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+                    className="w-full py-3 bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-md shadow-pink-500/20 flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
                   >
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Konfirmasi Check-in Kedatangan Sekarang</span>
@@ -363,7 +363,7 @@ export const AttendanceScanner: React.FC = () => {
           <div className="p-5 sm:p-6 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 space-y-4 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-[#171717] dark:text-white flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#E1306C]" />
+                <Users className="w-4 h-4 text-[#F47743]" />
                 <span>Check-in Rombongan Kontingen</span>
               </h3>
               <p className="text-xs text-[#6B7280] dark:text-slate-400 mt-0.5">
@@ -444,7 +444,7 @@ export const AttendanceScanner: React.FC = () => {
                             if (e.target.checked) setExceptionParticipantIds([...exceptionParticipantIds, p.id]);
                             else setExceptionParticipantIds(exceptionParticipantIds.filter(id => id !== p.id));
                           }}
-                          className="accent-[#E1306C] rounded w-4 h-4 cursor-pointer"
+                          className="accent-[#F47743] rounded w-4 h-4 cursor-pointer"
                         />
                         <div>
                           <div className="font-bold text-[#171717] dark:text-white">{p.name}</div>
@@ -466,7 +466,7 @@ export const AttendanceScanner: React.FC = () => {
             <button
               type="button"
               onClick={handlePerformContingentCheckIn}
-              className="w-full py-3 bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-md shadow-pink-500/20 flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+              className="w-full py-3 bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-md shadow-pink-500/20 flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
             >
               <UserCheck className="w-4 h-4" />
               <span>Check-in Seluruh Kontingen (Kecuali Pengecualian)</span>
@@ -481,7 +481,7 @@ export const AttendanceScanner: React.FC = () => {
           <div className="p-5 sm:p-6 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 space-y-4 shadow-xs">
             <div>
               <h3 className="text-sm font-bold text-[#171717] dark:text-white flex items-center gap-2">
-                <CalendarCheck className="w-4 h-4 text-[#E1306C]" />
+                <CalendarCheck className="w-4 h-4 text-[#F47743]" />
                 <span>Presensi Kehadiran Sesi Kegiatan & Apel</span>
               </h3>
               <p className="text-xs text-[#6B7280] dark:text-slate-400 mt-0.5">
@@ -515,13 +515,13 @@ export const AttendanceScanner: React.FC = () => {
                 onKeyDown={e => {
                   if (e.key === 'Enter') handleActivityScan(manualCode);
                 }}
-                className="flex-1 px-4 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#E1306C] min-h-[44px]"
+                className="flex-1 px-4 py-2.5 bg-[#FAFAFA] dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base md:text-xs text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#F47743] min-h-[44px]"
               />
               <button
                 type="button"
                 onClick={() => handleActivityScan(manualCode)}
                 disabled={isProcessing || !manualCode}
-                className="px-5 py-2.5 bg-gradient-to-r from-[#833AB4] to-[#E1306C] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 disabled:opacity-40 min-h-[44px] cursor-pointer"
+                className="px-5 py-2.5 bg-gradient-to-r from-[#208C60] to-[#F47743] hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-pink-500/20 disabled:opacity-40 min-h-[44px] cursor-pointer"
               >
                 Presensi
               </button>
@@ -532,7 +532,7 @@ export const AttendanceScanner: React.FC = () => {
           <div className="p-5 sm:p-6 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 space-y-3 shadow-xs">
             <div className="flex items-center justify-between text-xs">
               <span className="font-bold text-[#171717] dark:text-white flex items-center gap-1.5">
-                <History className="w-3.5 h-3.5 text-[#E1306C]" />
+                <History className="w-3.5 h-3.5 text-[#F47743]" />
                 <span>Log Presensi Terbaru Sesi Ini ({recentRecords.length})</span>
               </span>
               <span className="text-[#6B7280] font-mono text-[10px]">Auto-Sync Real-time</span>
@@ -546,7 +546,7 @@ export const AttendanceScanner: React.FC = () => {
                     <div className="text-[10px] text-[#6B7280] font-mono">{rec.participantCode} · {rec.contingentName}</div>
                   </div>
                   <div className="text-right">
-                    <span className="font-mono text-[#E1306C] text-xs font-bold">+{rec.xpAwarded} XP</span>
+                    <span className="font-mono text-[#F47743] text-xs font-bold">+{rec.xpAwarded} XP</span>
                     <div className="text-[10px] text-[#9CA3AF] font-mono">{rec.timestamp}</div>
                   </div>
                 </div>

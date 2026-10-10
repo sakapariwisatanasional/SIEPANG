@@ -302,7 +302,7 @@ export const DocumentationManager: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowAddAlbumModal(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:opacity-90 active:scale-98 transition-all"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:opacity-90 active:scale-98 transition-all"
           >
             <FolderPlus className="w-4 h-4" />
             <span>Tambah Album Drive</span>
@@ -572,7 +572,7 @@ export const DocumentationManager: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowAddVideoModal(true)}
-              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:opacity-90"
+              className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs hover:opacity-90"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Tambah Video YouTube/Drive</span>
@@ -593,7 +593,7 @@ export const DocumentationManager: React.FC = () => {
                     loading="lazy"
                   />
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#833AB4] to-[#E1306C] text-white flex items-center justify-center shadow-lg">
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-tr from-[#208C60] to-[#F47743] text-white flex items-center justify-center shadow-lg">
                       <Play className="w-5 h-5 fill-white ml-0.5" />
                     </div>
                   </div>
@@ -898,7 +898,7 @@ export const DocumentationManager: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isValidating || (Boolean(validationState) && validationState?.status !== 'ACCESSIBLE')}
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white font-bold shadow-xs hover:opacity-90 disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white font-bold shadow-xs hover:opacity-90 disabled:opacity-50"
                 >
                   Simpan & Publikasikan Album
                 </button>
@@ -997,7 +997,7 @@ export const DocumentationManager: React.FC = () => {
           <div className="w-full max-w-lg bg-white dark:bg-[#121215] border border-black/10 dark:border-white/10 rounded-3xl p-6 shadow-2xl space-y-4 my-8">
             <div className="flex items-center justify-between pb-2 border-b border-black/5 dark:border-white/10">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Film className="w-4 h-4 text-[#E1306C]" />
+                <Film className="w-4 h-4 text-[#F47743]" />
                 <span>Tambah Video Highlight Resmi</span>
               </h3>
               <button
@@ -1023,7 +1023,7 @@ export const DocumentationManager: React.FC = () => {
                   placeholder="https://www.youtube.com/watch?v=... atau https://drive.google.com/..."
                   value={videoForm.source_url}
                   onChange={e => handleVideoUrlChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-[#E1306C] font-mono text-[11px]"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-[#F47743] font-mono text-[11px]"
                 />
               </div>
 
@@ -1059,7 +1059,7 @@ export const DocumentationManager: React.FC = () => {
                   placeholder="Contoh: Highlight Hari Pertama Jambore Cabang 2026"
                   value={videoForm.title}
                   onChange={e => setVideoForm({ ...videoForm, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -1097,7 +1097,7 @@ export const DocumentationManager: React.FC = () => {
                   placeholder="Keterangan singkat rangkaian kegiatan dalam video..."
                   value={videoForm.description}
                   onChange={e => setVideoForm({ ...videoForm, description: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-black/30 border border-black/10 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -1127,7 +1127,7 @@ export const DocumentationManager: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white font-bold shadow-xs hover:opacity-90"
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white font-bold shadow-xs hover:opacity-90"
                 >
                   Simpan Video
                 </button>

@@ -22,7 +22,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
         {label && (
           <label htmlFor={inputId} className="block text-xs font-semibold text-[#171717] dark:text-slate-200">
             {label}
-            {props.required && <span className="text-[#E1306C] ml-1">*</span>}
+            {props.required && <span className="text-[#F47743] ml-1">*</span>}
           </label>
         )}
         <div className="relative">
@@ -37,7 +37,7 @@ export const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
             className={`w-full bg-white dark:bg-[#1A1A1E] text-[#171717] dark:text-white border ${
               error
                 ? 'border-rose-500 focus:border-rose-600 focus:ring-rose-500/20'
-                : 'border-[#ECECEF] dark:border-white/10 focus:border-[#E1306C] focus:ring-[#E1306C]/20'
+                : 'border-[#ECECEF] dark:border-white/10 focus:border-[#F47743] focus:ring-[#F47743]/20'
             } rounded-xl ${
               icon ? 'pl-10 pr-3.5' : 'px-3.5'
             } py-2.5 text-[16px] md:text-sm placeholder:text-[#9CA3AF] shadow-2xs outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:bg-slate-50 ${className}`}
@@ -71,7 +71,7 @@ export const FormSelect = React.forwardRef<HTMLSelectElement, FormSelectProps>(
         {label && (
           <label htmlFor={selectId} className="block text-xs font-semibold text-[#171717] dark:text-slate-200">
             {label}
-            {props.required && <span className="text-[#E1306C] ml-1">*</span>}
+            {props.required && <span className="text-[#F47743] ml-1">*</span>}
           </label>
         )}
         <select
@@ -80,7 +80,7 @@ export const FormSelect = React.forwardRef<HTMLSelectElement, FormSelectProps>(
           className={`w-full bg-white dark:bg-[#1A1A1E] text-[#171717] dark:text-white border ${
             error
               ? 'border-rose-500 focus:border-rose-600 focus:ring-rose-500/20'
-              : 'border-[#ECECEF] dark:border-white/10 focus:border-[#E1306C] focus:ring-[#E1306C]/20'
+              : 'border-[#ECECEF] dark:border-white/10 focus:border-[#F47743] focus:ring-[#F47743]/20'
           } rounded-xl px-3.5 py-2.5 text-[16px] md:text-sm shadow-2xs outline-none focus:ring-2 transition-all disabled:opacity-50 ${className}`}
           {...props}
         >

@@ -192,7 +192,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
         {/* Left Zone: Static Authoritative Single-Event Identity (1 Instalasi = 1 Kegiatan) */}
         <div className="flex items-center gap-2.5 min-w-0">
           {/* Logo Badge */}
-          <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] p-[1.5px] shadow-sm flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] p-[1.5px] shadow-sm flex items-center justify-center shrink-0">
             <div className="w-full h-full rounded-[10px] bg-white dark:bg-[#121215] flex items-center justify-center font-bold text-xs overflow-hidden">
               {effectiveBranding.appLogoUrl ? (
                 <img
@@ -286,7 +286,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({
             <button
               type="button"
               onClick={onNavigatePublic}
-              className="flex items-center justify-center w-11 h-11 md:w-auto md:px-3 md:py-1.5 rounded-xl md:rounded-full text-xs font-semibold bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white hover:opacity-90 shadow-xs transition-opacity shrink-0 min-w-[44px] min-h-[44px] cursor-pointer"
+              className="flex items-center justify-center w-11 h-11 md:w-auto md:px-3 md:py-1.5 rounded-xl md:rounded-full text-xs font-semibold bg-gradient-to-r from-[#208C60] to-[#F47743] text-white hover:opacity-90 shadow-xs transition-opacity shrink-0 min-w-[44px] min-h-[44px] cursor-pointer"
               title="Portal Publik"
               aria-label="Portal Publik"
             >

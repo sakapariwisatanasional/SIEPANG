@@ -139,7 +139,7 @@ export const PublicHeroBanner: React.FC<PublicHeroBannerProps> = ({
 
             {currentBanner.cta_label && (
               <div className="pt-1">
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#F77737] hover:opacity-95 text-white text-xs font-bold shadow-lg transition-transform group-hover:translate-x-1">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#F4A53A] hover:opacity-95 text-white text-xs font-bold shadow-lg transition-transform group-hover:translate-x-1">
                   <span>{currentBanner.cta_label}</span>
                   {currentBanner.target_type === 'EXTERNAL_URL' ? (
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -187,7 +187,7 @@ export const PublicHeroBanner: React.FC<PublicHeroBannerProps> = ({
                   setCurrentIndex(idx);
                 }}
                 className={`h-1.5 rounded-full transition-all ${
-                  currentIndex === idx ? 'w-6 bg-gradient-to-r from-[#E1306C] to-[#FCAF45]' : 'w-1.5 bg-white/40 hover:bg-white/70'
+                  currentIndex === idx ? 'w-6 bg-gradient-to-r from-[#F47743] to-[#FFD36A]' : 'w-1.5 bg-white/40 hover:bg-white/70'
                 }`}
                 aria-label={`Ke slide ${idx + 1}`}
               />

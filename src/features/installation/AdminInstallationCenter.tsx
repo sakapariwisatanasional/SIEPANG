@@ -302,7 +302,7 @@ export const AdminInstallationCenter: React.FC<AdminInstallationCenterProps> = (
           }}
           className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/15 text-slate-800 dark:text-white text-xs font-bold transition-all flex items-center gap-2 cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4 text-[#E1306C]" />
+          <ArrowLeft className="w-4 h-4 text-[#F47743]" />
           <span>Kembali ke Beranda Resmi Kegiatan (/)</span>
         </button>
 
@@ -604,7 +604,7 @@ export const AdminInstallationCenter: React.FC<AdminInstallationCenterProps> = (
         {record.bootstrap_superadmin_status === 'ACTIVE' ? (
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200/60 dark:border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#833AB4] to-[#E1306C] text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#208C60] to-[#F47743] text-white flex items-center justify-center font-black text-xl shadow-xs shrink-0">
                 ⚜️
               </div>
               <div className="space-y-0.5">

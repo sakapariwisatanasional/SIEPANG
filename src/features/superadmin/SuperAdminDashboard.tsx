@@ -53,7 +53,7 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* Top Banner & Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 sm:p-6 rounded-[28px] shadow-xs">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#E1306C] mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#F47743] mb-2">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>SuperAdmin Console</span>
           </div>
@@ -217,7 +217,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
             <div className="p-4 rounded-3xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-2xs space-y-1">
               <div className="text-xs text-[#6B7280] dark:text-slate-400">Event Perkemahan</div>
-              <div className="text-2xl font-black text-[#833AB4] dark:text-purple-400 font-mono">14 Event</div>
+              <div className="text-2xl font-black text-[#208C60] dark:text-purple-400 font-mono">14 Event</div>
               <div className="text-[11px] text-[#6B7280] dark:text-slate-400">Termasuk Jamcab & Raida</div>
             </div>
 
@@ -229,7 +229,7 @@ export const SuperAdminDashboard: React.FC = () => {
 
             <div className="p-4 rounded-3xl bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-2xs space-y-1">
               <div className="text-xs text-[#6B7280] dark:text-slate-400">Local Camp Mesh Nodes</div>
-              <div className="text-2xl font-black text-[#E1306C] dark:text-pink-400 font-mono">3 Online</div>
+              <div className="text-2xl font-black text-[#F47743] dark:text-pink-400 font-mono">3 Online</div>
               <div className="text-[11px] text-[#6B7280] dark:text-slate-400">Edge Buper Selogiri</div>
             </div>
           </div>
@@ -248,7 +248,7 @@ export const SuperAdminDashboard: React.FC = () => {
                   placeholder="Cari kwartir atau kode..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white placeholder-[#9CA3AF] focus:outline-none focus:border-[#E1306C]"
+                  className="w-full pl-9 pr-3 py-2 bg-white dark:bg-[#1A1A1E] border border-[#ECECEF] dark:border-white/10 rounded-xl text-base sm:text-xs text-[#171717] dark:text-white placeholder-[#9CA3AF] focus:outline-none focus:border-[#F47743]"
                 />
               </div>
             </div>
@@ -258,7 +258,7 @@ export const SuperAdminDashboard: React.FC = () => {
               {filteredWorkspaces.map(ws => (
                 <div
                   key={ws.id}
-                  className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/40 transition-all space-y-3.5 shadow-xs"
+                  className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/40 transition-all space-y-3.5 shadow-xs"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
@@ -299,7 +299,7 @@ export const SuperAdminDashboard: React.FC = () => {
                     </div>
                     <div className="flex justify-between">
                       <span>Domain:</span>
-                      <span className="font-mono text-[#833AB4] dark:text-purple-400">{ws.customDomain || 'default.siepang.id'}</span>
+                      <span className="font-mono text-[#208C60] dark:text-purple-400">{ws.customDomain || 'default.siepang.id'}</span>
                     </div>
                   </div>
 
@@ -332,7 +332,7 @@ export const SuperAdminDashboard: React.FC = () => {
                     <span className="font-semibold text-[#171717] dark:text-white">{log.action}</span>
                     <span className="text-[10px] text-slate-400 font-mono">{log.timestamp}</span>
                   </div>
-                  <div className="text-[11px] text-[#833AB4] dark:text-purple-400 truncate mt-0.5">{log.target}</div>
+                  <div className="text-[11px] text-[#208C60] dark:text-purple-400 truncate mt-0.5">{log.target}</div>
                 </div>
 
                 <div className="shrink-0 flex items-center gap-1 text-[10px] text-emerald-400 font-medium">

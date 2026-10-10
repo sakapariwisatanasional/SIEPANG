@@ -58,7 +58,7 @@ export const AttendanceOfficerHome: React.FC<AttendanceOfficerHomeProps> = ({
         <button
           type="button"
           onClick={onOpenScanner}
-          className="self-start sm:self-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-[#E1306C] hover:opacity-95 text-white font-black text-xs shadow-md shadow-emerald-950/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
+          className="self-start sm:self-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-[#F47743] hover:opacity-95 text-white font-black text-xs shadow-md shadow-emerald-950/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
         >
           <QrCode className="w-5 h-5 stroke-[2.2]" />
           <span>Buka Pemindai Barcode / QR</span>

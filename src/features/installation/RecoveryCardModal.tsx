@@ -96,7 +96,7 @@ export const RecoveryCardModal: React.FC<RecoveryCardModalProps> = ({
           {/* Card Header */}
           <div className="flex items-start justify-between gap-4 border-b border-black/10 dark:border-white/10 pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#833AB4] via-[#FD1D1D] to-[#FCB045] flex items-center justify-center text-white text-2xl font-bold shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#208C60] via-[#FD1D1D] to-[#FCB045] flex items-center justify-center text-white text-2xl font-bold shadow-sm">
                 ⚜️
               </div>
               <div>

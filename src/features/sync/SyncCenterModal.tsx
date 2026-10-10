@@ -451,7 +451,7 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
         {/* Modal Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#ECECEF] dark:border-white/10 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#FFF0F4] border border-[#FFE0E8] text-[#E1306C] flex items-center justify-center shadow-xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#FFF0F4] border border-[#FFE0E8] text-[#F47743] flex items-center justify-center shadow-xs">
               <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
             </div>
             <div>
@@ -482,7 +482,7 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             onClick={() => setActiveTab('transactions')}
             className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap min-h-[38px] cursor-pointer ${
               activeTab === 'transactions'
-                ? 'bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white shadow-xs'
+                ? 'bg-gradient-to-r from-[#208C60] to-[#F47743] text-white shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -495,7 +495,7 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             onClick={() => setActiveTab('devices')}
             className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap min-h-[38px] cursor-pointer ${
               activeTab === 'devices'
-                ? 'bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white shadow-xs'
+                ? 'bg-gradient-to-r from-[#208C60] to-[#F47743] text-white shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -508,7 +508,7 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             onClick={() => setActiveTab('local_server')}
             className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap min-h-[38px] cursor-pointer ${
               activeTab === 'local_server'
-                ? 'bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white shadow-xs'
+                ? 'bg-gradient-to-r from-[#208C60] to-[#F47743] text-white shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -521,7 +521,7 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             onClick={() => setActiveTab('security_events')}
             className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap min-h-[38px] cursor-pointer ${
               activeTab === 'security_events'
-                ? 'bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white shadow-xs'
+                ? 'bg-gradient-to-r from-[#208C60] to-[#F47743] text-white shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -534,7 +534,7 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
             onClick={() => setActiveTab('readiness')}
             className={`py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap min-h-[38px] cursor-pointer ${
               activeTab === 'readiness'
-                ? 'bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white shadow-xs'
+                ? 'bg-gradient-to-r from-[#208C60] to-[#F47743] text-white shadow-xs'
                 : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
             }`}
           >
@@ -846,7 +846,7 @@ export const SyncCenterModal: React.FC<SyncCenterModalProps> = ({ isOpen, onClos
                 <div className="bg-[#FAFAFA] dark:bg-white/5 p-2.5 rounded-xl border border-[#ECECEF] dark:border-white/5">
                   <span className="text-[9px] text-[#6B7280] dark:text-slate-400 block">Kapasitas Disk:</span>
                   <span className="font-mono text-[#171717] dark:text-white text-[11px] font-bold">{datastoreReport.diskPercentageUsed}% Terpakai</span>
-                  <span className="text-[9px] text-[#E1306C] block mt-0.5">{Math.round(datastoreReport.diskUsageBytes / 1024)} KB / 100 MB</span>
+                  <span className="text-[9px] text-[#F47743] block mt-0.5">{Math.round(datastoreReport.diskUsageBytes / 1024)} KB / 100 MB</span>
                 </div>
 
                 <div className="bg-[#FAFAFA] dark:bg-white/5 p-2.5 rounded-xl border border-[#ECECEF] dark:border-white/5">

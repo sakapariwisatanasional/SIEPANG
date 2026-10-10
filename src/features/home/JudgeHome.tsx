@@ -58,7 +58,7 @@ export const JudgeHome: React.FC<JudgeHomeProps> = ({ onNavigate }) => {
         <button
           type="button"
           onClick={() => onNavigate('judge')}
-          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-purple-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
+          className="self-start sm:self-auto px-5 py-3 rounded-2xl bg-gradient-to-r from-[#208C60] to-[#F47743] hover:opacity-95 text-white font-bold text-xs shadow-md shadow-purple-500/20 active:scale-95 transition-transform flex items-center gap-2 cursor-pointer"
         >
           <Scale className="w-5 h-5 stroke-[2.2]" />
           <span>Buka Meja Penjurian</span>
@@ -109,7 +109,7 @@ export const JudgeHome: React.FC<JudgeHomeProps> = ({ onNavigate }) => {
           </h3>
           <button
             onClick={() => onNavigate('judge')}
-            className="text-[11px] font-bold text-[#833AB4] hover:underline"
+            className="text-[11px] font-bold text-[#208C60] hover:underline"
           >
             Lihat Semua di Meja Juri ›
           </button>
@@ -123,7 +123,7 @@ export const JudgeHome: React.FC<JudgeHomeProps> = ({ onNavigate }) => {
                 className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/30 text-[#833AB4] border border-purple-200/50 flex items-center justify-center shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/30 text-[#208C60] border border-purple-200/50 flex items-center justify-center shrink-0">
                     <Trophy className="w-5 h-5" />
                   </div>
                   <div>
@@ -137,7 +137,7 @@ export const JudgeHome: React.FC<JudgeHomeProps> = ({ onNavigate }) => {
                 <button
                   type="button"
                   onClick={() => onNavigate('judge')}
-                  className="self-start sm:self-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-[#E1306C] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs hover:opacity-95 cursor-pointer"
+                  className="self-start sm:self-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-[#F47743] text-white font-bold text-xs flex items-center gap-1.5 shadow-xs hover:opacity-95 cursor-pointer"
                 >
                   <Edit3 className="w-3.5 h-3.5" />
                   <span>Beri Nilai Sekarang</span>
@@ -160,7 +160,7 @@ export const JudgeHome: React.FC<JudgeHomeProps> = ({ onNavigate }) => {
       <div className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 shadow-xs space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-bold text-[#171717] dark:text-white uppercase tracking-wider flex items-center gap-2">
-            <Trophy className="w-4 h-4 text-[#833AB4]" />
+            <Trophy className="w-4 h-4 text-[#208C60]" />
             <span>Cabang Lomba yang Ditugaskan</span>
           </h3>
           <span className="text-[11px] text-slate-400">{competitions.length} Lomba</span>
@@ -171,7 +171,7 @@ export const JudgeHome: React.FC<JudgeHomeProps> = ({ onNavigate }) => {
             <div
               key={comp.id}
               onClick={() => onNavigate('judge')}
-              className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 hover:border-[#833AB4]/30 flex items-center justify-between gap-3 text-xs cursor-pointer transition-colors"
+              className="p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-[#ECECEF] dark:border-white/10 hover:border-[#208C60]/30 flex items-center justify-between gap-3 text-xs cursor-pointer transition-colors"
             >
               <div>
                 <div className="font-bold text-[#171717] dark:text-white">{comp.title}</div>

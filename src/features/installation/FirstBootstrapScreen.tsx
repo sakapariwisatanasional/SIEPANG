@@ -82,8 +82,8 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
 
   if (isLoadingStatus) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-6 selection:bg-[#E1306C] selection:text-white">
-        <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] flex items-center justify-center text-3xl shadow-lg shadow-pink-500/20 text-white animate-pulse">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-6 selection:bg-[#F47743] selection:text-white">
+        <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] flex items-center justify-center text-3xl shadow-lg shadow-pink-500/20 text-white animate-pulse">
           ⚜️
         </div>
         <div className="mt-4 text-center space-y-1">
@@ -101,18 +101,18 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
   const showForm = !isAlreadyReady || forceShowForm;
 
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-4 sm:p-6 selection:bg-[#E1306C] selection:text-white">
+    <div className="min-h-screen flex flex-col justify-between bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-4 sm:p-6 selection:bg-[#F47743] selection:text-white">
       <div className="w-full max-w-lg mx-auto my-auto space-y-6 bg-white dark:bg-[#141418] p-6 sm:p-8 rounded-[32px] border border-[#ECECEF] dark:border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
         {/* Header Icon & Title */}
         <div className="text-center space-y-3">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] flex items-center justify-center text-3xl sm:text-4xl shadow-lg shadow-pink-500/20 text-white">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] flex items-center justify-center text-3xl sm:text-4xl shadow-lg shadow-pink-500/20 text-white">
             ⚜️
           </div>
           <div className="space-y-1">
             <h1 className="text-2xl sm:text-3xl font-black text-[#171717] dark:text-white tracking-tight font-display">
               Inisialisasi Awal SiEpang
             </h1>
-            <p className="text-xs text-[#E1306C] font-bold">
+            <p className="text-xs text-[#F47743] font-bold">
               First Bootstrap · Sistem Informasi Perkemahan Pramuka
             </p>
           </div>
@@ -259,7 +259,7 @@ export const FirstBootstrapScreen: React.FC<FirstBootstrapScreenProps> = ({
                   value={tokenInput}
                   onChange={e => setTokenInput(e.target.value)}
                   placeholder="boot_xxxxxxxxxxxxxxxx"
-                  className="w-full pl-4 pr-11 py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-sm font-mono text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E1306C]"
+                  className="w-full pl-4 pr-11 py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-sm font-mono text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#F47743]"
                 />
                 <button
                   type="button"

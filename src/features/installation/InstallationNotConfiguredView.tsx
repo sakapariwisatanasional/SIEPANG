@@ -98,13 +98,13 @@ export const InstallationNotConfiguredView: React.FC<InstallationNotConfiguredVi
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 flex flex-col justify-between p-4 sm:p-6 md:p-10 font-sans selection:bg-[#E1306C] selection:text-white">
+    <div className="min-h-screen bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 flex flex-col justify-between p-4 sm:p-6 md:p-10 font-sans selection:bg-[#F47743] selection:text-white">
       <div className="max-w-4xl mx-auto w-full my-auto space-y-6">
         {/* Top Header Card */}
         <div className="rounded-[32px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-6 sm:p-8 shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#ECECEF] dark:border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] flex items-center justify-center text-2xl shadow-md text-white shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] flex items-center justify-center text-2xl shadow-md text-white shrink-0">
                 ⚜️
               </div>
               <div>
@@ -227,7 +227,7 @@ export const InstallationNotConfiguredView: React.FC<InstallationNotConfiguredVi
             <button
               onClick={handleRetry}
               disabled={isRetrying}
-              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#833AB4] via-[#E1306C] to-[#FCAF45] hover:opacity-95 text-white font-bold text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+              className="px-5 py-3 rounded-2xl bg-gradient-to-r from-[#208C60] via-[#F47743] to-[#FFD36A] hover:opacity-95 text-white font-bold text-xs shadow-md flex items-center gap-2 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${isRetrying ? 'animate-spin' : ''}`} />
               <span>{isRetrying ? 'Memeriksa Konfigurasi...' : 'Cek Ulang Status Koneksi'}</span>

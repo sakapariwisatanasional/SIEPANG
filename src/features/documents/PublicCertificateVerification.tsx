@@ -59,7 +59,7 @@ export const PublicCertificateVerification: React.FC = () => {
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder="Masukkan Nomor Seri Dokumen / Piagam..."
-          className="flex-1 px-4 py-3 bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-2xl text-xs text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#E1306C] shadow-xs"
+          className="flex-1 px-4 py-3 bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 rounded-2xl text-xs text-[#171717] dark:text-white font-mono focus:outline-none focus:border-[#F47743] shadow-xs"
         />
         <button
           type="submit"

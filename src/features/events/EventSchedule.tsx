@@ -56,7 +56,7 @@ export const EventSchedule: React.FC = () => {
     <div className="space-y-4 max-w-xl mx-auto pb-8">
       {/* Header */}
       <div className="bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 sm:p-6 rounded-[28px] shadow-xs space-y-3">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#E1306C]">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#FFF0F4] border border-[#FFE0E8] text-xs font-semibold text-[#F47743]">
           <Calendar className="w-3.5 h-3.5" />
           <span>Agenda & Waktu Giat Buper</span>
         </div>
@@ -80,7 +80,7 @@ export const EventSchedule: React.FC = () => {
               onClick={() => setSelectedDay(d.id as any)}
               className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl whitespace-nowrap transition-all min-h-[38px] cursor-pointer ${
                 selectedDay === d.id
-                  ? 'bg-white dark:bg-[#1C1C1E] text-[#E1306C] font-bold shadow-xs'
+                  ? 'bg-white dark:bg-[#1C1C1E] text-[#F47743] font-bold shadow-xs'
                   : 'text-[#6B7280] dark:text-slate-400 hover:text-[#171717] dark:hover:text-white'
               }`}
             >
@@ -106,15 +106,15 @@ export const EventSchedule: React.FC = () => {
             return (
               <div
                 key={item.id}
-                className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#E1306C]/30 space-y-3 transition-colors shadow-2xs"
+                className="p-5 rounded-[24px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 hover:border-[#F47743]/30 space-y-3 transition-colors shadow-2xs"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-[#FFF0F4] text-[#E1306C] border border-[#FFE0E8] flex items-center justify-center text-xl shrink-0">
+                    <div className="w-12 h-12 rounded-2xl bg-[#FFF0F4] text-[#F47743] border border-[#FFE0E8] flex items-center justify-center text-xl shrink-0">
                       {getCategoryIcon(item.category)}
                     </div>
                     <div>
-                      <div className="flex items-center gap-2 text-xs font-mono text-[#E1306C] font-semibold">
+                      <div className="flex items-center gap-2 text-xs font-mono text-[#F47743] font-semibold">
                         <Clock className="w-3.5 h-3.5" />
                         <span>{item.time} WIB</span>
                         {item.status === 'completed' && (
