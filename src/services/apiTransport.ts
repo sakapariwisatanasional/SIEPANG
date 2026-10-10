@@ -251,11 +251,21 @@ class ApiTransport {
         };
       }
 
+      // A successful HTTP response is NOT proof of database persistence.
+      // Only a backend envelope with an explicit success flag is accepted.
+      // Otherwise HTML, legacy responses, or unexpected JSON must fail closed.
       return {
-        ok: true,
+        ok: false,
         request_id: requestId,
-        data: parsed as T,
-        error: null,
+        data: null,
+        error: {
+          code: 'INVALID_BACKEND_ENVELOPE',
+          message: 'Respons GAS tidak memuat status ok/success. Penyimpanan belum dapat dikonfirmasi. Periksa URL dan versi deployment GAS.',
+          details: {
+            action,
+            responseKeys: typeof parsed === 'object' && parsed !== null ? Object.keys(parsed).slice(0, 15) : [],
+          },
+        },
       };
     } catch (err: any) {
       clearTimeout(timeoutId);
