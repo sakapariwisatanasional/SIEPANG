@@ -3,7 +3,7 @@
  * SiEpang - Event Management Studio Service
  * Central service layer connecting React components to the SiEpang Backend API.
  * All mutations pass through:
- * Component -> Service -> apiClient -> SiEpang Backend API -> Auth & Workspace Guard -> RBAC Check -> Business Service -> Repository
+ * Component -> Service -> apiTransport -> GAS -> Auth/Session/RBAC -> Spreadsheet/Drive
  */
 
 import {
@@ -41,21 +41,6 @@ import {
 import { apiClient } from './apiClient';
 import { apiTransport } from './apiTransport';
 import { EMPTY_EVENT } from './eventService';
-import {
-  INITIAL_SCHEDULE,
-  INITIAL_CAMP_ACTIVITIES,
-  INITIAL_CAMPSITE_LOTS,
-  INITIAL_CAMP_FACILITIES,
-  INITIAL_COMPETITIONS,
-  INITIAL_JUDGING_CRITERIA,
-  INITIAL_COMPETITION_JUDGES,
-  INITIAL_VOTING_CONFIG,
-  INITIAL_REGISTRATION_FIELDS,
-  INITIAL_POINT_RULES,
-  INITIAL_QR_CHECKPOINTS,
-  INITIAL_CUSTOM_PAGES,
-  INITIAL_BADGES,
-} from './mockData';
 
 export type SaveStatusType = 'Saved ✓' | 'Saving…' | 'Unsaved Changes' | 'Save Failed';
 
@@ -69,42 +54,25 @@ export interface StudioSaveState {
 class EventStudioService {
   // Local cache for immediate UI responsiveness and offline hydration
   private event: ScoutEvent = { ...EMPTY_EVENT };
-  private schedules: ScheduleItem[] = [...INITIAL_SCHEDULE];
-  private activities: CampActivity[] = [...INITIAL_CAMP_ACTIVITIES];
+  private schedules: ScheduleItem[] = [];
+  private activities: CampActivity[] = [];
   private activityTypes: ActivityType[] = [];
   private subcamps: CampsiteSubcamp[] = [];
   private zones: CampsiteZone[] = [];
   private blocks: CampsiteBlock[] = [];
-  private lots: CampsiteLot[] = [...INITIAL_CAMPSITE_LOTS];
-  private facilities: CampFacility[] = [...INITIAL_CAMP_FACILITIES];
-  private competitions: Competition[] = [...INITIAL_COMPETITIONS];
+  private lots: CampsiteLot[] = [];
+  private facilities: CampFacility[] = [];
+  private competitions: Competition[] = [];
   private competitionTypes: CompetitionType[] = [];
-  private criteria: JudgingCriterion[] = [...INITIAL_JUDGING_CRITERIA];
-  private judges: CompetitionJudge[] = [...INITIAL_COMPETITION_JUDGES];
-  private votingConfig: VotingConfig = { ...INITIAL_VOTING_CONFIG };
-  private registrationSettings: RegistrationSettings = {
-    registrationStart: '2026-08-01',
-    registrationEnd: '2026-09-25',
-    maxParticipants: 1500,
-    contingentRepresentationLevel: 'KWARRAN',
-    maxParticipantsPerContingent: 32,
-    maxAdvisorsPerContingent: 4,
-    allowSelfRegistration: true,
-    status: 'OPEN',
-  };
-  private dynamicFields: RegistrationFieldConfig[] = [...INITIAL_REGISTRATION_FIELDS];
-  private pointRules: PointRuleConfig[] = [...INITIAL_POINT_RULES];
-  private badges: BadgeConfig[] = INITIAL_BADGES.map(b => ({
-    id: b.id,
-    name: b.name,
-    icon: b.iconName || b.icon || 'Award',
-    description: b.description,
-    condition: `Raih ${b.xpRequired || 0} XP dalam kegiatan bertema ${b.category}`,
-    xpRequired: b.xpRequired || 0,
-    status: 'active' as const,
-  }));
-  private checkpoints: QrCheckpoint[] = [...INITIAL_QR_CHECKPOINTS];
-  private customPages: CustomInfoPage[] = [...INITIAL_CUSTOM_PAGES];
+  private criteria: JudgingCriterion[] = [];
+  private judges: CompetitionJudge[] = [];
+  private votingConfig: VotingConfig = {} as VotingConfig;
+  private registrationSettings: RegistrationSettings = {} as RegistrationSettings;
+  private dynamicFields: RegistrationFieldConfig[] = [];
+  private pointRules: PointRuleConfig[] = [];
+  private badges: BadgeConfig[] = [];
+  private checkpoints: QrCheckpoint[] = [];
+  private customPages: CustomInfoPage[] = [];
   private contacts: EventContactItem[] = [];
   private auditLogs: AuditLog[] = [];
   private organizations: Organization[] = [];
