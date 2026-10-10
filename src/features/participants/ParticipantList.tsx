@@ -120,6 +120,19 @@ export const ParticipantList: React.FC = () => {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // Memuat ulang dari GAS saat layar dibuka, bukan dari state kosong setelah refresh.
+  const [, forceRefresh] = useState(0);
+  useEffect(() => {
+    let active = true;
+    const unsubscribe = participantService.subscribe(() => {
+      if (active) forceRefresh(prev => prev + 1);
+    });
+    participantService.loadParticipants().catch((err: any) => {
+      if (active) showToast(`❌ ${err?.message || 'Gagal memuat peserta dari GAS.'}`);
+    });
+    return () => { active = false; unsubscribe(); };
+  }, []);
+
   const contingents = participantService.getContingents();
   const participants = participantService.getParticipants({
     search,
