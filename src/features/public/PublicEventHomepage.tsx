@@ -1144,11 +1144,12 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
             <button
               type="button"
               onClick={() => onNavigateToLogin()}
-              className="p-2 sm:px-3 sm:py-1.5 rounded-xl bg-[#208C60]/10 hover:bg-[#208C60]/20 text-[#208C60] dark:text-[#F47743] border border-[#208C60]/30 font-semibold transition-colors text-xs flex items-center justify-center gap-1.5 min-w-[38px] min-h-[38px] cursor-pointer"
-              title="Masuk"
+              className="relative z-50 px-3 py-2.5 sm:px-3 sm:py-1.5 rounded-xl bg-[#208C60]/10 hover:bg-[#208C60]/20 active:bg-[#208C60]/25 text-[#208C60] dark:text-[#F47743] border border-[#208C60]/30 font-bold transition-colors text-xs flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[38px] cursor-pointer touch-manipulation shrink-0"
+              title="Masuk ke SiEpang"
+              aria-label="Masuk ke SiEpang"
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Masuk</span>
+              <LogIn className="w-4 h-4 shrink-0" />
+              <span>Masuk</span>
             </button>
           )}
         </div>
@@ -1256,6 +1257,19 @@ export const PublicEventHomepage: React.FC<PublicEventHomepageProps> = ({
           {/* Mobile Dropdown Menu */}
           {mobileMenuOpen && (
             <div className="md:hidden pt-3 pb-2 border-t border-black/5 dark:border-white/10 mt-3 space-y-1 text-xs">
+              {onNavigateToLogin && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onNavigateToLogin();
+                  }}
+                  className="w-full min-h-[48px] text-left px-4 py-3 mb-2 rounded-xl bg-[#208C60]/10 text-[#208C60] dark:text-[#F47743] border border-[#208C60]/25 font-bold flex items-center gap-2 touch-manipulation active:bg-[#208C60]/20"
+                >
+                  <LogIn className="w-5 h-5" />
+                  Masuk ke SiEpang
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => scrollToSection('section-hero')}
