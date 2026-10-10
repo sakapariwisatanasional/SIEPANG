@@ -723,6 +723,7 @@ function backupAuthData() {
  * ============================================================================
  */
 function doGet(e) {
+  initScriptProperties();
   var action = (e && e.parameter && e.parameter.action) || 'system.health';
   var nonce = (e && e.parameter && e.parameter.nonce) || '';
   var reqId = 'req_' + new Date().getTime();
@@ -793,6 +794,7 @@ function doGet(e) {
 }
 
 function doPost(e) {
+  initScriptProperties();
   var reqId = 'req_' + new Date().getTime();
   try {
     var raw = e.postData.contents;
