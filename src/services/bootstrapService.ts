@@ -113,16 +113,14 @@ class BootstrapService {
   private parseStatusResponse(raw: string): BootstrapStatus | null {
     try {
       const parsed = JSON.parse(raw);
-
-      if (!parsed?.ok || !parsed?.data) {
+      if (parsed?.ok !== true || !parsed?.data || parsed.data.reachable !== true) {
         return null;
       }
 
-      const ready = Boolean(parsed.data.installation_ready);
-
-      if (ready && !this.isReady) {
-        this.setInstallationReady(true);
-      }
+      // GAS system.health uses `configured`, not `installation_ready`.
+      // Do not infer readiness solely from an existing browser session.
+      const ready = parsed.data.configured === true;
+      if (ready) this.setInstallationReady(true);
 
       return {
         installation_ready: ready,
@@ -134,64 +132,46 @@ class BootstrapService {
   }
 
   /**
-   * Public-safe endpoint: bootstrap.status
+   * Check the public system.health action supported by the deployed GAS.
+   * A healthy response with configured=false is reachable but NOT login-ready.
    */
   public async getStatus(): Promise<BootstrapStatus> {
     const backendUrl = this.getBackendUrl();
-
-    console.info('[bootstrap] status check start');
-    console.info('[bootstrap] backend URL configured:', Boolean(backendUrl));
-
     if (!backendUrl) {
-      return {
-        installation_ready: false,
-        backend_reachable: false,
-      };
+      return { installation_ready: false, backend_reachable: false };
     }
 
+    // Prefer the same POST envelope used by the other application API calls.
     try {
       const response = await fetch(backendUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
-        body: JSON.stringify({
-          action: 'bootstrap.status',
-          payload: {},
-        }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'system.health', payload: {} }),
         redirect: 'follow',
       });
-
       if (response.ok) {
-        const result = this.parseStatusResponse(await response.text());
-        if (result) return result;
+        const status = this.parseStatusResponse(await response.text());
+        if (status) return status;
       }
     } catch {
-      // Continue to GET fallback.
+      // A GET health probe is supported by GAS and can be tried below.
     }
 
     try {
       const separator = backendUrl.includes('?') ? '&' : '?';
       const response = await fetch(
-        `${backendUrl}${separator}action=bootstrap.status`,
-        {
-          method: 'GET',
-          redirect: 'follow',
-        },
+        `${backendUrl}${separator}action=system.health`,
+        { method: 'GET', redirect: 'follow' },
       );
-
       if (response.ok) {
-        const result = this.parseStatusResponse(await response.text());
-        if (result) return result;
+        const status = this.parseStatusResponse(await response.text());
+        if (status) return status;
       }
     } catch {
-      // Final result below.
+      // The backend could not be verified.
     }
 
-    return {
-      installation_ready: false,
-      backend_reachable: false,
-    };
+    return { installation_ready: false, backend_reachable: false };
   }
 
   /**
