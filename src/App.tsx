@@ -655,8 +655,8 @@ export default function App() {
   // 2. TEMPORARY LOADING SCREEN WHILE AUTO-LOGIN IS CHECKED (Requirement 16)
   if (isInitializingAuth && !isRequestingPublicRoute) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-6 selection:bg-[#E1306C] selection:text-white">
-        <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] flex items-center justify-center text-3xl shadow-lg shadow-pink-500/20 text-white animate-pulse">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-6 selection:bg-[#F47743] selection:text-white">
+        <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] flex items-center justify-center text-3xl shadow-lg shadow-pink-500/20 text-white animate-pulse">
           ⚜️
         </div>
         <div className="mt-4 text-center space-y-1">
@@ -674,10 +674,10 @@ export default function App() {
   // 3. UNAUTHENTICATED USERS TRYING PROTECTED ROUTES: PASSWORDLESS OTP UI (Requirements 16 & 17)
   if (!isLoggedIn && !isRequestingPublicRoute) {
     return (
-      <div className="min-h-screen flex flex-col justify-between bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-4 sm:p-6 selection:bg-[#E1306C] selection:text-white">
+      <div className="min-h-screen flex flex-col justify-between bg-[#F7F7F8] dark:bg-[#0E0E12] text-[#171717] dark:text-slate-100 p-4 sm:p-6 selection:bg-[#F47743] selection:text-white">
         <div className="w-full max-w-md mx-auto my-auto space-y-6 bg-white dark:bg-[#141418] p-6 sm:p-8 rounded-[32px] border border-[#ECECEF] dark:border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
           <div className="text-center space-y-3">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#FCAF45] flex items-center justify-center text-3xl sm:text-4xl shadow-lg shadow-pink-500/20 text-white">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-3xl bg-gradient-to-tr from-[#208C60] via-[#F47743] to-[#FFD36A] flex items-center justify-center text-3xl sm:text-4xl shadow-lg shadow-pink-500/20 text-white">
               ⚜️
             </div>
 
@@ -686,7 +686,7 @@ export default function App() {
                 {authMode === 'REGISTER' ? 'Buat Akun' : (authMode === 'REGISTER_OTP' || authMode === 'LOGIN_OTP') ? 'Verifikasi Email' : 'SiEpang'}
               </h1>
               {authMode === 'LOGIN' && (
-                <p className="text-xs text-[#E1306C] font-bold">
+                <p className="text-xs text-[#F47743] font-bold">
                   Sistem Informasi Perkemahan Pramuka
                 </p>
               )}
@@ -744,7 +744,7 @@ export default function App() {
                   value={loginEmail}
                   onChange={e => setLoginEmail(e.target.value)}
                   placeholder="nama@gmail.com"
-                  className="w-full px-4 py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-sm text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E1306C]"
+                  className="w-full px-4 py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-sm text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -767,7 +767,7 @@ export default function App() {
                     setAuthSuccess(null);
                     setAuthMode('REGISTER');
                   }}
-                  className="text-xs font-bold text-[#E1306C] hover:underline cursor-pointer"
+                  className="text-xs font-bold text-[#F47743] hover:underline cursor-pointer"
                 >
                   Daftar
                 </button>
@@ -804,7 +804,7 @@ export default function App() {
                   value={otpInput}
                   onChange={e => setOtpInput(e.target.value.replace(/\D/g, ''))}
                   placeholder="123456"
-                  className="w-full text-center tracking-[0.5em] text-2xl font-mono font-bold py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full text-center tracking-[0.5em] text-2xl font-mono font-bold py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -833,7 +833,7 @@ export default function App() {
                     setAuthSuccess(null);
                     setAuthMode('LOGIN');
                   }}
-                  className="text-[#E1306C] hover:underline font-semibold cursor-pointer"
+                  className="text-[#F47743] hover:underline font-semibold cursor-pointer"
                 >
                   Ganti Email
                 </button>
@@ -854,7 +854,7 @@ export default function App() {
                   value={regName}
                   onChange={e => setRegName(e.target.value)}
                   placeholder="Nama Lengkap Anda"
-                  className="w-full px-4 py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-sm text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E1306C]"
+                  className="w-full px-4 py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-sm text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -868,7 +868,7 @@ export default function App() {
                   value={regEmail}
                   onChange={e => setRegEmail(e.target.value)}
                   placeholder="nama@gmail.com"
-                  className="w-full px-4 py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-sm text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#E1306C]"
+                  className="w-full px-4 py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-sm text-[#171717] dark:text-white placeholder-slate-400 focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -891,7 +891,7 @@ export default function App() {
                     setAuthSuccess(null);
                     setAuthMode('LOGIN');
                   }}
-                  className="text-xs font-bold text-[#E1306C] hover:underline cursor-pointer"
+                  className="text-xs font-bold text-[#F47743] hover:underline cursor-pointer"
                 >
                   Masuk
                 </button>
@@ -927,7 +927,7 @@ export default function App() {
                   value={otpInput}
                   onChange={e => setOtpInput(e.target.value.replace(/\D/g, ''))}
                   placeholder="123456"
-                  className="w-full text-center tracking-[0.5em] text-2xl font-mono font-bold py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white focus:outline-none focus:border-[#E1306C]"
+                  className="w-full text-center tracking-[0.5em] text-2xl font-mono font-bold py-3 bg-[#F7F7F8] dark:bg-black/20 border border-[#ECECEF] dark:border-white/10 rounded-2xl text-[#171717] dark:text-white focus:outline-none focus:border-[#F47743]"
                 />
               </div>
 
@@ -956,7 +956,7 @@ export default function App() {
                     setAuthSuccess(null);
                     setAuthMode('REGISTER');
                   }}
-                  className="text-[#E1306C] hover:underline font-semibold cursor-pointer"
+                  className="text-[#F47743] hover:underline font-semibold cursor-pointer"
                 >
                   Ganti Data
                 </button>
@@ -1007,7 +1007,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setActiveTab('home')}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#833AB4] to-[#E1306C] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity inline-flex items-center gap-1.5 cursor-pointer"
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#208C60] to-[#F47743] text-white text-xs font-bold shadow-xs hover:opacity-95 transition-opacity inline-flex items-center gap-1.5 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Kembali ke Beranda</span>

@@ -1,14 +1,15 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-spwn-ocean: #0066B3;
-  --color-spwn-green: #009B4D;
-  --color-spwn-orange: #F7941D;
-  --color-spwn-purple: #6A1B9A;
-  --color-spwn-magenta: #D81B60;
+  --color-spwn-ocean: #3698C8;
+  --color-spwn-green: #208C60;
+  --color-spwn-orange: #F4A53A;
+  --color-spwn-purple: #208C60;
+  --color-spwn-magenta: #F47743;
   --color-spwn-night: #0B1F33;
   --color-spwn-night-surface: #132D48;
-  --color-spwn-bg: #F5F7FA;
+  --color-spwn-bg: #FFF9EF;
 }
 
 :root {
@@ -17,7 +18,7 @@
 }
 
 html, body {
-  background-color: #F5F7FA;
+  background-color: #FFF9EF;
   color: #0B1F33;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -101,3 +102,126 @@ select:disabled,
 textarea:disabled {
   color: #64748B;
 }
+
+/* Participant registration modal: contrast in light and dark themes.
+   Scope narrowly to avoid changing other application forms. */
+.siepang-participant-registration input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+.siepang-participant-registration select,
+.siepang-participant-registration textarea {
+  color: #171717;
+  caret-color: #171717;
+}
+.siepang-participant-registration select {
+  color-scheme: light;
+}
+.siepang-participant-registration select option,
+.siepang-participant-registration select optgroup {
+  color: #171717 !important;
+  background-color: #ffffff !important;
+}
+.siepang-participant-registration select option:checked {
+  color: #171717 !important;
+  background-color: #e2e8f0 !important;
+}
+.dark .siepang-participant-registration input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+.dark .siepang-participant-registration select,
+.dark .siepang-participant-registration textarea {
+  color: #f8fafc;
+  caret-color: #f8fafc;
+}
+.dark .siepang-participant-registration select {
+  color-scheme: dark;
+}
+.dark .siepang-participant-registration select option,
+.dark .siepang-participant-registration select optgroup {
+  color: #f8fafc !important;
+  background-color: #24242a !important;
+}
+.dark .siepang-participant-registration select option:checked {
+  color: #ffffff !important;
+  background-color: #444453 !important;
+}
+.siepang-participant-registration input::placeholder,
+.siepang-participant-registration textarea::placeholder {
+  color: #64748b;
+  opacity: 1;
+}
+.dark .siepang-participant-registration input::placeholder,
+.dark .siepang-participant-registration textarea::placeholder {
+  color: #94a3b8;
+}
+.siepang-participant-registration input:disabled,
+.siepang-participant-registration select:disabled,
+.siepang-participant-registration textarea:disabled,
+.dark .siepang-participant-registration input:disabled,
+.dark .siepang-participant-registration select:disabled,
+.dark .siepang-participant-registration textarea:disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* ================================================================
+   SCOUT ADVENTURE 2026 — GLOBAL VISUAL THEME
+   Light-first, nature-inspired. CSS only, does not modify behavior.
+   ================================================================ */
+:root {
+  --scout-forest: #208C60;
+  --scout-forest-deep: #176348;
+  --scout-leaf: #E8F6E9;
+  --scout-sun: #FFD36A;
+  --scout-coral: #F47743;
+  --scout-sky: #DDF2FF;
+  --scout-cream: #FFF9EF;
+  --scout-ink: #234437;
+  --scout-muted: #55746B;
+  color-scheme: light;
+}
+html:not(.dark) body, html:not(.dark) #root { background: var(--scout-cream); color: var(--scout-ink); }
+html:not(.dark) #root > div { background-color: var(--scout-cream); }
+html:not(.dark) .bg-\[\#F7F7F8\] { background-color: var(--scout-cream); }
+html:not(.dark) .bg-\[\#ECECEF\] { background-color: #F1ECDD; }
+html:not(.dark) .bg-white { background-color: #FFFFFF; }
+html:not(.dark) .bg-slate-50 { background-color: #F3F9F1; }
+html:not(.dark) .text-\[\#171717\] { color: var(--scout-ink); }
+html:not(.dark) .text-slate-900 { color: #234437; }
+html:not(.dark) .text-slate-800 { color: #2A5142; }
+html:not(.dark) .text-slate-500 { color: #58756A; }
+html:not(.dark) .border-\[\#ECECEF\] { border-color: #E1EADC; }
+html:not(.dark) .shadow-md { --tw-shadow-color: rgb(57 112 77 / 9%); }
+
+/* Soft camp atmosphere on dashboard and public sections. */
+html:not(.dark) main { background-image: radial-gradient(circle at 100% 0%, #FFF1CA 0, transparent 34%), radial-gradient(circle at 0% 85%, #E8F6E9 0, transparent 32%); }
+html:not(.dark) main > div { position: relative; }
+
+/* Consistent, high-contrast native inputs and dropdowns in all modules. */
+html:not(.dark) input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),
+html:not(.dark) select, html:not(.dark) textarea {
+  color: #234437;
+  caret-color: #176348;
+}
+html:not(.dark) input::placeholder, html:not(.dark) textarea::placeholder { color: #647E72; opacity: 1; }
+html:not(.dark) select { color-scheme: light; }
+html:not(.dark) select option { color: #234437 !important; background: white !important; }
+html:not(.dark) input:focus-visible, html:not(.dark) select:focus-visible, html:not(.dark) textarea:focus-visible { outline-color: var(--scout-forest); }
+
+/* dark is strictly opt-in; avoid the old light color-scheme leaking into popups. */
+html.dark { color-scheme: dark; }
+html.dark body { background-color: #0F211D; color: #EAF4ED; }
+html.dark select { color-scheme: dark; }
+html.dark select option { color: #F3FAF6 !important; background: #20342D !important; }
+
+/* Always-visible theme choice, including unauthenticated portal and registration. */
+.scout-theme-toggle {
+  position: fixed; right: 16px; bottom: 86px; z-index: 200;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 43px; padding: 10px 15px; border-radius: 999px;
+  background: #FFFFFF; color: #176348; border: 1px solid #CFE4D6;
+  font: 700 12px/1.2 var(--font-sans); box-shadow: 0 5px 24px rgb(20 80 57 / 17%);
+  cursor: pointer; transition: background .2s, transform .2s, box-shadow .2s;
+}
+.scout-theme-toggle:hover { background: #E8F6E9; transform: translateY(-2px); }
+.scout-theme-toggle:focus-visible { outline: 3px solid #F4A53A; outline-offset: 3px; }
+html.dark .scout-theme-toggle { background: #203A30; color: #FFF6DE; border-color: #426B56; }
+html.dark .scout-theme-toggle:hover { background: #2B5040; }
+@media (min-width: 768px) { .scout-theme-toggle { bottom: 22px; right: 24px; } }
+@media (prefers-reduced-motion: reduce) { .scout-theme-toggle { transition: none; } }
