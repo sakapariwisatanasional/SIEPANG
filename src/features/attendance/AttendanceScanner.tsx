@@ -9,9 +9,11 @@
  * Standardized to Light-First, Instagram-inspired accent system, and 44px touch targets.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   QrCode,
+  Camera,
+  CameraOff,
   CheckCircle2,
   CalendarCheck,
   Zap,
@@ -46,6 +48,108 @@ export const AttendanceScanner: React.FC = () => {
   const [manualCode, setManualCode] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [inspectedParticipant, setInspectedParticipant] = useState<Participant | null>(null);
+
+  // Kamera nyata. QR berisi Participants.id; tidak pernah langsung menulis presensi.
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraError, setCameraError] = useState('');
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scannerBusyRef = useRef(false);
+  const scannerModeRef = useRef<'individual_checkin' | 'activity_session'>('individual_checkin');
+
+  const stopCamera = () => {
+    scannerBusyRef.current = true;
+    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+    scanTimerRef.current = null;
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraOpen(false);
+  };
+
+  const startCamera = async (mode: 'individual_checkin' | 'activity_session') => {
+    setCameraError('');
+    if (!window.isSecureContext) {
+      setCameraError('Kamera memerlukan HTTPS (atau localhost). Buka SiEpang melalui alamat HTTPS.');
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError('Browser ini tidak menyediakan akses kamera. Coba Chrome Android terbaru, atau masukkan ID peserta secara manual.');
+      return;
+    }
+    const Detector = (window as any).BarcodeDetector;
+    if (!Detector) {
+      setCameraError('Browser ini belum mendukung pembacaan QR melalui BarcodeDetector. Gunakan Chrome Android terbaru, atau masukkan ID peserta secara manual.');
+      return;
+    }
+    stopCamera();
+    scannerModeRef.current = mode;
+    scannerBusyRef.current = false;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: 'environment' } },
+      });
+      streamRef.current = stream;
+      setCameraOpen(true);
+    } catch (error: any) {
+      setCameraError(error?.name === 'NotAllowedError'
+        ? 'Izin kamera ditolak. Aktifkan izin kamera di pengaturan browser untuk situs SiEpang.'
+        : `Tidak dapat mengaktifkan kamera: ${error?.message || 'kamera tidak tersedia'}`);
+      stopCamera();
+    }
+  };
+
+  useEffect(() => {
+    if (!cameraOpen || !videoRef.current || !streamRef.current) return;
+    const video = videoRef.current;
+    video.srcObject = streamRef.current;
+    const Detector = (window as any).BarcodeDetector;
+    let detector: any;
+    try { detector = new Detector({ formats: ['qr_code'] }); }
+    catch (err: any) { setCameraError(err?.message || 'Decoder QR gagal dibuka.'); stopCamera(); return; }
+    let disposed = false;
+    const detect = async () => {
+      if (disposed || scannerBusyRef.current) return;
+      try {
+        if (video.readyState >= 2) {
+          const codes = await detector.detect(video);
+          const value = String(codes?.[0]?.rawValue || '').trim();
+          if (value && !scannerBusyRef.current) {
+            scannerBusyRef.current = true;
+            // Hanya ID peserta atau kode tiket terdaftar, bukan URL arbitrer.
+            const parsed = (() => {
+              try { const u = new URL(value); return u.searchParams.get('p') || u.searchParams.get('participant_id') || value; }
+              catch { return value; }
+            })();
+            if (scannerModeRef.current === 'activity_session') setManualCode(parsed);
+            else {
+              setSearchQuery(parsed);
+              handleInspectParticipant(parsed);
+            }
+            stopCamera();
+            showToast('QR terbaca. Periksa identitas sebelum menyimpan presensi.');
+            return;
+          }
+        }
+      } catch (err: any) {
+        // Tidak mengubah data presensi jika decoder menemui frame yang tidak terbaca.
+        console.warn('Pembacaan frame QR:', err);
+      }
+      if (!disposed) scanTimerRef.current = setTimeout(detect, 250);
+    };
+    video.play().then(detect).catch(err => {
+      setCameraError(`Video kamera tidak dapat diputar: ${err?.message || 'unknown'}`);
+      stopCamera();
+    });
+    return () => { disposed = true; if (scanTimerRef.current) clearTimeout(scanTimerRef.current); };
+  }, [cameraOpen]);
+
+  useEffect(() => () => {
+    if (scanTimerRef.current) clearTimeout(scanTimerRef.current);
+    streamRef.current?.getTracks().forEach(track => track.stop());
+  }, []);
 
   // Contingent Check-in state (Requirement 21)
   const contingents = participantService.getContingents();
@@ -177,6 +281,20 @@ export const AttendanceScanner: React.FC = () => {
         </div>
       )}
 
+      {cameraOpen && (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 p-4" role="dialog" aria-modal="true" aria-label="Scanner QR SiEpang">
+          <div className="w-full max-w-md space-y-4 rounded-3xl border border-amber-500/60 bg-[#111115] p-4 text-white">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-bold text-lg">Arahkan kamera ke QR peserta</h3>
+              <button type="button" onClick={stopCamera} aria-label="Tutup kamera" className="p-3 rounded-xl bg-white/15"><CameraOff className="w-5 h-5" /></button>
+            </div>
+            <video ref={videoRef} autoPlay muted playsInline className="w-full aspect-square bg-black object-cover rounded-2xl border-2 border-[#D4A017]" />
+            <p className="text-sm text-center text-slate-300">Setelah QR terbaca, periksa identitas peserta. Pemindaian saja tidak menyimpan absensi.</p>
+            <button type="button" onClick={stopCamera} className="w-full py-3 bg-red-700 rounded-xl font-bold">Batalkan</button>
+          </div>
+        </div>
+      )}
+
       {/* Top Header */}
       <div className="bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 p-5 sm:p-6 rounded-[28px] shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -270,6 +388,12 @@ export const AttendanceScanner: React.FC = () => {
                 Cari Peserta
               </button>
             </div>
+
+            <button type="button" onClick={() => startCamera('individual_checkin')}
+              className="w-full min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-[#171717] text-white dark:bg-[#D4A017] dark:text-black text-sm font-bold">
+              <Camera className="w-5 h-5" /> Buka Kamera untuk Scan QR Peserta
+            </button>
+            {cameraError && <div role="alert" className="text-sm text-red-700 dark:text-red-300 p-3 rounded-xl border border-red-300">{cameraError}</div>}
 
             {/* Quick Demo Scan Buttons */}
             <div className="pt-2 border-t border-[#ECECEF] dark:border-white/5">
@@ -544,6 +668,12 @@ export const AttendanceScanner: React.FC = () => {
               </button>
             </div>
           </div>
+
+          <button type="button" onClick={() => startCamera('activity_session')}
+            className="w-full min-h-[48px] flex items-center justify-center gap-2 rounded-xl bg-[#171717] text-white dark:bg-[#D4A017] dark:text-black text-sm font-bold">
+            <Camera className="w-5 h-5" /> Scan QR untuk Presensi Sesi
+          </button>
+          {cameraError && <div role="alert" className="text-sm text-red-700 dark:text-red-300 p-3 rounded-xl border border-red-300">{cameraError}</div>}
 
           {/* Recent Records List */}
           <div className="p-5 sm:p-6 rounded-[28px] bg-white dark:bg-[#141418] border border-[#ECECEF] dark:border-white/10 space-y-3 shadow-xs">
