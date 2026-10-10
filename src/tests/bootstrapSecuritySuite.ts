@@ -295,6 +295,40 @@ export async function runBootstrapSecuritySuite(): Promise<BootstrapTestSuiteRes
     });
   }
 
+  // =========================================================================
+  // TEST E: Missing backend URL -> BACKEND_UNREACHABLE
+  // =========================================================================
+  try {
+    // Clear test token to simulate real browser call with no backend URL configured
+    bootstrapService.setTestBootstrapToken(null);
+    customerInstallationService.updateInstallationRecord({
+      web_app_url: '',
+    });
+
+    const noUrlRes = await bootstrapService.initialize('some_token_123');
+    const passed =
+      noUrlRes.success === false &&
+      noUrlRes.error?.code === 'BACKEND_UNREACHABLE';
+
+    results.push({
+      id: 'TEST_E',
+      name: 'Missing backend URL rejection',
+      description: 'Without backend URL, initialize must reject with BACKEND_UNREACHABLE.',
+      passed,
+      actualResult: passed
+        ? `Correctly rejected with code=${noUrlRes.error?.code}, message="${noUrlRes.error?.message}"`
+        : `Unexpected response: ${JSON.stringify(noUrlRes)}`,
+    });
+  } catch (err: any) {
+    results.push({
+      id: 'TEST_E',
+      name: 'Missing backend URL rejection',
+      description: 'Without backend URL, initialize must reject with BACKEND_UNREACHABLE.',
+      passed: false,
+      actualResult: `Error: ${err.message}`,
+    });
+  }
+
   const passedTests = results.filter(r => r.passed).length;
   return {
     allPassed: passedTests === results.length,
