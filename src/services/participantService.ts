@@ -13,6 +13,53 @@ class ParticipantService {
   private contingents: Contingent[] = [];
   private listeners: Set<() => void> = new Set();
 
+  /** Load daftar peserta dari GAS; jangan menganggap array lokal sebagai sumber data utama. */
+  public async loadParticipants(): Promise<void> {
+    const result = await apiTransport.send<any>('participants.list', {});
+    if (!result.ok) {
+      throw new Error(result.error?.message || 'Gagal membaca peserta dari GAS.');
+    }
+    const rows = result.data?.participants;
+    if (!Array.isArray(rows)) {
+      throw new Error('Respons participants.list tidak memuat array participants.');
+    }
+    this.participants = rows.map((r: any, index: number): Participant => {
+      const rawStatus = String(r.verification_status || r.verificationStatus || 'SUBMITTED').toUpperCase();
+      const status: ParticipantStatus = rawStatus === 'APPROVED' ? 'approved'
+        : rawStatus === 'VERIFIED' ? 'verified'
+        : rawStatus === 'REJECTED' ? 'rejected'
+        : rawStatus === 'REVISION' || rawStatus === 'NEEDS_REVISION' ? 'revision'
+        : rawStatus === 'DRAFT' ? 'draft' : 'submitted';
+      const code = String(r.code || r.participantCode || r.pramuka_id || r.pramukaId || r.id);
+      return {
+        id: String(r.id),
+        eventId: String(r.eventId || r.event_id || ''),
+        code,
+        name: String(r.name || r.fullName || ''),
+        gender: String(r.gender || 'M').toUpperCase() === 'F' ? 'F' : 'M',
+        role: (r.scoutLevel || r.scout_level || 'Penggalang') as Participant['role'],
+        contingentId: String(r.contingentId || r.contingent_id || ''),
+        contingentName: String(r.contingentName || r.institution || '-'),
+        subCamp: String(r.subcamp || r.subCamp || '-'),
+        tentNumber: String(r.lotNumber || r.lot_number || '-'),
+        photoUrl: String(r.photoUrl || ''),
+        status,
+        checkedIn: r.checkedIn === true || r.checked_in === true,
+        checkInTime: r.checkedInAt || r.checked_in_at || undefined,
+        xp: Number(r.points || 0),
+        level: 1,
+        rank: Number(r.rank || index + 1),
+        attendanceCount: 0,
+        badges: [],
+        membershipNumber: String(r.pramukaId || r.pramuka_id || ''),
+        email: String(r.email || ''),
+        phone: String(r.phone || ''),
+        schoolPangkalan: String(r.institution || ''),
+      };
+    });
+    this.notify();
+  }
+
   public getParticipants(filters?: {
     search?: string;
     contingentId?: string;
