@@ -383,7 +383,15 @@ class AuthService {
    */
   public async requestLoginOtp(
     email: string
-  ): Promise<{ success: boolean; challengeId?: string; message?: string; error?: string; devOtp?: string }> {
+  ): Promise<{
+    success: boolean;
+    authenticated?: boolean;
+    user?: User;
+    challengeId?: string;
+    message?: string;
+    error?: string;
+    devOtp?: string;
+  }> {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail || !cleanEmail.includes('@')) {
@@ -402,9 +410,18 @@ class AuthService {
     }
 
     try {
+      const device = this.getOrCreateDevicePayload();
+
       const res = await apiTransport.send<any>(
         'auth.login.requestOtp',
-        { email: cleanEmail },
+        {
+          email: cleanEmail,
+          device_public_id: device.device_public_id,
+          device_token: device.device_token,
+          device_name: device.device_name,
+          browser_family: device.browser_family,
+          platform: device.platform,
+        },
         {
           timeoutMs: 60000,
           skipAuth: true,
@@ -416,6 +433,16 @@ class AuthService {
         return {
           success: false,
           error: res.error?.message || 'Gagal mengirim kode verifikasi.',
+        };
+      }
+
+      if ((res.data as any).authenticated === true && (res.data as any).session_token) {
+        const loginResult = this.handleAuthSuccess(res.data);
+        return {
+          success: true,
+          authenticated: true,
+          user: loginResult.user,
+          message: 'Perangkat tepercaya dikenali. Anda berhasil masuk tanpa OTP.',
         };
       }
 
