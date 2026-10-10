@@ -65,8 +65,27 @@ class EventStudioService {
   private competitionTypes: CompetitionType[] = [];
   private criteria: JudgingCriterion[] = [];
   private judges: CompetitionJudge[] = [];
-  private votingConfig: VotingConfig = {} as VotingConfig;
-  private registrationSettings: RegistrationSettings = {} as RegistrationSettings;
+  private votingConfig: VotingConfig = {
+    votingEnabled: false,
+    votingMode: 'single_choice',
+    votingStart: '',
+    votingEnd: '',
+    maxVotes: 1,
+    allowSelfVote: false,
+    showVoteCounter: false,
+    showLiveRank: false,
+    votingOpen: false,
+  };
+  private registrationSettings: RegistrationSettings = {
+    registrationStart: '',
+    registrationEnd: '',
+    maxParticipants: 0,
+    contingentRepresentationLevel: 'KWARRAN',
+    maxParticipantsPerContingent: 0,
+    maxAdvisorsPerContingent: 0,
+    allowSelfRegistration: false,
+    status: 'CLOSED',
+  };
   private dynamicFields: RegistrationFieldConfig[] = [];
   private pointRules: PointRuleConfig[] = [];
   private badges: BadgeConfig[] = [];
@@ -100,6 +119,145 @@ class EventStudioService {
 
   private notify() {
     this.listeners.forEach(cb => cb());
+  }
+
+  private normalizeEvent(raw?: Partial<ScoutEvent> | null): ScoutEvent {
+    const source: any = raw || {};
+    const fallback = EMPTY_EVENT;
+
+    const pickString = (...values: any[]): string => {
+      for (const value of values) {
+        if (typeof value === 'string') return value;
+        if (value !== undefined && value !== null) return String(value);
+      }
+      return '';
+    };
+
+    const pickNumber = (...values: any[]): number => {
+      for (const value of values) {
+        const n = Number(value);
+        if (Number.isFinite(n)) return n;
+      }
+      return 0;
+    };
+
+    return {
+      ...fallback,
+      ...source,
+      id: pickString(source.id, source.event_id, fallback.id),
+      event_id: pickString(source.event_id, source.id, fallback.id),
+      workspaceId: pickString(source.workspaceId, source.workspace_id, fallback.workspaceId),
+      name: pickString(source.name, fallback.name),
+      shortName: pickString(source.shortName, source.short_name, fallback.shortName),
+      eventCode: pickString(source.eventCode, source.event_code, fallback.eventCode),
+      category: (pickString(source.category, fallback.category) || 'Jambore') as ScoutEvent['category'],
+      organizationalLevel: (
+        pickString(
+          source.organizationalLevel,
+          source.organizational_level,
+          fallback.organizationalLevel
+        ) || 'Kwarcab'
+      ) as ScoutEvent['organizationalLevel'],
+      organizer: pickString(source.organizer, fallback.organizer),
+      description: pickString(source.description, fallback.description),
+      theme: pickString(source.theme, fallback.theme),
+      startDate: pickString(source.startDate, source.start_date, fallback.startDate),
+      endDate: pickString(source.endDate, source.end_date, fallback.endDate),
+      registrationStart: pickString(
+        source.registrationStart,
+        source.registration_start,
+        fallback.registrationStart
+      ),
+      registrationEnd: pickString(
+        source.registrationEnd,
+        source.registration_end,
+        fallback.registrationEnd
+      ),
+      location: pickString(source.location, fallback.location),
+      venue: pickString(source.venue, source.location, fallback.venue),
+      campGround: pickString(
+        source.campGround,
+        source.camp_ground,
+        source.venue,
+        source.location,
+        fallback.campGround
+      ),
+      participantCapacity: pickNumber(
+        source.participantCapacity,
+        source.participant_capacity,
+        source.maxParticipants,
+        fallback.participantCapacity
+      ),
+      maxParticipants: pickNumber(
+        source.maxParticipants,
+        source.participantCapacity,
+        source.participant_capacity,
+        fallback.maxParticipants
+      ),
+      bannerUrl: pickString(source.bannerUrl, source.banner_url, fallback.bannerUrl),
+      logoUrl: pickString(source.logoUrl, source.logo_url, fallback.logoUrl),
+      status: (
+        pickString(source.status, fallback.status) || 'UPCOMING'
+      ) as ScoutEvent['status'],
+      contacts: {
+        ...(fallback.contacts || {}),
+        ...(source.contacts && typeof source.contacts === 'object' ? source.contacts : {}),
+      },
+      features: {
+        ...(fallback.features || {}),
+        ...(source.features && typeof source.features === 'object' ? source.features : {}),
+      },
+      homeSections: Array.isArray(source.homeSections)
+        ? source.homeSections
+        : Array.isArray(source.home_sections)
+          ? source.home_sections
+          : fallback.homeSections,
+      registeredCount: pickNumber(source.registeredCount, fallback.registeredCount),
+      checkedInCount: pickNumber(source.checkedInCount, fallback.checkedInCount),
+      contingentCount: pickNumber(source.contingentCount, fallback.contingentCount),
+      competitionCount: pickNumber(source.competitionCount, fallback.competitionCount),
+    };
+  }
+
+  private normalizeRegistrationSettings(
+    raw?: Partial<RegistrationSettings> | null
+  ): RegistrationSettings {
+    const source: any = raw || {};
+    return {
+      registrationStart: String(source.registrationStart ?? source.registration_start ?? ''),
+      registrationEnd: String(source.registrationEnd ?? source.registration_end ?? ''),
+      maxParticipants: Number(source.maxParticipants ?? source.max_participants ?? 0) || 0,
+      contingentRepresentationLevel: (
+        source.contingentRepresentationLevel ??
+        source.contingent_representation_level ??
+        'KWARRAN'
+      ) as RegistrationSettings['contingentRepresentationLevel'],
+      maxParticipantsPerContingent:
+        Number(source.maxParticipantsPerContingent ?? source.max_participants_per_contingent ?? 0) || 0,
+      maxAdvisorsPerContingent:
+        Number(source.maxAdvisorsPerContingent ?? source.max_advisors_per_contingent ?? 0) || 0,
+      allowSelfRegistration: Boolean(
+        source.allowSelfRegistration ?? source.allow_self_registration ?? false
+      ),
+      status: (String(source.status ?? 'CLOSED') || 'CLOSED') as RegistrationSettings['status'],
+    };
+  }
+
+  private normalizeVotingConfig(raw?: Partial<VotingConfig> | null): VotingConfig {
+    const source: any = raw || {};
+    return {
+      votingEnabled: Boolean(source.votingEnabled ?? source.voting_enabled ?? false),
+      votingMode: (
+        source.votingMode ?? source.voting_mode ?? 'single_choice'
+      ) as VotingConfig['votingMode'],
+      votingStart: String(source.votingStart ?? source.voting_start ?? ''),
+      votingEnd: String(source.votingEnd ?? source.voting_end ?? ''),
+      maxVotes: Number(source.maxVotes ?? source.max_votes ?? 1) || 1,
+      allowSelfVote: Boolean(source.allowSelfVote ?? source.allow_self_vote ?? false),
+      showVoteCounter: Boolean(source.showVoteCounter ?? source.show_vote_counter ?? false),
+      showLiveRank: Boolean(source.showLiveRank ?? source.show_live_rank ?? false),
+      votingOpen: Boolean(source.votingOpen ?? source.voting_open ?? false),
+    };
   }
 
   /**
@@ -275,7 +433,7 @@ class EventStudioService {
       ]);
 
       if (evRes.ok && evRes.data) {
-        this.event = evRes.data;
+        this.event = this.normalizeEvent(evRes.data);
       } else {
         this.event = { ...EMPTY_EVENT };
       }
@@ -291,8 +449,8 @@ class EventStudioService {
       if (compRes.success && compRes.data) this.competitions = compRes.data;
       if (critRes.success && critRes.data) this.criteria = critRes.data;
       if (jdgRes.success && jdgRes.data) this.judges = jdgRes.data;
-      if (voteRes.success && voteRes.data) this.votingConfig = voteRes.data;
-      if (regRes.success && regRes.data) this.registrationSettings = regRes.data;
+      if (voteRes.success) this.votingConfig = this.normalizeVotingConfig(voteRes.data);
+      if (regRes.success) this.registrationSettings = this.normalizeRegistrationSettings(regRes.data);
       if (fldRes.success && fldRes.data) this.dynamicFields = fldRes.data;
       if (ptRes.success && ptRes.data) this.pointRules = ptRes.data;
       if (bdgRes.success && bdgRes.data) this.badges = bdgRes.data;
@@ -360,7 +518,7 @@ class EventStudioService {
       );
 
       if (res.ok && res.data) {
-        this.event = res.data;
+        this.event = this.normalizeEvent(res.data);
         this.pendingDraft = null;
         this.saveState = {
           hasUnsaved: false,
@@ -433,7 +591,7 @@ class EventStudioService {
     );
 
     if (res.ok && res.data) {
-      this.event = res.data;
+      this.event = this.normalizeEvent(res.data);
       this.saveState = {
         hasUnsaved: false,
         status: 'Saved ✓',
@@ -447,7 +605,7 @@ class EventStudioService {
       // event mutation into "Save Failed". GAS event update already records
       // its authoritative audit entry server-side.
       this.notify();
-      return res.data;
+      return this.event;
     }
 
     const message =
