@@ -60,12 +60,11 @@ async function run() {
   console.log(`All Passed: ${report.allPassed}`);
   console.log('==================================================\n');
 
-  if (!report.allPassed) {
-    process.exit(1);
-  }
+  process.exit(report.allPassed ? 0 : 1);
 }
 
 run().catch((err) => {
   console.error('Test Suite Failed with unexpected error:', err);
   process.exit(1);
 });
+
