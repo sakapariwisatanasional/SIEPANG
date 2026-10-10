@@ -303,7 +303,8 @@ export class ProfilePhotoService {
       .toUpperCase() || 'SP';
 
     // SVG Data URI fallback
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="#142319"/><circle cx="100" cy="80" r="38" fill="#10b981" opacity="0.3"/><path d="M40 180 C40 135 70 120 100 120 C130 120 160 135 160 180 Z" fill="#10b981" opacity="0.3"/><text x="100" y="88" font-family="sans-serif" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">${initials}</text></svg>`;
+    const safeInitials = initials.replace(/[^A-Z0-9]/g, '').slice(0, 2) || 'SP';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" rx="32" fill="#FFF1D6"/><circle cx="100" cy="84" r="60" fill="#C62828" opacity="0.09"/><text x="100" y="117" font-family="Arial,sans-serif" font-size="60" font-weight="bold" fill="#8B1E1E" text-anchor="middle">${safeInitials}</text></svg>`;
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   }
 
