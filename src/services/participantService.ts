@@ -6,6 +6,7 @@
 import { Participant, Contingent, ParticipantStatus } from '../types';
 import { syncQueue } from '../offline/syncQueue';
 import { eventService } from './eventService';
+import { apiTransport } from './apiTransport';
 
 class ParticipantService {
   private participants: Participant[] = [];
@@ -397,23 +398,42 @@ class ParticipantService {
   }
 
   public async addParticipant(data: Omit<Participant, 'id' | 'code' | 'xp' | 'level' | 'rank' | 'attendanceCount' | 'badges'>): Promise<Participant> {
+    const result = await apiTransport.send<any>('participants.create', {
+      name: data.name,
+      gender: data.gender,
+      role: data.role,
+      contingentId: data.contingentId,
+      contingentName: data.contingentName,
+      subCamp: data.subCamp,
+      tentNumber: data.tentNumber,
+      membershipNumber: data.membershipNumber,
+      email: data.email,
+      phone: data.phone,
+      schoolPangkalan: data.schoolPangkalan,
+      photoUrl: data.photoUrl,
+      profile_photo_file_id: data.profile_photo_file_id,
+      profile_photo_status: data.profile_photo_status,
+    });
+    if (!result.ok || !result.data?.participant?.id) {
+      throw new Error(result.error?.message || 'Pendaftaran tidak dikonfirmasi oleh GAS.');
+    }
+    const remote = result.data.participant;
     const currentEvent = eventService.getCurrentEvent();
-    const prefix = currentEvent?.eventCode || 'PST';
-    const year = currentEvent?.startDate ? new Date(currentEvent.startDate).getFullYear() : new Date().getFullYear();
-    const newParticipant: Participant = {
+    const participant: Participant = {
       ...data,
-      id: `p_${Date.now()}`,
-      code: `${prefix}-${year}-${String(this.participants.length + 1).padStart(4, '0')}`,
-      xp: 100,
+      id: remote.id,
+      code: remote.code || remote.participantCode || `PST-${remote.id}`,
+      eventId: remote.eventId || currentEvent.id,
+      xp: Number(remote.points || 0),
       level: 1,
-      rank: this.participants.length + 1,
+      rank: Number(remote.rank || 0),
       attendanceCount: 0,
-      badges: ['badge_spirit'],
+      badges: [],
+      status: 'submitted',
     };
-
-    this.participants.unshift(newParticipant);
+    this.participants.unshift(participant);
     this.notify();
-    return newParticipant;
+    return participant;
   }
 
   public subscribe(cb: () => void) {
