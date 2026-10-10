@@ -1,11 +1,11 @@
 /**
  * @license
  * SiEpang - Gamification, XP & Peer Appreciation Service
+ * Canonical PointTransactions persistence.
  */
-
 import { XPTransaction, LeaderboardEntry, Badge, PeerAppreciationType } from '../types';
-import { syncQueueService } from '../offline/syncQueueService';
 import { participantService } from './participantService';
+import { adminPersistenceService } from './adminPersistenceService';
 
 export const PEER_APPRECIATIONS: { type: PeerAppreciationType; xp: number; icon: string; label: string }[] = [
   { type: 'Helpful', xp: 25, icon: 'Handshake', label: 'Siaga Menolong' },
@@ -20,40 +20,72 @@ class PointService {
   private badges: Badge[] = [];
   private listeners: Set<() => void> = new Set();
 
+  constructor() {
+    setTimeout(() => void this.refreshFromBackend(), 0);
+  }
+
+  public async refreshFromBackend(): Promise<void> {
+    try {
+      const [txRows, badgeRows] = await Promise.all([
+        adminPersistenceService.list<any>('pointTransactions'),
+        adminPersistenceService.list<any>('participantBadges'),
+      ]);
+
+      this.transactions = txRows.map((r: any) => ({
+        id: String(r.id || ''),
+        participantId: String(r.participant_id || ''),
+        participantName: String(r.participant_name || ''),
+        amount: Number(r.amount || 0),
+        reason: String(r.reason || ''),
+        category: (r.category || r.source_type || 'attendance') as any,
+        timestamp: String(r.created_at || ''),
+      })) as XPTransaction[];
+
+      // Badge definitions remain supplied by Event Studio/Badge config.
+      // ParticipantBadges are retained server-side and can be combined later.
+      void badgeRows;
+      this.notify();
+    } catch (e) {
+      console.error('Gagal memuat ledger XP:', e);
+    }
+  }
+
   public getBadges(): Badge[] {
-    return this.badges;
+    return [...this.badges];
   }
 
   public getTransactions(participantId?: string): XPTransaction[] {
-    if (participantId) {
-      return this.transactions.filter(t => t.participantId === participantId);
-    }
-    return this.transactions;
+    return participantId
+      ? this.transactions.filter(t => t.participantId === participantId)
+      : [...this.transactions];
   }
 
-  /**
-   * Primary source of truth calculated from authoritative ledger transactions (Req 10)
-   */
   public getParticipantTotalXP(participantId: string): number {
     return this.transactions
       .filter(t => t.participantId === participantId)
-      .reduce((sum, t) => sum + t.amount, 0);
+      .reduce((sum, t) => sum + Number(t.amount || 0), 0);
   }
 
   public getLeaderboard(): LeaderboardEntry[] {
-    const participants = participantService.getParticipants();
-    const sorted = [...participants].sort((a, b) => (b.xp || 0) - (a.xp || 0));
-    return sorted.map((p, index) => ({
-      rank: index + 1,
-      id: p.id,
-      name: p.name,
-      contingentName: p.contingentName,
-      avatar: p.photoUrl,
-      role: p.role,
-      xp: p.xp || 0,
-      level: Math.floor((p.xp || 0) / 200) + 1,
-      isCurrentUser: false,
-    }));
+    const totals = new Map<string, number>();
+    this.transactions.forEach(tx => {
+      totals.set(tx.participantId, (totals.get(tx.participantId) || 0) + Number(tx.amount || 0));
+    });
+
+    return [...participantService.getParticipants()]
+      .map(p => ({ p, xp: totals.get(p.id) ?? Number(p.xp || 0) }))
+      .sort((a, b) => b.xp - a.xp)
+      .map(({ p, xp }, index) => ({
+        rank: index + 1,
+        id: p.id,
+        name: p.name,
+        contingentName: p.contingentName,
+        avatar: p.photoUrl,
+        role: p.role,
+        xp,
+        level: Math.floor(xp / 200) + 1,
+        isCurrentUser: false,
+      }));
   }
 
   public async awardXP(
@@ -63,41 +95,29 @@ class PointService {
     reason: string,
     category: XPTransaction['category']
   ): Promise<XPTransaction> {
+    const saved = await adminPersistenceService.upsert<any>('pointTransactions', {
+      participant_id: participantId,
+      participant_name: participantName,
+      amount,
+      reason,
+      source_type: category,
+      category,
+      reference_id: '',
+      created_at: new Date().toISOString(),
+      created_by: '',
+    });
+
     const tx: XPTransaction = {
-      id: `tx_${Date.now()}`,
+      id: saved.id,
       participantId,
       participantName,
       amount,
       reason,
       category,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: saved.created_at || new Date().toISOString(),
     };
 
     this.transactions.unshift(tx);
-
-    // Update participant
-    const target = participantService.getParticipants().find(p => p.id === participantId);
-    if (target) {
-      target.xp = (target.xp || 0) + amount;
-      target.level = Math.floor(target.xp / 200) + 1;
-    }
-
-    // Enqueue centralized transaction with pre-generated UUID
-    syncQueueService.enqueueTransaction({
-      entity: 'points',
-      action: 'CREATE',
-      record_id: tx.id,
-      payload: {
-        participantId,
-        participantName,
-        amount,
-        reason,
-        category,
-        currentDailyTotal: 15,
-        dailyLimit: 100,
-      },
-    });
-
     this.notify();
     return tx;
   }
@@ -119,9 +139,7 @@ class PointService {
 
   public subscribe(cb: () => void) {
     this.listeners.add(cb);
-    return () => {
-      this.listeners.delete(cb);
-    };
+    return () => this.listeners.delete(cb);
   }
 
   private notify() {

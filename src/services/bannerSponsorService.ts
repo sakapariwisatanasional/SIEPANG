@@ -1,9 +1,8 @@
 /**
  * @license
- * SiEpang - Hero Banner, Public Information Banner & Sponsor Service (Requirements 21-41, 49, 50, 52-54, 58, 63)
- * Full management of advertising, announcements, and sponsor media.
+ * SiEpang - Banner & Sponsor Service
+ * Canonical Banners / Sponsors / SponsorSettings persistence.
  */
-
 import {
   BannerItem,
   SponsorItem,
@@ -18,10 +17,9 @@ import {
   SponsorCarouselConfig,
 } from '../types';
 import { mediaResolverService } from './mediaResolverService';
-import { eventStudioService } from './eventStudioService';
 import { eventService } from './eventService';
 import { workspaceService } from './workspaceService';
-import { spreadsheetRepository } from '../backend/repositories/spreadsheetRepository';
+import { adminPersistenceService } from './adminPersistenceService';
 
 class BannerSponsorService {
   private banners: Map<string, BannerItem> = new Map();
@@ -36,34 +34,74 @@ class BannerSponsorService {
   private carouselConfig: SponsorCarouselConfig = {
     enabled: true,
     direction: 'RIGHT_TO_LEFT',
-    carousel_duration_seconds: 30, // Normal 30s, Fast 15s, Slow 60s
+    carousel_duration_seconds: 30,
     pauseOnHover: true,
     pauseOnTouch: true,
   };
   private listeners: Set<() => void> = new Set();
 
   constructor() {
-    this.loadPersistentConfigs();
+    setTimeout(() => void this.refreshFromBackend(), 0);
   }
 
-  private loadPersistentConfigs(): void {
-    try {
-      const storedCar = localStorage.getItem('siepang_sponsor_carousel_config');
-      if (storedCar) {
-        this.carouselConfig = { ...this.carouselConfig, ...JSON.parse(storedCar) };
-      }
-      const storedRot = localStorage.getItem('siepang_banner_rotator_config');
-      if (storedRot) {
-        this.rotatorConfig = { ...this.rotatorConfig, ...JSON.parse(storedRot) };
-      }
-    } catch {
-      // Memory defaults
+  public async refreshFromBackend(): Promise<void> {
+    const [bannerRows, sponsorRows, settingsRows, rotator] = await Promise.all([
+      adminPersistenceService.list<any>('banners'),
+      adminPersistenceService.list<any>('sponsors'),
+      adminPersistenceService.list<any>('sponsorSettings'),
+      adminPersistenceService.getConfig<BannerRotatorConfig>('BANNER_ROTATOR_CONFIG'),
+    ]);
+
+    this.banners.clear();
+    bannerRows.forEach((r: any) => {
+      const id = String(r.banner_id || r.id || '');
+      if (!id) return;
+      this.banners.set(id, {
+        ...r,
+        banner_id: id,
+        workspace_id: r.workspace_id || workspaceService.getCurrentWorkspace().id || '',
+        event_id: r.event_id || eventService.getCurrentEvent().id || '',
+        banner_type: r.banner_type || 'HERO',
+        title: r.title || '',
+        image_url: r.image_url || '',
+        display_order: Number(r.display_order || 0),
+        publication_status: r.publication_status || r.status || 'PUBLISHED',
+        priority: r.priority || 'NORMAL',
+        impressions_count: Number(r.impressions_count || 0),
+        clicks_count: Number(r.clicks_count || 0),
+      } as BannerItem);
+    });
+
+    this.sponsors.clear();
+    sponsorRows.forEach((r: any) => {
+      const id = String(r.sponsor_id || '');
+      if (!id) return;
+      this.sponsors.set(id, {
+        ...r,
+        sponsor_id: id,
+        sponsor_name: r.sponsor_name || 'Mitra Sponsor',
+        sponsor_tier: r.sponsor_tier || 'PARTNER',
+        logo_url: r.logo_url || '',
+        display_order: Number(r.display_order || 0),
+        status: r.status || 'ACTIVE',
+        publication_status: r.publication_status || (r.status === 'INACTIVE' ? 'ARCHIVED' : 'PUBLISHED'),
+      } as SponsorItem);
+    });
+
+    if (settingsRows[0]) {
+      const s: any = settingsRows[0];
+      this.carouselConfig = {
+        ...this.carouselConfig,
+        enabled: Boolean(s.carousel_enabled),
+        direction: s.direction || this.carouselConfig.direction,
+        carousel_duration_seconds: Number(s.carousel_duration_seconds || 30),
+        pauseOnHover: Boolean(s.pause_on_hover),
+        pauseOnTouch: Boolean(s.pause_on_touch ?? true),
+      };
     }
+    if (rotator) this.rotatorConfig = { ...this.rotatorConfig, ...rotator };
+    this.notify();
   }
-
-
-
-  // ==================== BANNER OPERATIONS ====================
 
   public getBanners(options?: {
     location?: BannerDisplayLocation;
@@ -72,42 +110,72 @@ class BannerSponsorService {
     onlyActiveNow?: boolean;
   }): BannerItem[] {
     let list = Array.from(this.banners.values());
-
-    if (options?.location) {
-      list = list.filter(b => b.display_location === options.location);
-    }
-    if (options?.type) {
-      list = list.filter(b => b.banner_type === options.type);
-    }
-    if (options?.status) {
-      list = list.filter(b => b.publication_status === options.status);
-    }
-
+    if (options?.location) list = list.filter(b => b.display_location === options.location);
+    if (options?.type) list = list.filter(b => b.banner_type === options.type);
+    if (options?.status) list = list.filter(b => b.publication_status === options.status);
     if (options?.onlyActiveNow) {
       const now = new Date().toISOString();
-      list = list.filter(b => {
-        if (b.publication_status !== 'PUBLISHED') return false;
-        if (b.publish_start && b.publish_start > now) return false;
-        if (b.publish_end && b.publish_end < now) return false;
-        return true;
-      });
+      list = list.filter(b =>
+        b.publication_status === 'PUBLISHED' &&
+        (!b.publish_start || b.publish_start <= now) &&
+        (!b.publish_end || b.publish_end >= now)
+      );
     }
-
-    // Sort by priority (URGENT first) then display_order
-    return list.sort((a, b) => {
-      const pMap: Record<BannerPriority, number> = { URGENT: 1, IMPORTANT: 2, NORMAL: 3 };
-      if (pMap[a.priority] !== pMap[b.priority]) {
-        return pMap[a.priority] - pMap[b.priority];
-      }
-      return a.display_order - b.display_order;
-    });
+    const pMap: Record<BannerPriority, number> = { URGENT: 1, IMPORTANT: 2, NORMAL: 3 };
+    return list.sort((a, b) =>
+      (pMap[a.priority] - pMap[b.priority]) || (a.display_order - b.display_order)
+    );
   }
 
   public getBannerById(id: string): BannerItem | undefined {
     return this.banners.get(id);
   }
 
-  public createBanner(data: {
+  private bannerToRecord(b: Partial<BannerItem> & Record<string, any>): any {
+    return {
+      id: b.banner_id || b.id || undefined,
+      event_id: b.event_id || eventService.getCurrentEvent().id || '',
+      banner_type: b.banner_type || 'HERO',
+      title: b.title || '',
+      image_url: b.image_url || '',
+      target_url: b.target_url || '',
+      display_order: Number(b.display_order || 0),
+      status: b.publication_status || b.status || 'PUBLISHED',
+      subtitle: b.subtitle || '',
+      source_type: b.source_type || '',
+      desktop_preset: b.desktop_preset || 'BILLBOARD',
+      mobile_preset: b.mobile_preset || 'LARGE_MOBILE_BANNER',
+      mobile_image_url: b.mobile_image_url || '',
+      fit_mode: b.fit_mode || 'COVER',
+      focal_x: Number(b.focal_x ?? 50),
+      focal_y: Number(b.focal_y ?? 50),
+      target_type: b.target_type || 'NONE',
+      cta_label: b.cta_label || '',
+      display_location: b.display_location || 'PUBLIC_HOME_TOP',
+      priority: b.priority || 'NORMAL',
+      publish_start: b.publish_start || '',
+      publish_end: b.publish_end || '',
+      publication_status: b.publication_status || 'PUBLISHED',
+      click_tracking_enabled: Boolean(b.click_tracking_enabled ?? true),
+      impressions_count: Number(b.impressions_count || 0),
+      clicks_count: Number(b.clicks_count || 0),
+      created_at: b.created_at || new Date().toISOString(),
+      created_by: b.created_by || '',
+      updated_at: new Date().toISOString(),
+    };
+  }
+
+  private recordToBanner(r: any): BannerItem {
+    return {
+      ...r,
+      banner_id: r.id || r.banner_id,
+      publication_status: r.publication_status || r.status || 'PUBLISHED',
+      display_order: Number(r.display_order || 0),
+      priority: r.priority || 'NORMAL',
+    } as BannerItem;
+  }
+
+  public async createBanner(data: {
     banner_type: BannerType;
     title: string;
     subtitle?: string;
@@ -127,112 +195,68 @@ class BannerSponsorService {
     publish_end?: string;
     publication_status?: MediaPublicationStatus;
     createdBy?: string;
-  }): BannerItem {
-    const id = `ban_${Date.now()}`;
+  }): Promise<BannerItem> {
     const resolution = mediaResolverService.resolveSource(data.image_url);
-
-    const banner: BannerItem = {
-      banner_id: id,
+    const candidate: any = {
+      ...data,
       workspace_id: workspaceService.getCurrentWorkspace().id || '',
       event_id: eventService.getCurrentEvent().id || '',
-      banner_type: data.banner_type,
-      title: data.title.trim(),
-      subtitle: data.subtitle?.trim(),
       image_url: resolution.thumbnailUrl || data.image_url,
       source_type: resolution.sourceType,
-      desktop_preset: data.desktop_preset || 'BILLBOARD', // 970x250 default
-      mobile_preset: data.mobile_preset || 'LARGE_MOBILE_BANNER', // 320x100 default
-      mobile_image_url: data.mobile_image_url?.trim(),
-      fit_mode: data.fit_mode || 'COVER',
-      focal_x: typeof data.focal_x === 'number' ? data.focal_x : 50,
-      focal_y: typeof data.focal_y === 'number' ? data.focal_y : 50,
-      target_type: data.target_type || 'NONE',
-      target_url: data.target_url?.trim(),
-      cta_label: data.cta_label?.trim(),
-      display_location: data.display_location || 'PUBLIC_HOME_TOP',
       display_order: this.banners.size + 1,
-      priority: data.priority || 'NORMAL',
-      publish_start: data.publish_start || new Date().toISOString().replace('T', ' ').slice(0, 16),
-      publish_end: data.publish_end,
       publication_status: data.publication_status || 'PUBLISHED',
       click_tracking_enabled: true,
       impressions_count: 0,
       clicks_count: 0,
-      created_at: new Date().toISOString().replace('T', ' ').slice(0, 16),
+      created_at: new Date().toISOString(),
       created_by: data.createdBy || 'Event Admin',
     };
-
-    this.banners.set(id, banner);
-
-    eventStudioService.addAuditLogEntry(
-      'BANNER_CREATED',
-      `Banner '${banner.title}' (${banner.banner_type}) berhasil dibuat.`,
-      data.createdBy || 'Admin'
-    );
-
+    const saved = await adminPersistenceService.upsert<any>('banners', this.bannerToRecord(candidate));
+    const item = this.recordToBanner(saved);
+    this.banners.set(item.banner_id, item);
     this.notify();
-    return banner;
+    return item;
   }
 
-  public updateBanner(id: string, updates: Partial<BannerItem>, updatedBy?: string): BannerItem {
-    const target = this.banners.get(id);
-    if (!target) throw new Error('Banner tidak ditemukan.');
-
-    const updated: BannerItem = {
-      ...target,
-      ...updates,
-      updated_at: new Date().toISOString().replace('T', ' ').slice(0, 16),
-    };
-    this.banners.set(id, updated);
-
-    eventStudioService.addAuditLogEntry(
-      'BANNER_UPDATED',
-      `Banner '${updated.title}' diperbarui.`,
-      updatedBy || 'Admin'
+  public async updateBanner(id: string, updates: Partial<BannerItem>, updatedBy?: string): Promise<BannerItem> {
+    const current = this.banners.get(id);
+    if (!current) throw new Error('Banner tidak ditemukan.');
+    const saved = await adminPersistenceService.upsert<any>(
+      'banners',
+      this.bannerToRecord({ ...current, ...updates, banner_id: id, updated_by: updatedBy || 'Admin' } as any)
     );
-
+    const item = this.recordToBanner(saved);
+    this.banners.set(id, item);
     this.notify();
-    return updated;
+    return item;
   }
 
-  public deleteBanner(id: string, deletedBy?: string): boolean {
-    const target = this.banners.get(id);
-    if (!target) return false;
-
-    this.banners.delete(id);
-
-    eventStudioService.addAuditLogEntry(
-      'BANNER_DELETED',
-      `Banner '${target.title}' dihapus.`,
-      deletedBy || 'Admin'
-    );
-
+  public async deleteBanner(id: string): Promise<boolean> {
+    const ok = await adminPersistenceService.archive('banners', id, {
+      publication_status: 'ARCHIVED',
+      status: 'ARCHIVED',
+    });
+    if (ok) this.banners.delete(id);
     this.notify();
-    return true;
+    return Boolean(ok);
   }
 
   public recordBannerImpression(id: string): void {
     const b = this.banners.get(id);
-    if (b && b.click_tracking_enabled) {
-      b.impressions_count = (b.impressions_count || 0) + 1;
-    }
+    if (!b?.click_tracking_enabled) return;
+    b.impressions_count = (b.impressions_count || 0) + 1;
   }
 
   public recordBannerClick(id: string): void {
     const b = this.banners.get(id);
-    if (b && b.click_tracking_enabled) {
-      b.clicks_count = (b.clicks_count || 0) + 1;
-      this.notify();
-    }
+    if (!b?.click_tracking_enabled) return;
+    b.clicks_count = (b.clicks_count || 0) + 1;
+    this.notify();
   }
-
-  // ==================== SPONSOR OPERATIONS ====================
 
   public getSponsors(filterStatus?: MediaPublicationStatus): SponsorItem[] {
     let list = Array.from(this.sponsors.values());
-    if (filterStatus) {
-      list = list.filter(s => s.publication_status === filterStatus);
-    }
+    if (filterStatus) list = list.filter(s => s.publication_status === filterStatus);
     return list.sort((a, b) => a.display_order - b.display_order);
   }
 
@@ -240,7 +264,37 @@ class BannerSponsorService {
     return this.sponsors.get(id);
   }
 
-  public createSponsor(data: {
+  private sponsorToRecord(s: Partial<SponsorItem> & Record<string, any>): any {
+    return {
+      sponsor_id: s.sponsor_id || undefined,
+      workspace_id: s.workspace_id || workspaceService.getCurrentWorkspace().id || '',
+      event_id: s.event_id || eventService.getCurrentEvent().id || '',
+      logo_url: s.logo_url || '',
+      target_url: s.target_url || s.website_url || '',
+      display_order: Number(s.display_order || 0),
+      status: s.status || 'ACTIVE',
+      created_at: s.created_at || new Date().toISOString(),
+      created_by: s.created_by || '',
+      updated_at: new Date().toISOString(),
+      updated_by: s.updated_by || '',
+      sponsor_name: s.sponsor_name || 'Mitra Sponsor',
+      sponsor_tier: s.sponsor_tier || 'PARTNER',
+      website_url: s.website_url || s.target_url || '',
+      banner_id: s.banner_id || '',
+      publication_status: s.publication_status || 'PUBLISHED',
+    };
+  }
+
+  private recordToSponsor(r: any): SponsorItem {
+    return {
+      ...r,
+      sponsor_id: r.sponsor_id,
+      publication_status: r.publication_status || (r.status === 'INACTIVE' ? 'ARCHIVED' : 'PUBLISHED'),
+      display_order: Number(r.display_order || 0),
+    } as SponsorItem;
+  }
+
+  public async createSponsor(data: {
     sponsor_name?: string;
     sponsor_tier?: SponsorTier;
     logo_url: string;
@@ -250,156 +304,107 @@ class BannerSponsorService {
     banner_id?: string;
     publication_status?: MediaPublicationStatus;
     createdBy?: string;
-  }): SponsorItem {
-    const id = `sp_${Date.now()}`;
-    const targetLink = (data.target_url || data.website_url)?.trim();
-    const isActive = data.status ? data.status === 'ACTIVE' : true;
-
-    const sponsor: SponsorItem = {
-      sponsor_id: id,
-      workspace_id: workspaceService.getCurrentWorkspace().id || '',
-      event_id: eventService.getCurrentEvent().id || '',
-      sponsor_name: data.sponsor_name?.trim() || 'Mitra Sponsor',
-      sponsor_tier: data.sponsor_tier || 'PARTNER',
-      logo_url: data.logo_url.trim(),
-      target_url: targetLink,
-      website_url: targetLink,
-      banner_id: data.banner_id,
+  }): Promise<SponsorItem> {
+    const saved = await adminPersistenceService.upsert<any>('sponsors', this.sponsorToRecord({
+      ...data,
       display_order: this.sponsors.size + 1,
-      status: data.status || (isActive ? 'ACTIVE' : 'INACTIVE'),
-      publication_status: data.publication_status || (isActive ? 'PUBLISHED' : 'ARCHIVED'),
-      created_at: new Date().toISOString().replace('T', ' ').slice(0, 16),
       created_by: data.createdBy || 'Admin',
-    };
-
-    this.sponsors.set(id, sponsor);
-
-    eventStudioService.addAuditLogEntry(
-      'SPONSOR_CREATED',
-      `Sponsor logo '${sponsor.sponsor_name}' ditambahkan.`,
-      data.createdBy || 'Admin'
-    );
-
+      publication_status: data.publication_status || 'PUBLISHED',
+    } as any));
+    const item = this.recordToSponsor(saved);
+    this.sponsors.set(item.sponsor_id, item);
     this.notify();
-    return sponsor;
+    return item;
   }
 
-  public updateSponsor(id: string, updates: Partial<SponsorItem>, updatedBy?: string): SponsorItem {
-    const target = this.sponsors.get(id);
-    if (!target) throw new Error('Sponsor tidak ditemukan.');
-
-    const updated = {
-      ...target,
+  public async updateSponsor(id: string, updates: Partial<SponsorItem>, updatedBy?: string): Promise<SponsorItem> {
+    const current = this.sponsors.get(id);
+    if (!current) throw new Error('Sponsor tidak ditemukan.');
+    const saved = await adminPersistenceService.upsert<any>('sponsors', this.sponsorToRecord({
+      ...current,
       ...updates,
-      updated_at: new Date().toISOString().replace('T', ' ').slice(0, 16),
-    };
-    this.sponsors.set(id, updated);
-
-    eventStudioService.addAuditLogEntry(
-      'SPONSOR_UPDATED',
-      `Sponsor '${updated.sponsor_name}' diperbarui.`,
-      updatedBy || 'Admin'
-    );
-
+      sponsor_id: id,
+      updated_by: updatedBy || 'Admin',
+    } as any));
+    const item = this.recordToSponsor(saved);
+    this.sponsors.set(id, item);
     this.notify();
-    return updated;
+    return item;
   }
 
-  public deleteSponsor(id: string, deletedBy?: string): boolean {
-    const target = this.sponsors.get(id);
-    if (!target) return false;
-
+  public async deleteSponsor(id: string): Promise<boolean> {
+    await adminPersistenceService.archive('sponsors', id, {
+      status: 'ARCHIVED',
+      publication_status: 'ARCHIVED',
+    });
     this.sponsors.delete(id);
-
-    eventStudioService.addAuditLogEntry(
-      'SPONSOR_DELETED',
-      `Sponsor '${target.sponsor_name}' dihapus.`,
-      deletedBy || 'Admin'
-    );
-
     this.notify();
     return true;
   }
 
-  public reorderSponsor(id: string, direction: 'UP' | 'DOWN'): boolean {
+  public async reorderSponsor(id: string, direction: 'UP' | 'DOWN'): Promise<boolean> {
     const list = this.getSponsors();
     const index = list.findIndex(s => s.sponsor_id === id);
-    if (index === -1) return false;
-    if (direction === 'UP' && index === 0) return false;
-    if (direction === 'DOWN' && index === list.length - 1) return false;
-
+    if (index < 0) return false;
     const targetIdx = direction === 'UP' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= list.length) return false;
+
     const current = list[index];
     const target = list[targetIdx];
-
     const currentOrder = current.display_order;
-    current.display_order = target.display_order;
-    target.display_order = currentOrder;
+    const targetOrder = target.display_order;
 
-    this.sponsors.set(current.sponsor_id, { ...current });
-    this.sponsors.set(target.sponsor_id, { ...target });
-
+    const [savedCurrent, savedTarget] = await Promise.all([
+      this.updateSponsor(current.sponsor_id, { display_order: targetOrder }),
+      this.updateSponsor(target.sponsor_id, { display_order: currentOrder }),
+    ]);
+    this.sponsors.set(savedCurrent.sponsor_id, savedCurrent);
+    this.sponsors.set(savedTarget.sponsor_id, savedTarget);
     this.notify();
     return true;
   }
 
-  public toggleSponsorStatus(id: string, updatedBy?: string): SponsorItem {
+  public async toggleSponsorStatus(id: string, updatedBy?: string): Promise<SponsorItem> {
     const sponsor = this.sponsors.get(id);
     if (!sponsor) throw new Error('Sponsor tidak ditemukan.');
-
-    const nextStatus = sponsor.publication_status === 'PUBLISHED' ? 'ARCHIVED' : 'PUBLISHED';
-    sponsor.publication_status = nextStatus;
-    sponsor.status = nextStatus === 'PUBLISHED' ? 'ACTIVE' : 'INACTIVE';
-    sponsor.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 16);
-    sponsor.updated_by = updatedBy || 'Admin';
-
-    this.sponsors.set(id, sponsor);
-    this.notify();
-    return sponsor;
+    const next = sponsor.publication_status === 'PUBLISHED' ? 'ARCHIVED' : 'PUBLISHED';
+    return this.updateSponsor(id, {
+      publication_status: next,
+      status: next === 'PUBLISHED' ? 'ACTIVE' : 'INACTIVE',
+    }, updatedBy);
   }
-
-  // ==================== SPONSOR CAROUSEL SETTINGS (Section 11 & 12) ====================
 
   public getCarouselConfig(): SponsorCarouselConfig {
     return { ...this.carouselConfig };
   }
 
-  public updateCarouselConfig(updates: Partial<SponsorCarouselConfig>, eventId: string = ''): SponsorCarouselConfig {
-    this.carouselConfig = { ...this.carouselConfig, ...updates };
-    try {
-      localStorage.setItem('siepang_sponsor_carousel_config', JSON.stringify(this.carouselConfig));
-      // Authoritative sync to canonical SponsorSettings table
-      spreadsheetRepository.updateSponsorSettings(eventId, {
-        carousel_enabled: this.carouselConfig.enabled,
-        direction: this.carouselConfig.direction,
-        carousel_duration_seconds: this.carouselConfig.carousel_duration_seconds,
-        pause_on_hover: this.carouselConfig.pauseOnHover,
-      });
-    } catch {
-      // Storage unavailable
-    }
+  public async updateCarouselConfig(updates: Partial<SponsorCarouselConfig>): Promise<SponsorCarouselConfig> {
+    const next = { ...this.carouselConfig, ...updates };
+    await adminPersistenceService.upsert<any>('sponsorSettings', {
+      event_id: eventService.getCurrentEvent().id || '',
+      carousel_enabled: next.enabled,
+      direction: next.direction,
+      carousel_duration_seconds: next.carousel_duration_seconds,
+      pause_on_hover: next.pauseOnHover,
+      pause_on_touch: next.pauseOnTouch,
+      updated_at: new Date().toISOString(),
+    });
+    this.carouselConfig = next;
     this.notify();
-    return this.carouselConfig;
+    return { ...next };
   }
-
-  // ==================== ROTATOR SETTINGS ====================
 
   public getRotatorConfig(): BannerRotatorConfig {
     return { ...this.rotatorConfig };
   }
 
-  public updateRotatorConfig(updates: Partial<BannerRotatorConfig>): BannerRotatorConfig {
-    this.rotatorConfig = { ...this.rotatorConfig, ...updates };
-    try {
-      localStorage.setItem('siepang_banner_rotator_config', JSON.stringify(this.rotatorConfig));
-    } catch {
-      // Storage unavailable
-    }
+  public async updateRotatorConfig(updates: Partial<BannerRotatorConfig>): Promise<BannerRotatorConfig> {
+    const next = { ...this.rotatorConfig, ...updates };
+    await adminPersistenceService.setConfig('BANNER_ROTATOR_CONFIG', next);
+    this.rotatorConfig = next;
     this.notify();
-    return this.rotatorConfig;
+    return { ...next };
   }
-
-  // ==================== SUBSCRIPTION ====================
 
   public subscribe(cb: () => void): () => void {
     this.listeners.add(cb);

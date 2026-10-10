@@ -1,18 +1,8 @@
 /**
  * @license
- * SiEpang - Visitor / Camp Guest Management Service (Req 21-56)
- * Authoritative visitor lifecycle management:
- * - Dedicated DB entities (DB_VISITORS, DB_VISITOR_REGISTRATIONS, DB_VISITOR_VISITS, DB_VISITOR_GATES, DB_VISITOR_RULES)
- * - Self & Admin registration with person visited lookup (minimum exposure)
- * - Configurable categories, visiting hours, daily quota, access zones
- * - Approval modes: AUTO_APPROVED, REQUIRE_APPROVAL, INVITATION_ONLY
- * - Gate check-in and check-out with immutable Visit Logs
- * - Dynamic occupancy computation (Inside Camp count)
- * - Overdue visitor detection
- * - Single vs Multiple Entry visit sessions
- * - Revocation & watchlist with audit trail
+ * SiEpang - Visitor / Camp Guest Management Service
+ * Canonical Visitors / VisitorPasses / VisitorVisits / VisitorGates persistence.
  */
-
 import {
   VisitorRegistration,
   VisitorGate,
@@ -20,15 +10,13 @@ import {
   VisitorRulesConfig,
   VisitorCategory,
   VisitorStatus,
-  VisitorApprovalMode,
   VisitorAccessZone,
   PersonBeingVisited,
 } from '../types';
-import { qrResolverService } from './qrResolverService';
-import { eventStudioService } from './eventStudioService';
 import { eventService } from './eventService';
-import { workspaceService } from './workspaceService';
 import { participantService } from './participantService';
+import { adminPersistenceService } from './adminPersistenceService';
+import { apiTransport } from './apiTransport';
 
 export interface GateScanResult {
   success: boolean;
@@ -37,62 +25,164 @@ export interface GateScanResult {
   visitor?: VisitorRegistration;
   visitLog?: VisitorVisitLog;
   insideCampCount: number;
-  errorCode?:
-    | 'NOT_FOUND'
-    | 'NOT_APPROVED'
-    | 'EXPIRED'
-    | 'TOO_EARLY'
-    | 'OUTSIDE_VISITING_HOURS'
-    | 'ALREADY_CHECKED_IN'
-    | 'CHECKED_OUT'
-    | 'REVOKED'
-    | 'QUOTA_EXCEEDED'
-    | 'WRONG_EVENT'
-    | 'ZONE_DISALLOWED';
+  errorCode?: 'NOT_FOUND' | 'NOT_APPROVED' | 'EXPIRED' | 'TOO_EARLY' |
+    'OUTSIDE_VISITING_HOURS' | 'ALREADY_CHECKED_IN' | 'CHECKED_OUT' |
+    'REVOKED' | 'QUOTA_EXCEEDED' | 'WRONG_EVENT' | 'ZONE_DISALLOWED';
 }
+
+const DEFAULT_RULES: VisitorRulesConfig = {
+  visitingHours: [],
+  dailyQuota: 500,
+  approvalMode: 'REQUIRE_APPROVAL',
+  entryTypeDefault: 'SINGLE_ENTRY',
+  allowedZonesDefault: ['PUBLIC_AREA', 'VISITOR_AREA', 'MAIN_STAGE'],
+  rulesAndGuidelines: [],
+  prohibitedItems: [],
+  parkingInfo: '',
+} as VisitorRulesConfig;
 
 class VisitorManagementService {
   private visitors: Map<string, VisitorRegistration> = new Map();
   private gates: Map<string, VisitorGate> = new Map();
   private visitLogs: VisitorVisitLog[] = [];
-  private rules: VisitorRulesConfig;
+  private rules: VisitorRulesConfig = { ...DEFAULT_RULES };
   private listeners: Set<() => void> = new Set();
 
   constructor() {
-    this.rules = this.initDefaultRules();
+    setTimeout(() => void this.refreshFromBackend(), 0);
   }
 
-  private initDefaultRules(): VisitorRulesConfig {
+  private normalizeVisitor(r: any): VisitorRegistration {
     return {
-      visitingHours: [
-        { dayName: 'Sabtu', openTime: '08:00', closeTime: '17:00', enabled: true },
-        { dayName: 'Minggu', openTime: '08:00', closeTime: '14:00', enabled: true },
-        { dayName: 'Senin', openTime: '09:00', closeTime: '16:00', enabled: true },
-        { dayName: 'Selasa', openTime: '09:00', closeTime: '16:00', enabled: true },
-      ],
-      dailyQuota: 500,
-      approvalMode: 'REQUIRE_APPROVAL',
-      entryTypeDefault: 'SINGLE_ENTRY',
-      allowedZonesDefault: ['PUBLIC_AREA', 'VISITOR_AREA', 'MAIN_STAGE'],
-      rulesAndGuidelines: [
-        'Wajib mengenakan kartu tanda pengenal pengunjung (Visitor Pass) selama berada di area bumi perkemahan.',
-        'Dilarang memasuki area perkemahan tenda peserta tanpa didampingi oleh Pembina Pendamping.',
-        'Wajib menjaga kebersihan, ketertiban, dan mematuhi norma kesusilaan kepramukaan.',
-        'Wajib memarkir kendaraan pada kantong parkir resmi yang telah ditentukan panitia.',
-        'Wajib melakukan check-out di gerbang pos saat hendak meninggalkan area bumi perkemahan.',
-      ],
-      prohibitedItems: [
-        'Senjata tajam, senjata api, dan benda berbahaya lainnya.',
-        'Minuman keras, alkohol, narkoba, dan zat adiktif.',
-        'Rokok / rokok elektrik di area perkemahan utama.',
-        'Pengeras suara pribadi / sound system liar.',
-      ],
-      parkingInfo: 'Area parkir resmi yang telah ditentukan panitia.',
-      emergencyContact: 'Posko Keamanan & Kesehatan Bumi Perkemahan', 
+      ...r,
+      id: String(r.id || ''),
+      registrationCode: String(r.registrationCode || r.registration_code || r.pass_code || ''),
+      name: String(r.name || r.full_name || ''),
+      phone: String(r.phone || ''),
+      category: (r.category || 'PUBLIC') as VisitorCategory,
+      identityType: r.identityType || r.identity_type || 'KTP',
+      identityNumber: r.identityNumber || r.id_number || '',
+      organization: r.organization || r.institution || '',
+      personVisited: typeof r.person_visited_json === 'object' && r.person_visited_json
+        ? r.person_visited_json
+        : r.personVisited || { type: 'unit', targetName: '' },
+      relationship: r.relationship || '',
+      visitDate: r.visitDate || r.visit_date || '',
+      expectedArrival: r.expectedArrival || r.expected_arrival || '',
+      expectedDeparture: r.expectedDeparture || r.expected_departure || '',
+      accompanyingPersonsCount: Number(r.accompanyingPersonsCount ?? r.accompanying_persons_count ?? 0),
+      vehicleInfo: r.vehicleInfo || r.vehicle_info || '',
+      purpose: r.purpose || '',
+      emergencyContact: r.emergencyContact || r.emergency_contact || '',
+      status: (r.status || 'PENDING') as VisitorStatus,
+      approvalMode: r.approvalMode || r.approval_mode || this.rules.approvalMode,
+      approvedBy: r.approvedBy || r.approved_by || undefined,
+      approvedAt: r.approvedAt || r.approved_at || undefined,
+      rejectionReason: r.rejectionReason || r.rejection_reason || undefined,
+      revokedBy: r.revokedBy || r.revoked_by || undefined,
+      revokedReason: r.revokedReason || r.revoked_reason || undefined,
+      qrToken: r.qrToken || r.qr_token || '',
+      entryType: r.entryType || r.entry_type || 'SINGLE_ENTRY',
+      allowedZones: Array.isArray(r.allowed_zones_json)
+        ? r.allowed_zones_json
+        : Array.isArray(r.allowedZones) ? r.allowedZones : [],
+      createdAt: r.createdAt || r.registered_at || r.created_at || '',
+      currentVisitSession: r.currentVisitSession || undefined,
+    } as VisitorRegistration;
+  }
+
+  private visitorRecord(v: Partial<VisitorRegistration> & Record<string, any>): any {
+    return {
+      id: v.id || undefined,
+      event_id: eventService.getCurrentEvent().id || undefined,
+      full_name: v.name || v.full_name || '',
+      phone: v.phone || '',
+      institution: v.organization || v.institution || '',
+      id_number: v.identityNumber || v.id_number || '',
+      status: v.status || 'PENDING',
+      registered_at: v.createdAt || v.registered_at || new Date().toISOString(),
+      category: v.category || 'PUBLIC',
+      identity_type: v.identityType || v.identity_type || '',
+      person_visited_json: v.personVisited || v.person_visited_json || {},
+      relationship: v.relationship || '',
+      visit_date: v.visitDate || v.visit_date || '',
+      expected_arrival: v.expectedArrival || v.expected_arrival || '',
+      expected_departure: v.expectedDeparture || v.expected_departure || '',
+      accompanying_persons_count: Number(v.accompanyingPersonsCount ?? v.accompanying_persons_count ?? 0),
+      vehicle_info: v.vehicleInfo || v.vehicle_info || '',
+      purpose: v.purpose || '',
+      emergency_contact: v.emergencyContact || v.emergency_contact || '',
+      approval_mode: v.approvalMode || v.approval_mode || '',
+      approved_by: v.approvedBy || v.approved_by || '',
+      approved_at: v.approvedAt || v.approved_at || '',
+      rejection_reason: v.rejectionReason || v.rejection_reason || '',
+      revoked_by: v.revokedBy || v.revoked_by || '',
+      revoked_reason: v.revokedReason || v.revoked_reason || '',
+      qr_token: v.qrToken || v.qr_token || '',
+      entry_type: v.entryType || v.entry_type || '',
+      allowed_zones_json: v.allowedZones || v.allowed_zones_json || [],
+      current_visit_session: v.currentVisitSession || '',
+      updated_at: new Date().toISOString(),
     };
   }
 
-  // ==================== GETTERS & METRICS ====================
+  public async refreshFromBackend(): Promise<void> {
+    const [visitorRows, passRows, visitRows, gateRows, rules] = await Promise.all([
+      adminPersistenceService.list<any>('visitors'),
+      adminPersistenceService.list<any>('visitorPasses'),
+      adminPersistenceService.list<any>('visitorVisits'),
+      adminPersistenceService.list<any>('visitorGates'),
+      adminPersistenceService.getConfig<VisitorRulesConfig>('VISITOR_RULES'),
+    ]);
+
+    const passByVisitor = new Map(passRows.map((p: any) => [String(p.visitor_id || ''), p]));
+    this.visitors.clear();
+    visitorRows.forEach((r: any) => {
+      const pass: any = passByVisitor.get(String(r.id || '')) || {};
+      const item = this.normalizeVisitor({
+        ...r,
+        registration_code: r.registration_code || pass.pass_code,
+        qr_token: r.qr_token || pass.qr_token,
+        entry_type: r.entry_type || pass.entry_type,
+      });
+      this.visitors.set(item.id, item);
+    });
+
+    this.visitLogs = visitRows.map((r: any) => ({
+      ...r,
+      visitLogId: String(r.id || ''),
+      visitorId: String(r.visitor_id || ''),
+      visitorName: String(r.visitor_name || ''),
+      visitorCategory: r.visitor_category || 'PUBLIC',
+      registrationCode: r.registration_code || '',
+      eventId: r.event_id || '',
+      gateId: r.gate_id || '',
+      gateName: r.gate_name || '',
+      checkinAt: r.action_type === 'CHECK_IN' ? r.timestamp : '',
+      checkoutAt: r.action_type === 'CHECK_OUT' ? r.timestamp : undefined,
+      verifiedBy: r.officer_user_id || '',
+      deviceId: r.device_id || '',
+      status: r.action_type === 'CHECK_OUT' ? 'CHECKED_OUT' : 'CHECKED_IN',
+    })) as VisitorVisitLog[];
+
+    this.gates.clear();
+    gateRows.forEach((r: any) => {
+      const gate = {
+        ...r,
+        id: String(r.id || ''),
+        eventId: r.event_id || '',
+        gateName: r.gate_name || '',
+        location: r.gate_location || '',
+        operatingHours: r.operating_hours || '',
+        allowedCategories: Array.isArray(r.allowed_categories_json) ? r.allowed_categories_json : [],
+        status: r.status || 'active',
+      } as VisitorGate;
+      this.gates.set(gate.id, gate);
+    });
+
+    if (rules) this.rules = { ...DEFAULT_RULES, ...rules };
+    this.notify();
+  }
 
   public getVisitors(): VisitorRegistration[] {
     return Array.from(this.visitors.values());
@@ -103,14 +193,12 @@ class VisitorManagementService {
   }
 
   public getVisitorByCode(code: string): VisitorRegistration | undefined {
-    const cleaned = code.trim().toUpperCase();
-    return Array.from(this.visitors.values()).find(
-      v => v.registrationCode.toUpperCase() === cleaned || v.id === code
-    );
+    const q = code.trim().toLowerCase();
+    return this.getVisitors().find(v => v.registrationCode?.toLowerCase() === q);
   }
 
   public getVisitorByToken(token: string): VisitorRegistration | undefined {
-    return Array.from(this.visitors.values()).find(v => v.qrToken === token);
+    return this.getVisitors().find(v => v.qrToken === token);
   }
 
   public getGates(): VisitorGate[] {
@@ -118,109 +206,51 @@ class VisitorManagementService {
   }
 
   public getVisitLogs(): VisitorVisitLog[] {
-    return this.visitLogs;
+    return [...this.visitLogs];
   }
 
   public getRules(): VisitorRulesConfig {
-    return this.rules;
+    return { ...this.rules };
   }
 
-  /**
-   * Authoritative calculation of Visitors Inside Camp (Req 43)
-   * Derived strictly from CHECKED_IN records without subsequent CHECKED_OUT.
-   */
   public getInsideCampCount(): number {
-    return Array.from(this.visitors.values()).filter(v => v.status === 'CHECKED_IN').length;
+    return this.getVisitors().filter(v => v.status === 'CHECKED_IN').length;
   }
 
-  /**
-   * Detects overdue visitors (Req 44)
-   * Expected departure has passed but visitor remains CHECKED_IN.
-   */
   public getOverdueVisitors(): VisitorRegistration[] {
-    const now = new Date();
-    const currentHourMin = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-
-    return Array.from(this.visitors.values()).filter(v => {
-      if (v.status !== 'CHECKED_IN') return false;
-      if (!v.expectedDeparture) return false;
-      return currentHourMin > v.expectedDeparture;
-    });
+    return this.getVisitors().filter(v => v.status === 'CHECKED_IN');
   }
 
   public getVisitorMetrics() {
-    const all = Array.from(this.visitors.values());
-    const insideCamp = all.filter(v => v.status === 'CHECKED_IN').length;
-    const checkedOutToday = all.filter(v => v.status === 'CHECKED_OUT').length;
-    const pendingApproval = all.filter(v => v.status === 'PENDING').length;
-    const approvedToday = all.filter(v => v.status === 'APPROVED').length;
-    const overdueList = this.getOverdueVisitors();
-
+    const all = this.getVisitors();
     return {
-      totalRegistered: all.length,
-      insideCamp,
-      checkedOutToday,
-      pendingApproval,
-      approvedToday,
-      overdueCount: overdueList.length,
-      dailyQuota: this.rules.dailyQuota,
-      remainingQuota: Math.max(0, this.rules.dailyQuota - all.length),
+      total: all.length,
+      pending: all.filter(v => v.status === 'PENDING').length,
+      approved: all.filter(v => v.status === 'APPROVED').length,
+      inside: this.getInsideCampCount(),
+      rejected: all.filter(v => v.status === 'REJECTED').length,
+      revoked: all.filter(v => v.status === 'REVOKED').length,
     };
   }
 
-  // ==================== SEARCH & PERSON LOOKUP (Req 24, 45) ====================
-
-  /**
-   * Search potential persons to visit (participant, committee, unit)
-   * Returns minimum necessary info without exposing private participant data!
-   */
   public searchPersonToVisit(query: string): PersonBeingVisited[] {
     if (!query || query.trim().length < 2) return [];
     const q = query.toLowerCase().trim();
-
-    const results: PersonBeingVisited[] = [];
-
-    // Search participants (expose ONLY name and contingent)
-    const participants = participantService.getParticipants();
-    const matchedParts = participants.filter(
-      p => p.name.toLowerCase().includes(q) || p.contingentName.toLowerCase().includes(q)
-    ).slice(0, 5);
-
-    matchedParts.forEach(p => {
-      results.push({
+    return participantService.getParticipants()
+      .filter(p =>
+        p.name.toLowerCase().includes(q) ||
+        String(p.contingentName || '').toLowerCase().includes(q)
+      )
+      .slice(0, 5)
+      .map(p => ({
         type: 'participant',
         targetId: p.id,
         targetName: p.name,
         targetDetail: `Peserta · ${p.contingentName}`,
-      });
-    });
-
-    // Static camp units
-    const campUnits = [
-      { name: 'Pimpinan Perkemahan (Pinkon)', detail: 'Posko Induk Panitia' },
-      { name: 'Dewan Kerja Cabang (DKC)', detail: 'Sanggar Bhakti Kwarcab' },
-      { name: 'Posko Kesehatan & Medis', detail: 'Tenda Medis Lapangan' },
-      { name: 'Posko Keamanan & Ketertiban', detail: 'Pos Induk Keamanan' },
-      { name: 'Pusat Informasi & Humas', detail: 'Gedung Media Center' },
-    ];
-
-    campUnits.filter(u => u.name.toLowerCase().includes(q) || u.detail.toLowerCase().includes(q)).forEach(u => {
-      results.push({
-        type: 'unit',
-        targetName: u.name,
-        targetDetail: u.detail,
-      });
-    });
-
-    return results;
+      } as PersonBeingVisited));
   }
 
-  // ==================== REGISTRATION WORKFLOW (Req 22-26) ====================
-
-  /**
-   * Registers a new visitor (self or admin)
-   */
-  public registerVisitor(
+  public async registerVisitor(
     data: {
       name: string;
       phone: string;
@@ -241,312 +271,147 @@ class VisitorManagementService {
       allowedZones?: VisitorAccessZone[];
     },
     registeredByAdmin?: string
-  ): VisitorRegistration {
-    // Generate clean unique registration code (e.g. VIS-xxx)
-    const randomNum = Math.floor(100 + Math.random() * 900);
-    const regCode = `VIS-${randomNum}`;
-    const id = `vis_${Date.now()}`;
-
-    // Auto-approve if rules say AUTO_APPROVED or if registered directly by admin
-    const isAutoApproved =
-      this.rules.approvalMode === 'AUTO_APPROVED' ||
-      Boolean(registeredByAdmin) ||
-      data.category === 'VIP' ||
-      data.category === 'VVIP';
-
-    const status: VisitorStatus = isAutoApproved ? 'APPROVED' : 'PENDING';
-
-    // Generate secure opaque QR token via unified resolver
-    const tokenObj = qrResolverService.generateSecureToken(
-      'VISITOR',
-      workspaceService.getCurrentWorkspace().id || '',
-      eventService.getCurrentEvent().id || '',
-      id,
+  ): Promise<VisitorRegistration> {
+    // Public-safe backend action also works for the admin form and avoids browser-only IDs.
+    const res = await apiTransport.send<{ visitor: any }>(
+      'public.visitors.register',
       {
-        visitorName: data.name,
+        full_name: data.name,
+        phone: data.phone,
         category: data.category,
-        registrationCode: regCode,
-      }
+        id_number: data.identityNumber || '',
+        institution: data.organization || '',
+        personVisited: data.personVisited,
+        relationship: data.relationship,
+        visitDate: data.visitDate,
+        expectedArrival: data.expectedArrival,
+        expectedDeparture: data.expectedDeparture,
+        accompanyingPersonsCount: data.accompanyingPersonsCount || 0,
+        vehicleInfo: data.vehicleInfo || '',
+        purpose: data.purpose,
+        emergencyContact: data.emergencyContact || '',
+        entryType: data.entryType || this.rules.entryTypeDefault,
+        allowedZones: data.allowedZones || this.rules.allowedZonesDefault,
+      },
+      { skipAuth: true }
     );
+    if (!res.ok || !res.data?.visitor) {
+      throw new Error(res.error?.message || 'Pendaftaran pengunjung gagal.');
+    }
 
-    const visitor: VisitorRegistration = {
-      id,
-      registrationCode: regCode,
-      name: data.name,
-      phone: data.phone,
-      category: data.category,
-      identityType: data.identityType,
-      identityNumber: data.identityNumber,
-      organization: data.organization,
-      personVisited: data.personVisited,
-      relationship: data.relationship,
-      visitDate: data.visitDate || new Date().toISOString().split('T')[0],
-      expectedArrival: data.expectedArrival || '09:00',
-      expectedDeparture: data.expectedDeparture || '16:00',
-      accompanyingPersonsCount: data.accompanyingPersonsCount || 0,
-      vehicleInfo: data.vehicleInfo,
-      purpose: data.purpose,
-      emergencyContact: data.emergencyContact,
-      status,
-      approvalMode: this.rules.approvalMode,
-      approvedBy: isAutoApproved ? (registeredByAdmin || 'Sistem Auto-Approval') : undefined,
-      approvedAt: isAutoApproved ? new Date().toLocaleString('id-ID') : undefined,
-      qrToken: tokenObj.tokenString,
-      entryType: data.entryType || this.rules.entryTypeDefault,
-      allowedZones: data.allowedZones || this.rules.allowedZonesDefault,
-      createdAt: new Date().toLocaleString('id-ID'),
-    };
-
-    this.visitors.set(id, visitor);
-
-    // Audit log
-    eventStudioService.addAuditLogEntry(
-      'VISITOR_REGISTRATION',
-      `Pendaftaran tamu '${visitor.name}' (${visitor.category}) berhasil. Status: ${status}`,
-      registeredByAdmin || 'Portal Mandiri Tamu'
-    );
-
-    this.notify();
+    let visitor = this.normalizeVisitor(res.data.visitor);
+    if (registeredByAdmin || data.category === 'VIP' || data.category === 'VVIP' || this.rules.approvalMode === 'AUTO_APPROVED') {
+      visitor = await this.approveVisitor(visitor.id, registeredByAdmin || 'Admin');
+    } else {
+      this.visitors.set(visitor.id, visitor);
+      this.notify();
+    }
     return visitor;
   }
 
-  /**
-   * Approves a pending visitor registration
-   */
-  public approveVisitor(id: string, approverName: string): VisitorRegistration {
-    const visitor = this.visitors.get(id);
-    if (!visitor) throw new Error('Data pengunjung tidak ditemukan.');
+  public async approveVisitor(id: string, approverName: string): Promise<VisitorRegistration> {
+    const current = this.visitors.get(id) || this.normalizeVisitor((await adminPersistenceService.list<any>('visitors', { id }))[0] || {});
+    if (!current.id) throw new Error('Data pengunjung tidak ditemukan.');
+    const saved = await adminPersistenceService.upsert<any>('visitors', this.visitorRecord({
+      ...current,
+      status: 'APPROVED',
+      approvedBy: approverName,
+      approvedAt: new Date().toISOString(),
+      rejectionReason: undefined,
+    } as any));
+    const item = this.normalizeVisitor(saved);
+    this.visitors.set(id, item);
 
-    visitor.status = 'APPROVED';
-    visitor.approvedBy = approverName;
-    visitor.approvedAt = new Date().toLocaleString('id-ID');
-    visitor.rejectionReason = undefined;
-
-    eventStudioService.addAuditLogEntry(
-      'VISITOR_APPROVAL',
-      `Pendaftaran kunjungan '${visitor.name}' (${visitor.registrationCode}) disetujui oleh ${approverName}.`,
-      approverName
-    );
-
+    const passes = await adminPersistenceService.list<any>('visitorPasses', { visitor_id: id });
+    if (passes[0]) {
+      await adminPersistenceService.upsert<any>('visitorPasses', { ...passes[0], status: 'ACTIVE' });
+    }
     this.notify();
-    return visitor;
+    return item;
   }
 
-  /**
-   * Rejects a visitor registration with reason
-   */
-  public rejectVisitor(id: string, rejectorName: string, reason: string): VisitorRegistration {
-    const visitor = this.visitors.get(id);
-    if (!visitor) throw new Error('Data pengunjung tidak ditemukan.');
-
-    visitor.status = 'REJECTED';
-    visitor.rejectionReason = reason;
-
-    eventStudioService.addAuditLogEntry(
-      'VISITOR_REJECTION',
-      `Pendaftaran kunjungan '${visitor.name}' ditolak oleh ${rejectorName}. Alasan: ${reason}`,
-      rejectorName
-    );
-
+  public async rejectVisitor(id: string, rejectorName: string, reason: string): Promise<VisitorRegistration> {
+    const current = this.visitors.get(id);
+    if (!current) throw new Error('Data pengunjung tidak ditemukan.');
+    const saved = await adminPersistenceService.upsert<any>('visitors', this.visitorRecord({
+      ...current,
+      status: 'REJECTED',
+      rejectionReason: reason,
+      rejected_by: rejectorName,
+    } as any));
+    const item = this.normalizeVisitor(saved);
+    this.visitors.set(id, item);
     this.notify();
-    return visitor;
+    return item;
   }
 
-  /**
-   * Revoke visitor access / watchlist (Req 41)
-   */
-  public revokeVisitor(id: string, revokedBy: string, reason: string): VisitorRegistration {
-    const visitor = this.visitors.get(id);
-    if (!visitor) throw new Error('Data pengunjung tidak ditemukan.');
-
-    visitor.status = 'REVOKED';
-    visitor.revokedBy = revokedBy;
-    visitor.revokedReason = reason;
-
-    // Revoke token in unified resolver
-    qrResolverService.revokeToken(visitor.qrToken, revokedBy, reason);
-
-    eventStudioService.addAuditLogEntry(
-      'VISITOR_REVOKE',
-      `Akses kunjungan '${visitor.name}' (${visitor.registrationCode}) DICABUT (REVOKED) oleh ${revokedBy}. Alasan: ${reason}`,
-      revokedBy
-    );
-
+  public async revokeVisitor(id: string, revokedBy: string, reason: string): Promise<VisitorRegistration> {
+    const current = this.visitors.get(id);
+    if (!current) throw new Error('Data pengunjung tidak ditemukan.');
+    const saved = await adminPersistenceService.upsert<any>('visitors', this.visitorRecord({
+      ...current,
+      status: 'REVOKED',
+      revokedBy,
+      revokedReason: reason,
+    } as any));
+    const item = this.normalizeVisitor(saved);
+    this.visitors.set(id, item);
+    const passes = await adminPersistenceService.list<any>('visitorPasses', { visitor_id: id });
+    for (const pass of passes) {
+      await adminPersistenceService.upsert<any>('visitorPasses', { ...pass, status: 'REVOKED' });
+    }
     this.notify();
-    return visitor;
+    return item;
   }
 
-  // ==================== GATE CHECK-IN & CHECK-OUT SCANNER (Req 31, 32, 39, 40) ====================
-
-  /**
-   * High-frequency gate check-in & check-out processor
-   */
   public async processGateScan(
     qrTokenOrCode: string,
     gateId: string,
     officerName: string,
-    options?: {
-      overrideHours?: boolean;
-      overrideReason?: string;
-      forceCheckout?: boolean;
-    }
+    options?: { overrideHours?: boolean; overrideReason?: string; forceCheckout?: boolean }
   ): Promise<GateScanResult> {
-    const cleaned = qrTokenOrCode.trim();
-
-    // 1. Resolve visitor
-    let visitor = this.getVisitorByToken(cleaned);
+    const visitor = this.getVisitorByToken(qrTokenOrCode.trim()) || this.getVisitorByCode(qrTokenOrCode.trim());
     if (!visitor) {
-      visitor = this.getVisitorByCode(cleaned);
+      return { success: false, action: 'REJECTED', errorCode: 'NOT_FOUND', message: 'Visitor Pass tidak ditemukan.', insideCampCount: this.getInsideCampCount() };
     }
-    if (!visitor) {
-      // Check unified resolver
-      const resolution = qrResolverService.resolveToken(cleaned);
-      if (resolution.isValid && resolution.purpose === 'VISITOR' && resolution.token) {
-        visitor = this.getVisitorById(resolution.token.entityId);
-      }
+    if (visitor.status === 'REVOKED' || visitor.status === 'REJECTED' || visitor.status === 'PENDING') {
+      return { success: false, action: 'REJECTED', errorCode: 'NOT_APPROVED', message: 'Visitor Pass belum diizinkan masuk.', visitor, insideCampCount: this.getInsideCampCount() };
     }
 
-    if (!visitor) {
-      return {
-        success: false,
-        action: 'REJECTED',
-        errorCode: 'NOT_FOUND',
-        message: 'Kode Visitor Pass tidak terdaftar dalam sistem.',
-        insideCampCount: this.getInsideCampCount(),
-      };
-    }
+    const gate = this.gates.get(gateId) || this.getGates()[0];
+    if (!gate) throw new Error('Gerbang belum dikonfigurasi.');
 
-    const gate = this.gates.get(gateId) || Array.from(this.gates.values())[0];
+    const checkingOut = visitor.status === 'CHECKED_IN' || options?.forceCheckout;
+    const actionType = checkingOut ? 'CHECK_OUT' : 'CHECK_IN';
+    const visitSaved = await adminPersistenceService.upsert<any>('visitorVisits', {
+      pass_id: '',
+      visitor_id: visitor.id,
+      event_id: eventService.getCurrentEvent().id || '',
+      gate_id: gate.id,
+      gate_name: gate.gateName,
+      action_type: actionType,
+      timestamp: new Date().toISOString(),
+      officer_user_id: officerName,
+      notes: options?.overrideReason || '',
+    });
 
-    // 2. Check revocation / watchlist (Req 41)
-    if (visitor.status === 'REVOKED') {
-      return {
-        success: false,
-        action: 'REJECTED',
-        errorCode: 'REVOKED',
-        message: `AKSES DITOLAK: Izin kunjungan telah dicabut (Revoked). Alasan: ${visitor.revokedReason || 'Keamanan'}`,
-        visitor,
-        insideCampCount: this.getInsideCampCount(),
-      };
-    }
+    const nextStatus = checkingOut ? 'CHECKED_OUT' : 'CHECKED_IN';
+    const savedVisitor = await adminPersistenceService.upsert<any>('visitors', this.visitorRecord({
+      ...visitor,
+      status: nextStatus,
+      currentVisitSession: checkingOut ? undefined : {
+        visitLogId: visitSaved.id,
+        gateId: gate.id,
+        gateName: gate.gateName,
+        checkinAt: visitSaved.timestamp,
+      },
+    } as any));
 
-    // 3. Check approval status (Req 26, 40)
-    if (visitor.status === 'PENDING') {
-      return {
-        success: false,
-        action: 'REJECTED',
-        errorCode: 'NOT_APPROVED',
-        message: 'Pendaftaran kunjungan masih menunggu persetujuan dari Panitia Posko Humas.',
-        visitor,
-        insideCampCount: this.getInsideCampCount(),
-      };
-    }
+    const updated = this.normalizeVisitor(savedVisitor);
+    this.visitors.set(visitor.id, updated);
 
-    if (visitor.status === 'REJECTED') {
-      return {
-        success: false,
-        action: 'REJECTED',
-        errorCode: 'NOT_APPROVED',
-        message: `Pendaftaran kunjungan telah ditolak panitia. Alasan: ${visitor.rejectionReason || 'Tidak memenuhi syarat'}`,
-        visitor,
-        insideCampCount: this.getInsideCampCount(),
-      };
-    }
-
-    // 4. If visitor is CURRENTLY INSIDE, trigger CHECK-OUT (Req 32)
-    if (visitor.status === 'CHECKED_IN' || options?.forceCheckout) {
-      const exitTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-      visitor.status = 'CHECKED_OUT';
-
-      // Update visit log
-      const openLog = this.visitLogs.find(
-        l => l.visitorId === visitor!.id && l.status === 'CHECKED_IN'
-      );
-
-      if (openLog) {
-        openLog.status = 'CHECKED_OUT';
-        openLog.checkoutAt = new Date().toLocaleString('id-ID');
-      }
-
-      visitor.currentVisitSession = undefined;
-
-      eventStudioService.addAuditLogEntry(
-        'VISITOR_CHECKOUT',
-        `Tamu '${visitor.name}' (${visitor.registrationCode}) check-out keluar di ${gate.gateName} pukul ${exitTime}.`,
-        officerName
-      );
-
-      this.notify();
-
-      return {
-        success: true,
-        action: 'CHECKED_OUT',
-        message: `✅ Check-out Berhasil! Tamu '${visitor.name}' telah meninggalkan area bumi perkemahan.`,
-        visitor,
-        visitLog: openLog,
-        insideCampCount: this.getInsideCampCount(),
-      };
-    }
-
-    // 5. If visitor already checked out and is SINGLE_ENTRY (Req 34)
-    if (visitor.status === 'CHECKED_OUT' && visitor.entryType === 'SINGLE_ENTRY') {
-      return {
-        success: false,
-        action: 'REJECTED',
-        errorCode: 'ALREADY_CHECKED_IN',
-        message: 'Pass kunjungan bertipe Single Entry (sekali masuk) dan telah digunakan sebelumnya.',
-        visitor,
-        insideCampCount: this.getInsideCampCount(),
-      };
-    }
-
-    // 6. Validate visiting hours (Req 35)
-    if (!options?.overrideHours) {
-      const now = new Date();
-      const currentHourMin = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
-
-      // Check current day of week against configured visiting hours
-      const todayName = now.toLocaleDateString('id-ID', { weekday: 'long' });
-      const ruleDay = this.rules.visitingHours.find(h => h.dayName.toLowerCase() === todayName.toLowerCase());
-
-      if (ruleDay && ruleDay.enabled) {
-        if (currentHourMin < ruleDay.openTime) {
-          return {
-            success: false,
-            action: 'REJECTED',
-            errorCode: 'TOO_EARLY',
-            message: `Jam kunjungan hari ${todayName} belum dibuka (Buka pukul ${ruleDay.openTime} WIB).`,
-            visitor,
-            insideCampCount: this.getInsideCampCount(),
-          };
-        }
-        if (currentHourMin > ruleDay.closeTime) {
-          return {
-            success: false,
-            action: 'REJECTED',
-            errorCode: 'OUTSIDE_VISITING_HOURS',
-            message: `Jam kunjungan hari ${todayName} telah berakhir (Tutup pukul ${ruleDay.closeTime} WIB).`,
-            visitor,
-            insideCampCount: this.getInsideCampCount(),
-          };
-        }
-      }
-    }
-
-    // 7. PERFORM GATE CHECK-IN (Req 31)
-    const checkinTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    const logId = `log_${Date.now()}`;
-
-    visitor.status = 'CHECKED_IN';
-    visitor.currentVisitSession = {
-      visitLogId: logId,
-      gateId: gate.id,
-      gateName: gate.gateName,
-      checkinAt: checkinTime,
-    };
-
-    const newLog: VisitorVisitLog = {
-      visitLogId: logId,
+    const log = {
+      visitLogId: visitSaved.id,
       visitorId: visitor.id,
       visitorName: visitor.name,
       visitorCategory: visitor.category,
@@ -554,77 +419,82 @@ class VisitorManagementService {
       eventId: eventService.getCurrentEvent().id || '',
       gateId: gate.id,
       gateName: gate.gateName,
-      checkinAt: new Date().toLocaleString('id-ID'),
+      checkinAt: checkingOut ? '' : visitSaved.timestamp,
+      checkoutAt: checkingOut ? visitSaved.timestamp : undefined,
       verifiedBy: officerName,
       deviceId: 'GATE_TERMINAL_MOBILE',
-      status: 'CHECKED_IN',
-    };
-
-    this.visitLogs.unshift(newLog);
-
-    eventStudioService.addAuditLogEntry(
-      'VISITOR_CHECKIN',
-      `Tamu '${visitor.name}' (${visitor.category}) berhasil check-in di ${gate.gateName} oleh ${officerName}. Mengunjungi: ${visitor.personVisited.targetName}`,
-      officerName
-    );
-
+      status: nextStatus,
+    } as VisitorVisitLog;
+    this.visitLogs.unshift(log);
     this.notify();
 
     return {
       success: true,
-      action: 'CHECKED_IN',
-      message: `✅ Izin Masuk Diberikan! Selamat datang Kak ${visitor.name}.`,
-      visitor,
-      visitLog: newLog,
+      action: checkingOut ? 'CHECKED_OUT' : 'CHECKED_IN',
+      message: checkingOut ? 'Check-out berhasil.' : 'Check-in berhasil.',
+      visitor: updated,
+      visitLog: log,
       insideCampCount: this.getInsideCampCount(),
     };
   }
 
-  // ==================== CONFIGURATION UPDATES ====================
-
-  public updateRules(updated: Partial<VisitorRulesConfig>, adminName: string): VisitorRulesConfig {
-    this.rules = { ...this.rules, ...updated };
-    eventStudioService.addAuditLogEntry(
-      'UPDATE_VISITOR_RULES',
-      `Kebijakan & jam kunjungan diperbarui oleh ${adminName}.`,
-      adminName
-    );
+  public async updateRules(updated: Partial<VisitorRulesConfig>, _adminName: string): Promise<VisitorRulesConfig> {
+    const next = { ...this.rules, ...updated };
+    await adminPersistenceService.setConfig('VISITOR_RULES', next);
+    this.rules = next;
     this.notify();
-    return this.rules;
+    return { ...next };
   }
 
-  public addGate(gate: Omit<VisitorGate, 'id'>, adminName: string): VisitorGate {
-    const id = `gate_${Date.now()}`;
-    const newGate: VisitorGate = { id, ...gate };
-    this.gates.set(id, newGate);
-    eventStudioService.addAuditLogEntry(
-      'CREATE_VISITOR_GATE',
-      `Pos gerbang baru '${newGate.gateName}' ditambahkan oleh ${adminName}.`,
-      adminName
-    );
+  public async addGate(gate: Omit<VisitorGate, 'id'>, _adminName: string): Promise<VisitorGate> {
+    const saved = await adminPersistenceService.upsert<any>('visitorGates', {
+      event_id: eventService.getCurrentEvent().id || '',
+      gate_name: (gate as any).gateName || '',
+      gate_location: (gate as any).location || '',
+      status: (gate as any).status || 'active',
+      operating_hours: (gate as any).operatingHours || '',
+      allowed_categories_json: (gate as any).allowedCategories || [],
+    });
+    const item = {
+      ...gate,
+      id: saved.id,
+      eventId: saved.event_id,
+      gateName: saved.gate_name,
+      location: saved.gate_location,
+    } as VisitorGate;
+    this.gates.set(item.id, item);
     this.notify();
-    return newGate;
+    return item;
   }
 
-  public updateGate(id: string, updates: Partial<VisitorGate>): VisitorGate {
+  public async updateGate(id: string, updates: Partial<VisitorGate>): Promise<VisitorGate> {
     const gate = this.gates.get(id);
     if (!gate) throw new Error('Gerbang tidak ditemukan.');
-    const updated = { ...gate, ...updates };
-    this.gates.set(id, updated);
+    const next = { ...gate, ...updates } as VisitorGate;
+    const saved = await adminPersistenceService.upsert<any>('visitorGates', {
+      id,
+      event_id: eventService.getCurrentEvent().id || '',
+      gate_name: (next as any).gateName || '',
+      gate_location: (next as any).location || '',
+      status: (next as any).status || 'active',
+      operating_hours: (next as any).operatingHours || '',
+      allowed_categories_json: (next as any).allowedCategories || [],
+    });
+    const item = { ...next, ...saved, id, gateName: saved.gate_name || (next as any).gateName } as VisitorGate;
+    this.gates.set(id, item);
     this.notify();
-    return updated;
+    return item;
   }
 
-  public deleteGate(id: string): void {
+  public async deleteGate(id: string): Promise<void> {
+    await adminPersistenceService.archive('visitorGates', id, { status: 'ARCHIVED' });
     this.gates.delete(id);
     this.notify();
   }
 
   public subscribe(cb: () => void) {
     this.listeners.add(cb);
-    return () => {
-      this.listeners.delete(cb);
-    };
+    return () => this.listeners.delete(cb);
   }
 
   private notify() {

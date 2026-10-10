@@ -1,12 +1,11 @@
 /**
  * @license
- * SiEpang - Organization Service (Kwarnas -> Kwarda -> Kwarcab -> Kwarran -> Gudep)
- * Manages full organization hierarchy, child creation, workspace linking, and tree visualization.
+ * SiEpang - Organization Service
+ * Canonical Organizations sheet persistence.
  */
-
 import { Organization, OrganizationLevel } from '../types';
-import { spreadsheetRepository } from '../backend/repositories/spreadsheetRepository';
 import { workspaceService } from './workspaceService';
+import { adminPersistenceService } from './adminPersistenceService';
 
 export interface OrganizationTreeNode extends Organization {
   children: OrganizationTreeNode[];
@@ -15,7 +14,12 @@ export interface OrganizationTreeNode extends Organization {
 }
 
 export class OrganizationService {
+  private organizations: Organization[] = [];
   private listeners: Set<() => void> = new Set();
+
+  constructor() {
+    setTimeout(() => void this.refreshFromBackend(), 0);
+  }
 
   public subscribe(cb: () => void): () => void {
     this.listeners.add(cb);
@@ -24,57 +28,87 @@ export class OrganizationService {
 
   private notify(): void {
     this.listeners.forEach(cb => {
-      try {
-        cb();
-      } catch (e) {
-        console.error('Error in OrganizationService listener:', e);
-      }
+      try { cb(); } catch (e) { console.error('OrganizationService listener error:', e); }
     });
   }
 
+  public async refreshFromBackend(): Promise<void> {
+    const rows = await adminPersistenceService.list<any>('organizations');
+    this.organizations = rows.map((r: any) => ({
+      ...r,
+      organization_id: String(r.organization_id || ''),
+      organization_code: String(r.organization_code || ''),
+      organization_name: String(r.organization_name || ''),
+      organization_level: r.organization_level,
+      parent_organization_id: r.parent_organization_id || null,
+      status: r.status || 'active',
+    })) as Organization[];
+    this.notify();
+  }
+
   public listOrganizations(): Organization[] {
-    return spreadsheetRepository.listOrganizations();
+    return [...this.organizations];
   }
 
   public getOrganizationById(orgId: string): Organization | undefined {
-    return this.listOrganizations().find(o => o.organization_id === orgId);
+    return this.organizations.find(o => o.organization_id === orgId);
   }
 
   public getChildren(orgId: string): Organization[] {
-    return this.listOrganizations().filter(o => o.parent_organization_id === orgId);
+    return this.organizations.filter(o => o.parent_organization_id === orgId);
   }
 
   public getParent(orgId: string): Organization | undefined {
     const org = this.getOrganizationById(orgId);
-    if (!org || !org.parent_organization_id) return undefined;
+    if (!org?.parent_organization_id) return undefined;
     return this.getOrganizationById(org.parent_organization_id);
   }
 
-  public createOrganization(data: Omit<Organization, 'organization_id'>): Organization {
-    const created = spreadsheetRepository.createOrganization(data);
+  public async createOrganization(data: Omit<Organization, 'organization_id'>): Promise<Organization> {
+    const saved = await adminPersistenceService.upsert<any>('organizations', {
+      ...data,
+      organization_id: undefined,
+      created_at: new Date().toISOString(),
+    });
+    const created = saved as Organization;
+    this.organizations.push(created);
     this.notify();
     return created;
   }
 
-  public updateOrganization(orgId: string, updates: Partial<Organization>): Organization {
-    const updated = spreadsheetRepository.updateOrganization(orgId, updates);
+  public async updateOrganization(orgId: string, updates: Partial<Organization>): Promise<Organization> {
+    const current = this.getOrganizationById(orgId);
+    if (!current) throw new Error('Organisasi tidak ditemukan.');
+    const saved = await adminPersistenceService.upsert<any>('organizations', {
+      ...current,
+      ...updates,
+      organization_id: orgId,
+      updated_at: new Date().toISOString(),
+    });
+    const updated = saved as Organization;
+    const idx = this.organizations.findIndex(o => o.organization_id === orgId);
+    if (idx >= 0) this.organizations[idx] = updated;
     this.notify();
     return updated;
   }
 
-  public toggleStatus(orgId: string): Organization {
-    const updated = spreadsheetRepository.toggleOrganizationStatus(orgId);
-    this.notify();
-    return updated;
+  public async toggleStatus(orgId: string): Promise<Organization> {
+    const current = this.getOrganizationById(orgId);
+    if (!current) throw new Error('Organisasi tidak ditemukan.');
+    const currentStatus = String((current as any).status || 'active').toLowerCase();
+    return this.updateOrganization(orgId, {
+      status: currentStatus === 'active' ? 'inactive' : 'active',
+    } as any);
   }
 
-  public deleteOrganization(orgId: string): void {
-    spreadsheetRepository.deleteOrganization(orgId);
+  public async deleteOrganization(orgId: string): Promise<void> {
+    await adminPersistenceService.archive('organizations', orgId, { status: 'ARCHIVED' });
+    this.organizations = this.organizations.filter(o => o.organization_id !== orgId);
     this.notify();
   }
 
   public getTree(): OrganizationTreeNode[] {
-    const all = this.listOrganizations();
+    const all = this.listOrganizations().filter(o => String((o as any).status || '').toUpperCase() !== 'ARCHIVED');
     const workspaces = workspaceService.getWorkspaces();
 
     const buildNode = (org: Organization): OrganizationTreeNode => {
@@ -88,24 +122,21 @@ export class OrganizationService {
       };
     };
 
-    // Root nodes have parent_organization_id === null
-    const roots = all.filter(o => !o.parent_organization_id);
-    return roots.map(buildNode);
+    return all.filter(o => !o.parent_organization_id).map(buildNode);
   }
 
   public searchOrganizations(query: string, levelFilter?: OrganizationLevel): Organization[] {
     let result = this.listOrganizations();
-    if (levelFilter) {
-      result = result.filter(o => o.organization_level === levelFilter);
-    }
+    if (levelFilter) result = result.filter(o => o.organization_level === levelFilter);
     if (query.trim()) {
       const q = query.toLowerCase();
-      result = result.filter(
-        o =>
-          o.organization_name.toLowerCase().includes(q) ||
-          o.organization_code.toLowerCase().includes(q) ||
-          (o.base_institution && o.base_institution.toLowerCase().includes(q)) ||
-          (o.gudep_number && o.gudep_number.toLowerCase().includes(q))
+      result = result.filter(o =>
+        [
+          o.organization_name,
+          o.organization_code,
+          (o as any).base_institution,
+          (o as any).gudep_number,
+        ].filter(Boolean).some(v => String(v).toLowerCase().includes(q))
       );
     }
     return result;
