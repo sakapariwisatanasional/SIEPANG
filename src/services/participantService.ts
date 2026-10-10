@@ -8,6 +8,35 @@ import { syncQueue } from '../offline/syncQueue';
 import { eventService } from './eventService';
 import { apiTransport } from './apiTransport';
 
+/**
+ * Resolve legacy Drive photo URLs without changing source records.
+ * If a permanent Drive file_id exists, the canonical Googleusercontent URL wins.
+ * Empty or invalid sources are left blank so the UI can show initials.
+ */
+function resolveParticipantPhotoUrl(raw: any): string {
+  const fileId = String(raw?.profile_photo_file_id || '').trim();
+  if (/^[A-Za-z0-9_-]{15,}$/.test(fileId)) {
+    return `https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}`;
+  }
+  const candidate = String(raw?.profile_photo_url || raw?.photoUrl || raw?.photo_url || '').trim();
+  if (!candidate || candidate.startsWith('data:') || candidate.startsWith('blob:')) return '';
+  if (!/^https:\/\//i.test(candidate)) return '';
+  // Convert former Drive sharing links to a canonical image URL, if possible.
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.hostname === 'drive.google.com') {
+      const match = parsed.pathname.match(/\/file\/d\/([A-Za-z0-9_-]{15,})/);
+      const oldId = match?.[1] || parsed.searchParams.get('id') || '';
+      return /^[A-Za-z0-9_-]{15,}$/.test(oldId)
+        ? `https://lh3.googleusercontent.com/d/${encodeURIComponent(oldId)}`
+        : '';
+    }
+    if (parsed.hostname === 'lh3.googleusercontent.com' || parsed.hostname === 'googleusercontent.com') return candidate;
+    // Preserve existing HTTPS image URLs used in other modules.
+    return candidate;
+  } catch { return ''; }
+}
+
 class ParticipantService {
   private participants: Participant[] = [];
   private contingents: Contingent[] = [];
@@ -42,9 +71,9 @@ class ParticipantService {
         contingentName: String(r.contingentName || r.institution || '-'),
         subCamp: String(r.subcamp || r.subCamp || '-'),
         tentNumber: String(r.lotNumber || r.lot_number || '-'),
-        photoUrl: String(r.profile_photo_url || r.photoUrl || r.photo_url || ''),
+        photoUrl: resolveParticipantPhotoUrl(r),
         profile_photo_file_id: String(r.profile_photo_file_id || ''),
-        profile_photo_url: String(r.profile_photo_url || r.photoUrl || ''),
+        profile_photo_url: resolveParticipantPhotoUrl(r),
         profile_photo_status: r.profile_photo_status || 'NOT_UPLOADED',
         status,
         checkedIn: r.checkedIn === true || r.checked_in === true,
