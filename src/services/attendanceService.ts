@@ -1,13 +1,12 @@
 /**
  * @license
  * SiEpang - Attendance Service
- * Canonical cloud persistence with offline/local-camp compatibility.
  */
+
 import { syncQueueService } from '../offline/syncQueueService';
 import { localCampServerService } from './localCampServerService';
 import { pointService } from './pointService';
 import { participantService } from './participantService';
-import { adminPersistenceService } from './adminPersistenceService';
 
 export interface AttendanceRecord {
   id: string;
@@ -28,39 +27,8 @@ export interface AttendanceRecord {
 class AttendanceService {
   private records: AttendanceRecord[] = [];
 
-  constructor() {
-    setTimeout(() => void this.refreshFromBackend(), 0);
-  }
-
-  public async refreshFromBackend(): Promise<void> {
-    try {
-      const rows = await adminPersistenceService.list<any>('attendance');
-      const participants = participantService.getParticipants();
-      this.records = rows.map((r: any) => {
-        const p = participants.find(x => x.id === r.participant_id);
-        return {
-          id: String(r.id || ''),
-          transactionId: r.transaction_id || undefined,
-          participantId: String(r.participant_id || ''),
-          participantName: r.participant_name || p?.name || '',
-          participantCode: r.participant_code || p?.code || '',
-          contingentName: r.contingent_name || p?.contingentName || '',
-          sessionId: String(r.checkpoint_or_schedule_id || ''),
-          sessionName: r.session_name || '',
-          timestamp: String(r.timestamp || ''),
-          xpAwarded: Number(r.xp_awarded || 0),
-          synced: String(r.sync_status || '').toUpperCase() === 'SYNCED',
-          syncStatus: 'Synced to Cloud',
-          edgeNodeId: r.edge_node_id || undefined,
-        } as AttendanceRecord;
-      });
-    } catch (e) {
-      console.error('Gagal memuat AttendanceLogs:', e);
-    }
-  }
-
   public getRecords(): AttendanceRecord[] {
-    return [...this.records];
+    return this.records;
   }
 
   public async recordAttendance(
@@ -76,17 +44,19 @@ class AttendanceService {
       throw new Error(`Peserta dengan kode '${codeOrId}' tidak terdaftar.`);
     }
 
+    // Prevent duplicate attendance for the same participant in the same session (Requirement 22)
     const alreadyAttended = this.records.some(
       r => r.participantId === participant.id && r.sessionId === sessionId
     );
     if (alreadyAttended) {
-      throw new Error(`Peserta '${participant.name}' sudah tercatat hadir pada sesi '${sessionName}'.`);
+      throw new Error(`⚠️ Peserta '${participant.name}' (${participant.code}) sudah tercatat hadir pada sesi '${sessionName}'. Presensi ganda dicegah.`);
     }
 
     const isOffline = syncQueueService.getConnectionState() === 'offline';
     const operationalMode = localCampServerService.getOperationalMode();
     const xpReward = 5;
 
+    // Enqueue centralized offline transaction with pre-generated UUID
     const tx = syncQueueService.enqueueTransaction({
       entity: 'attendance',
       action: 'SCAN',
@@ -102,43 +72,25 @@ class AttendanceService {
       },
     });
 
+    let syncStatus: 'Saved on Device' | 'Saved on Server Buper' | 'Synced to Cloud' = 'Synced to Cloud';
     let destination: 'device' | 'server_buper' | 'cloud' = 'cloud';
-    let syncStatus: AttendanceRecord['syncStatus'] = 'Synced to Cloud';
-    let edgeNodeId: string | undefined;
+    let edgeNodeId: string | undefined = undefined;
 
     if (isOffline) {
-      destination = 'device';
       syncStatus = 'Saved on Device';
+      destination = 'device';
     } else if (operationalMode === 'local' || operationalMode === 'hybrid') {
       const edgeRes = localCampServerService.receiveTransactionFromDevice(tx);
-      destination = 'server_buper';
       syncStatus = 'Saved on Server Buper';
+      destination = 'server_buper';
       edgeNodeId = edgeRes.acknowledgement.edge_server_id;
-    }
-
-    const nowIso = new Date().toISOString();
-    let persistedId = tx.record_id;
-
-    if (destination === 'cloud') {
-      const saved = await adminPersistenceService.upsert<any>('attendance', {
-        id: tx.record_id,
-        participant_id: participant.id,
-        checkpoint_or_schedule_id: sessionId,
-        scanned_by_user_id: '',
-        timestamp: nowIso,
-        sync_status: 'SYNCED',
-        transaction_id: tx.transaction_id,
-        participant_name: participant.name,
-        participant_code: participant.code,
-        contingent_name: participant.contingentName,
-        session_name: sessionName,
-        xp_awarded: xpReward,
-      });
-      persistedId = saved.id;
+    } else {
+      syncStatus = 'Synced to Cloud';
+      destination = 'cloud';
     }
 
     const record: AttendanceRecord = {
-      id: persistedId,
+      id: `att_${Date.now()}`,
       transactionId: tx.transaction_id,
       participantId: participant.id,
       participantName: participant.name,
@@ -146,7 +98,7 @@ class AttendanceService {
       contingentName: participant.contingentName,
       sessionId,
       sessionName,
-      timestamp: nowIso,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       xpAwarded: xpReward,
       synced: destination !== 'device',
       syncStatus,
@@ -154,20 +106,14 @@ class AttendanceService {
     };
 
     this.records.unshift(record);
+    participant.attendanceCount += 1;
 
-    if (destination === 'cloud') {
-      await participantService.checkIn(participant.id, 'Attendance Scanner');
-      await pointService.awardXP(
-        participant.id,
-        participant.name,
-        xpReward,
-        `Presensi: ${sessionName}`,
-        'attendance'
-      );
-    }
+    // Award +5 XP
+    await pointService.awardXP(participant.id, participant.name, xpReward, `Presensi: ${sessionName}`, 'attendance');
 
     return { record, offline: isOffline, destination };
   }
 }
 
 export const attendanceService = new AttendanceService();
+

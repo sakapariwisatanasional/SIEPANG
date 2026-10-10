@@ -9,10 +9,10 @@ import { BrandingConfig } from '../types';
 export type AppearanceMode = 'system' | 'light' | 'dark';
 
 export const DEFAULT_BRANDING: BrandingConfig = {
-  primaryColor: '#833AB4',     // Instagram-inspired Purple
-  secondaryColor: '#C13584',   // Instagram-inspired Magenta
-  accentColor: '#F77737',      // Instagram-inspired Orange
-  backgroundColor: '#F7F7F8',  // Light-first clean background
+  primaryColor: '#208C60',     // Scout Adventure forest green
+  secondaryColor: '#F47743',   // Scout Adventure coral
+  accentColor: '#F4A53A',      // Scout Adventure sunshine amber
+  backgroundColor: '#FFF9EF',  // Light-first clean background
   surfaceColor: '#FFFFFF',     // Clean white surface
   logoUrl: '',
   bannerUrl: '',

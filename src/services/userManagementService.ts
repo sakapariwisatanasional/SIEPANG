@@ -8,7 +8,6 @@
 
 import { User, UserRole, TrustedDeviceRecord } from '../types';
 import { apiTransport } from './apiTransport';
-import { adminPersistenceService } from './adminPersistenceService';
 
 export interface ManagedUser extends User {
   status: 'active' | 'inactive';
@@ -293,7 +292,32 @@ export class UserManagementService {
   private isLoading = false;
 
   constructor() {
-    setTimeout(() => void this.refreshUsers(), 0);
+    this.loadFromCache();
+    // Ensure initial superadmin scoutpreneur@gmail.com is seeded in memory & cache
+    this.ensureBootstrapSuperadmin();
+    // Fetch fresh authoritative user list from backend asynchronously after module imports resolve
+    setTimeout(() => {
+      this.refreshUsers().catch(() => {});
+    }, 0);
+  }
+
+  private loadFromCache(): void {
+    try {
+      const cached = localStorage.getItem('siepang_users_cache');
+      if (cached) {
+        this.users = JSON.parse(cached);
+      }
+    } catch {
+      this.users = [];
+    }
+  }
+
+  private saveToCache(): void {
+    try {
+      localStorage.setItem('siepang_users_cache', JSON.stringify(this.users));
+    } catch {
+      // Ignore storage errors
+    }
   }
 
   public subscribe(cb: () => void): () => void {
@@ -302,70 +326,107 @@ export class UserManagementService {
   }
 
   private notify(): void {
+    this.saveToCache();
     this.listeners.forEach(cb => cb());
   }
 
-  private normalizeUser(row: any): ManagedUser {
-    return {
-      id: String(row.user_id || row.id || ''),
-      name: String(row.name || ''),
-      email: String(row.email || ''),
-      role: (row.role || 'viewer') as UserRole,
-      workspaceId: String(row.workspace_id || row.workspaceId || ''),
-      eventId: String(row.event_id || row.eventId || ''),
-      avatar: String(row.avatar_url || row.avatar || ''),
-      organizationName: String(row.organization_name || row.organizationName || 'Gerakan Pramuka'),
-      status: String(row.status || 'active').toLowerCase() === 'inactive' ? 'inactive' : 'active',
-      lastLogin: String(row.last_login_at || row.lastLogin || 'Belum pernah login'),
-      createdAt: String(row.created_at || row.createdAt || ''),
-    } as ManagedUser;
-  }
-
   public async refreshUsers(): Promise<ManagedUser[]> {
-    if (this.isLoading) return [...this.users];
+    if (this.isLoading) return this.users;
     this.isLoading = true;
+
     try {
-      const [userRows, assignments] = await Promise.all([
-        adminPersistenceService.list<any>('users'),
-        adminPersistenceService.list<any>('userRoleAssignments'),
-      ]);
+      if (typeof apiTransport === 'undefined' || !apiTransport?.send) {
+        this.ensureBootstrapSuperadmin();
+        return [...this.users];
+      }
 
-      const activeRoleByUser = new Map<string, string>();
-      assignments
-        .filter((a: any) => String(a.status || '').toLowerCase() === 'active')
-        .forEach((a: any) => {
-          const uid = String(a.user_id || '');
-          const role = String(a.role || 'viewer');
-          if (!activeRoleByUser.has(uid) || role === 'superadmin') {
-            activeRoleByUser.set(uid, role);
-          }
-        });
-
-      this.users = userRows.map((r: any) =>
-        this.normalizeUser({
-          ...r,
-          role: activeRoleByUser.get(String(r.user_id || r.id || '')) || r.role || 'viewer',
-        })
-      );
-      this.notify();
-      return [...this.users];
+      const res = await apiTransport.send<ManagedUser[]>('users.list');
+      if (res.ok && Array.isArray(res.data)) {
+        this.users = res.data.map(u => ({
+          ...u,
+          avatar: u.avatar || '',
+          organizationName: u.organizationName || 'Gerakan Pramuka',
+          status: u.status || 'active',
+          lastLogin: u.lastLogin || 'Belum pernah login',
+          createdAt: u.createdAt || new Date().toISOString().split('T')[0],
+        }));
+        // Ensure initial superadmin scoutpreneur@gmail.com is present idempotently
+        this.ensureBootstrapSuperadmin();
+        this.notify();
+      }
+    } catch (e) {
+      console.warn('Failed to load users from backend:', e);
+      // Even if backend fails, ensure bootstrap superadmin is available
+      this.ensureBootstrapSuperadmin();
     } finally {
       this.isLoading = false;
     }
+
+    return [...this.users];
   }
 
   /**
-   * Compatibility method. Bootstrap is backend-authoritative; this method only
-   * returns the already-loaded record and never fabricates one in the browser.
+   * Idempotent Initial SuperAdmin Seeding (Requirements 32, 33, 36, 37)
+   * Ensures scoutpreneur@gmail.com is registered as superadmin with status active.
+   * Prevents duplicates, normalizes email, and ties to authoritative workspace.
    */
-  public ensureBootstrapSuperadmin(_workspaceId?: string): ManagedUser {
-    const existing = this.users.find(
-      u => u.email?.toLowerCase().trim() === 'scoutpreneur@gmail.com'
+  public ensureBootstrapSuperadmin(workspaceId?: string): ManagedUser {
+    const canonicalEmail = 'scoutpreneur@gmail.com';
+    const existingIndex = this.users.findIndex(
+      u => u.email && u.email.toLowerCase().trim() === canonicalEmail
     );
-    if (!existing) {
-      throw new Error('SuperAdmin belum termuat dari backend. Jalankan bootstrap backend terlebih dahulu.');
+
+    if (existingIndex !== -1) {
+      const existing = this.users[existingIndex];
+      let mutated = false;
+      if (existing.role !== 'superadmin') {
+        existing.role = 'superadmin';
+        mutated = true;
+      }
+      if (existing.status !== 'active') {
+        existing.status = 'active';
+        mutated = true;
+      }
+      if (workspaceId && existing.workspaceId !== workspaceId) {
+        existing.workspaceId = workspaceId;
+        mutated = true;
+      }
+      if (mutated) {
+        this.notify();
+      }
+      return existing;
     }
-    return existing;
+
+    const resolvedWsId = workspaceId || 'ws_alpha_2026';
+    const superadminUser: ManagedUser = {
+      id: 'usr_super_scoutpreneur',
+      name: 'Super Admin SiEpang',
+      email: canonicalEmail,
+      role: 'superadmin',
+      workspaceId: resolvedWsId,
+      avatar: '',
+      organizationName: 'Kwartir Gerakan Pramuka',
+      status: 'active',
+      lastLogin: 'Belum pernah login',
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    this.users.unshift(superadminUser);
+    this.notify();
+
+    // Sync to backend asynchronously to prevent circular dependency TDZ errors during import
+    setTimeout(() => {
+      try {
+        if (typeof apiTransport !== 'undefined' && apiTransport?.send) {
+          apiTransport.send('auth.bootstrapSuperAdmin', {
+            email: canonicalEmail,
+            workspace_id: resolvedWsId,
+          }).catch(() => {});
+        }
+      } catch {}
+    }, 0);
+
+    return superadminUser;
   }
 
   public getUsers(): ManagedUser[] {
@@ -373,9 +434,10 @@ export class UserManagementService {
   }
 
   public listUsers(workspaceId?: string): ManagedUser[] {
-    return workspaceId
-      ? this.users.filter(u => u.workspaceId === workspaceId)
-      : [...this.users];
+    if (workspaceId) {
+      return this.users.filter(u => u.workspaceId === workspaceId);
+    }
+    return [...this.users];
   }
 
   public async addUser(data: {
@@ -387,178 +449,178 @@ export class UserManagementService {
     status?: 'active' | 'inactive';
   }): Promise<ManagedUser> {
     const cleanEmail = data.email.toLowerCase().trim();
-    if (!cleanEmail || !cleanEmail.includes('@')) throw new Error('Alamat email tidak valid.');
-    if (this.users.some(u => u.email?.toLowerCase().trim() === cleanEmail)) {
-      throw new Error(`Email '${cleanEmail}' sudah terdaftar.`);
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      throw new Error('Alamat email tidak valid.');
     }
 
-    const saved = await adminPersistenceService.upsert<any>('users', {
-      email: cleanEmail,
+    // Unique email validation (Requirement 42 TEST 7)
+    const emailExists = this.users.some(u => u.email && u.email.toLowerCase().trim() === cleanEmail);
+    if (emailExists) {
+      throw new Error(`Email '${cleanEmail}' sudah terdaftar. Duplikasi email tidak diizinkan.`);
+    }
+
+    const newUser: ManagedUser = {
+      id: `usr_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       name: data.name.trim(),
-      email_verified: false,
+      email: cleanEmail,
+      role: data.role,
+      workspaceId: data.workspaceId,
+      avatar: '',
+      organizationName: data.organizationName || 'Gerakan Pramuka',
       status: data.status || 'active',
-      created_at: new Date().toISOString(),
-      created_by: '',
-      updated_at: new Date().toISOString(),
-      avatar_url: '',
-      phone: '',
-      organization_id: data.organizationName || '',
-      workspace_id: data.workspaceId,
-    });
+      lastLogin: 'Belum pernah',
+      createdAt: new Date().toISOString().split('T')[0],
+    };
 
-    const assignment = await adminPersistenceService.upsert<any>('userRoleAssignments', {
-      user_id: saved.user_id,
-      role: data.role,
-      scope_type: data.role === 'superadmin' ? 'SYSTEM' : 'WORKSPACE',
-      scope_id: data.role === 'superadmin' ? 'GLOBAL' : data.workspaceId,
-      status: 'active',
-      granted_by: '',
-      granted_at: new Date().toISOString(),
-      revoked_at: '',
-    });
-
-    void assignment;
-
-    const user = this.normalizeUser({
-      ...saved,
-      role: data.role,
-      workspace_id: data.workspaceId,
-      organization_name: data.organizationName,
-    });
-    this.users.unshift(user);
+    // Optimistic local update
+    this.users.unshift(newUser);
     this.notify();
-    return user;
+
+    // Persist to Google Apps Script / Spreadsheet
+    try {
+      const res = await apiTransport.send('users.create', {
+        name: data.name,
+        email: cleanEmail,
+        role: data.role,
+        workspace_id: data.workspaceId,
+        organization_id: data.organizationName,
+        permissions: ROLE_PERMISSION_MAP[data.role] || [],
+      });
+      if (res.ok && res.data?.id) {
+        newUser.id = res.data.id;
+        this.notify();
+      }
+    } catch (e) {
+      console.warn('Error saving user to backend:', e);
+    }
+
+    return newUser;
   }
 
   public async updateUser(userId: string, updates: Partial<ManagedUser>): Promise<ManagedUser> {
-    const current = this.users.find(u => u.id === userId);
-    if (!current) throw new Error('Pengguna tidak ditemukan.');
+    const user = this.users.find(u => u.id === userId);
+    if (!user) throw new Error('Pengguna tidak ditemukan.');
 
-    const email = updates.email ? updates.email.toLowerCase().trim() : current.email;
-    if (!email || !email.includes('@')) throw new Error('Alamat email tidak valid.');
-    if (this.users.some(u => u.id !== userId && u.email?.toLowerCase().trim() === email)) {
-      throw new Error(`Email '${email}' sudah digunakan pengguna lain.`);
+    if (updates.email) {
+      const cleanEmail = updates.email.toLowerCase().trim();
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        throw new Error('Alamat email tidak valid.');
+      }
+      // Unique email validation on update (Requirement 42 TEST 7)
+      const duplicateExists = this.users.some(
+        u => u.id !== userId && u.email && u.email.toLowerCase().trim() === cleanEmail
+      );
+      if (duplicateExists) {
+        throw new Error(`Email '${cleanEmail}' sudah digunakan oleh pengguna lain. Duplikasi email ditolak.`);
+      }
+      updates.email = cleanEmail;
     }
 
-    const saved = await adminPersistenceService.upsert<any>('users', {
-      user_id: userId,
-      email,
-      name: updates.name ?? current.name,
-      status: updates.status ?? current.status,
-      avatar_url: updates.avatar ?? current.avatar ?? '',
-      organization_id: (updates as any).organization_id || updates.organizationName || current.organizationName || '',
-      workspace_id: updates.workspaceId || current.workspaceId || '',
-      updated_at: new Date().toISOString(),
-    });
-
-    let role = updates.role || current.role;
-    if (updates.role && updates.role !== current.role) {
-      await this.updateUserRole(userId, updates.role);
-      role = updates.role;
-    }
-
-    const next = this.normalizeUser({
-      ...saved,
-      role,
-      workspace_id: updates.workspaceId || current.workspaceId,
-      organization_name: updates.organizationName || current.organizationName,
-    });
-
-    const idx = this.users.findIndex(u => u.id === userId);
-    this.users[idx] = next;
+    Object.assign(user, updates);
     this.notify();
-    return next;
+
+    try {
+      await apiTransport.send('users.update', {
+        user_id: userId,
+        updates,
+      });
+    } catch (e) {
+      console.warn('Error updating user in backend:', e);
+    }
+
+    return user;
   }
 
   public async updateUserRole(userId: string, newRole: UserRole): Promise<ManagedUser> {
     const user = this.users.find(u => u.id === userId);
     if (!user) throw new Error('Pengguna tidak ditemukan.');
-
-    const assignments = await adminPersistenceService.list<any>('userRoleAssignments', { user_id: userId });
-    for (const a of assignments.filter((x: any) => String(x.status || '').toLowerCase() === 'active')) {
-      await adminPersistenceService.upsert<any>('userRoleAssignments', {
-        ...a,
-        status: 'revoked',
-        revoked_at: new Date().toISOString(),
-      });
-    }
-
-    await adminPersistenceService.upsert<any>('userRoleAssignments', {
-      user_id: userId,
-      role: newRole,
-      scope_type: newRole === 'superadmin' ? 'SYSTEM' : 'WORKSPACE',
-      scope_id: newRole === 'superadmin' ? 'GLOBAL' : user.workspaceId,
-      status: 'active',
-      granted_by: '',
-      granted_at: new Date().toISOString(),
-      revoked_at: '',
-    });
-
     user.role = newRole;
     this.notify();
+
+    try {
+      await apiTransport.send('users.assignRole', {
+        user_id: userId,
+        role: newRole,
+        permissions: ROLE_PERMISSION_MAP[newRole] || [],
+      });
+    } catch (e) {
+      console.warn('Error assigning role in backend:', e);
+    }
+
     return user;
   }
 
   public async toggleUserStatus(userId: string): Promise<ManagedUser> {
     const user = this.users.find(u => u.id === userId);
     if (!user) throw new Error('Pengguna tidak ditemukan.');
-    const nextStatus = user.status === 'active' ? 'inactive' : 'active';
-    const saved = await adminPersistenceService.upsert<any>('users', {
-      user_id: userId,
-      email: user.email,
-      name: user.name,
-      status: nextStatus,
-      avatar_url: user.avatar || '',
-      organization_id: user.organizationName || '',
-      workspace_id: user.workspaceId || '',
-      updated_at: new Date().toISOString(),
-    });
-    const next = this.normalizeUser({ ...saved, role: user.role, workspace_id: user.workspaceId });
-    const idx = this.users.findIndex(u => u.id === userId);
-    this.users[idx] = next;
+    user.status = user.status === 'active' ? 'inactive' : 'active';
     this.notify();
-    return next;
+
+    try {
+      await apiTransport.send('users.update', {
+        user_id: userId,
+        status: user.status,
+      });
+    } catch (e) {
+      console.warn('Error updating user status in backend:', e);
+    }
+
+    return user;
   }
 
   public async revokeUserRole(userId: string): Promise<ManagedUser> {
     const user = this.users.find(u => u.id === userId);
     if (!user) throw new Error('Pengguna tidak ditemukan.');
-    const assignments = await adminPersistenceService.list<any>('userRoleAssignments', { user_id: userId });
-    for (const a of assignments.filter((x: any) => String(x.status || '').toLowerCase() === 'active')) {
-      await adminPersistenceService.upsert<any>('userRoleAssignments', {
-        ...a,
-        status: 'revoked',
-        revoked_at: new Date().toISOString(),
-      });
-    }
     user.role = 'viewer';
     this.notify();
+
+    try {
+      await apiTransport.send('users.revokeRole', {
+        user_id: userId,
+      });
+    } catch (e) {
+      console.warn('Error revoking role in backend:', e);
+    }
+
     return user;
   }
 
   public async logoutUserFromAllDevices(userId: string): Promise<boolean> {
-    const res = await apiTransport.send('auth.logoutAll', { user_id: userId });
-    return res.ok;
+    try {
+      const res = await apiTransport.send('auth.logoutAll', { user_id: userId });
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 
   public async listUserTrustedDevices(userId: string): Promise<TrustedDeviceRecord[]> {
-    const res = await apiTransport.send<TrustedDeviceRecord[]>('auth.devices.list', { user_id: userId });
-    return res.ok && Array.isArray(res.data) ? res.data : [];
+    try {
+      const res = await apiTransport.send<TrustedDeviceRecord[]>('auth.devices.list', { user_id: userId });
+      return res.ok && Array.isArray(res.data) ? res.data : [];
+    } catch {
+      return [];
+    }
   }
 
   public async revokeUserDevice(devicePublicId: string): Promise<boolean> {
-    const res = await apiTransport.send('auth.devices.revoke', { device_public_id: devicePublicId });
-    return res.ok;
+    try {
+      const res = await apiTransport.send('auth.devices.revoke', { device_public_id: devicePublicId });
+      return res.ok;
+    } catch {
+      return false;
+    }
   }
 
   public async removeUser(userId: string): Promise<void> {
-    await adminPersistenceService.upsert<any>('users', {
-      user_id: userId,
-      status: 'inactive',
-      updated_at: new Date().toISOString(),
-    });
     this.users = this.users.filter(u => u.id !== userId);
     this.notify();
+
+    try {
+      await apiTransport.send('users.disable', { user_id: userId });
+    } catch (e) {
+      console.warn('Error disabling user in backend:', e);
+    }
   }
 
   public getPermissionGroups(): PermissionGroup[] {

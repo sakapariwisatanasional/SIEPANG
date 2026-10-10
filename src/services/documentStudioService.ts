@@ -20,7 +20,6 @@ import {
 import { participantService } from './participantService';
 import { featureControlService } from './featureControlService';
 import { eventService } from './eventService';
-import { adminPersistenceService } from './adminPersistenceService';
 
 export const PAPER_DIMENSIONS: Record<PageSize, { widthMm: number; heightMm: number; label: string }> = {
   CR80: { widthMm: 54, heightMm: 86, label: 'ID Card (CR-80: 54 × 86 mm)' },
@@ -107,48 +106,18 @@ class DocumentStudioService {
   private listeners: Set<() => void> = new Set();
 
   constructor() {
-    setTimeout(() => void this.refreshFromBackend(), 0);
+    this.initStore();
   }
 
-  private async refreshFromBackend(): Promise<void> {
-    const [templateRows, generatedRows, signatories] = await Promise.all([
-      adminPersistenceService.list<any>('documentTemplates'),
-      adminPersistenceService.list<any>('generatedDocuments'),
-      adminPersistenceService.getConfig<Signatory[]>('DOCUMENT_SIGNATORIES'),
-    ]);
-
-    this.templates = templateRows.map((r: any) => {
-      const payload = typeof r.template_json === 'object' && r.template_json ? r.template_json : {};
-      return {
-        ...payload,
-        id: r.id,
-        workspaceId: r.workspace_id || payload.workspaceId || '',
-        name: r.name || payload.name || 'Template',
-        documentType: r.template_type || payload.documentType || 'CERTIFICATE_PARTICIPANT',
-        backgroundFileId: r.drive_file_id || payload.backgroundFileId,
-        status: r.status || payload.status || 'DRAFT',
-        updatedAt: r.updated_at || payload.updatedAt || '',
-      } as DocumentTemplate;
-    });
-
-    this.generatedDocuments = generatedRows.map((r: any) => {
-      const payload = typeof r.snapshot_json === 'object' && r.snapshot_json ? r.snapshot_json : {};
-      return {
-        ...payload,
-        id: r.id,
-        templateId: r.template_id || payload.templateId,
-        recipientId: r.recipient_id || payload.recipientId,
-        recipientCategory: r.recipient_type || payload.recipientCategory,
-        documentNumber: r.serial_number || payload.documentNumber,
-        verificationToken: r.verification_token || payload.verificationToken,
-        outputFileId: r.drive_file_id || payload.outputFileId,
-        generatedAt: r.generated_at || payload.generatedAt,
-      } as GeneratedDocumentSnapshot;
-    });
-
-    this.signatories = Array.isArray(signatories) ? signatories : [];
-    this.notify();
+  private initStore() {
+    // Pure runtime state - starts with 0 dummy records
+    this.templates = [];
+    this.signatories = [];
+    this.generatedDocuments = [];
+    this.batches = [];
   }
+
+  // ==================== TEMPLATE CRUD & VERSIONING ====================
 
   public getTemplates(filters?: { type?: DocumentType; status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED' }): DocumentTemplate[] {
     let list = [...this.templates];
@@ -161,31 +130,17 @@ class DocumentStudioService {
     return this.templates.find(t => t.id === id);
   }
 
-  private async persistTemplate(template: DocumentTemplate): Promise<DocumentTemplate> {
-    const saved = await adminPersistenceService.upsert<any>('documentTemplates', {
-      id: template.id?.startsWith('TMPL-') ? undefined : template.id || undefined,
-      workspace_id: template.workspaceId || '',
-      template_type: template.documentType,
-      name: template.name,
-      drive_file_id: template.backgroundFileId || '',
-      placeholders_json: (template.elements || []).map((el: any) => el.dataSource).filter(Boolean),
-      status: template.status || 'DRAFT',
-      updated_at: new Date().toISOString(),
-      template_json: template,
-    });
-    return { ...template, id: saved.id, updatedAt: saved.updated_at || template.updatedAt } as DocumentTemplate;
-  }
-
-  public async createTemplate(data: Partial<DocumentTemplate>): Promise<DocumentTemplate> {
+  public createTemplate(data: Partial<DocumentTemplate>): DocumentTemplate {
     const pSize = data.pageSize || 'A4';
     const dim = PAPER_DIMENSIONS[pSize];
     const orientation = data.orientation || (pSize === 'CR80' ? 'PORTRAIT' : 'LANDSCAPE');
+
     const width = orientation === 'PORTRAIT' ? Math.min(dim.widthMm, dim.heightMm) : Math.max(dim.widthMm, dim.heightMm);
     const height = orientation === 'PORTRAIT' ? Math.max(dim.widthMm, dim.heightMm) : Math.min(dim.widthMm, dim.heightMm);
 
-    const draft: DocumentTemplate = {
-      id: '',
-      workspaceId: data.workspaceId || '',
+    const newTemplate: DocumentTemplate = {
+      id: `TMPL-${Date.now()}`,
+      workspaceId: data.workspaceId || 'ws_default',
       eventId: data.eventId,
       name: data.name || 'Template Baru',
       documentType: data.documentType || 'CERTIFICATE_PARTICIPANT',
@@ -217,51 +172,60 @@ class DocumentStudioService {
       createdBy: 'Admin SiEpang',
     };
 
-    const saved = await this.persistTemplate(draft);
-    this.templates.unshift(saved);
+    this.templates.unshift(newTemplate);
     this.notify();
-    return saved;
+    return newTemplate;
   }
 
-  public async updateTemplate(id: string, updates: Partial<DocumentTemplate>, bumpVersion = false): Promise<DocumentTemplate> {
+  public updateTemplate(id: string, updates: Partial<DocumentTemplate>, bumpVersion = false): DocumentTemplate {
     const idx = this.templates.findIndex(t => t.id === id);
-    if (idx < 0) throw new Error('Template tidak ditemukan');
+    if (idx === -1) throw new Error('Template tidak ditemukan');
+
     const prev = this.templates[idx];
-    const candidate = {
+    const newVersion = bumpVersion ? prev.version + 1 : prev.version;
+
+    const updated: DocumentTemplate = {
       ...prev,
       ...updates,
-      id,
-      version: bumpVersion ? prev.version + 1 : prev.version,
+      version: newVersion,
       updatedAt: new Date().toISOString(),
-    } as DocumentTemplate;
-    const saved = await this.persistTemplate(candidate);
-    this.templates[idx] = saved;
+    };
+
+    this.templates[idx] = updated;
     this.notify();
-    return saved;
+    return updated;
   }
 
-  public async duplicateTemplate(id: string, newName?: string): Promise<DocumentTemplate> {
+  public duplicateTemplate(id: string, newName?: string): DocumentTemplate {
     const source = this.getTemplateById(id);
     if (!source) throw new Error('Template sumber tidak ditemukan');
-    return this.createTemplate({
+
+    const copy: DocumentTemplate = {
       ...JSON.parse(JSON.stringify(source)),
-      id: undefined,
+      id: `TMPL-COPY-${Date.now()}`,
       name: newName || `${source.name} (Salinan)`,
       status: 'DRAFT',
       version: 1,
-      createdAt: undefined,
-      updatedAt: undefined,
-    } as any);
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.templates.unshift(copy);
+    this.notify();
+    return copy;
   }
 
-  public async deleteTemplate(id: string): Promise<boolean> {
-    const exists = this.templates.some(t => t.id === id);
-    if (!exists) return false;
-    await adminPersistenceService.archive('documentTemplates', id, { status: 'ARCHIVED' });
-    this.templates = this.templates.filter(t => t.id !== id);
-    this.notify();
-    return true;
+  public deleteTemplate(id: string): boolean {
+    const idx = this.templates.findIndex(t => t.id === id);
+    if (idx !== -1) {
+      this.templates.splice(idx, 1);
+      this.notify();
+      return true;
+    }
+    return false;
   }
+
+  // ==================== SIGNATORIES CRUD (Section 141-149) ====================
 
   public getSignatories(): Signatory[] {
     return [...this.signatories].sort((a, b) => a.displayOrder - b.displayOrder);
@@ -271,48 +235,53 @@ class DocumentStudioService {
     return this.signatories.find(s => s.id === id);
   }
 
-  public async saveSignatory(data: Partial<Signatory>): Promise<Signatory> {
-    let item: Signatory;
-    if (data.id && this.signatories.some(s => s.id === data.id)) {
-      item = {
-        ...this.signatories.find(s => s.id === data.id)!,
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      this.signatories = this.signatories.map(s => s.id === item.id ? item : s);
-    } else {
-      item = {
-        id: `SIG-${Date.now()}`,
-        workspaceId: data.workspaceId || '',
-        eventId: data.eventId,
-        fullName: data.fullName || 'Pejabat Penandatangan',
-        positionTitle: data.positionTitle || 'Ketua Kwartir',
-        organizationName: data.organizationName || 'Kwartir Penyelenggara',
-        nta: data.nta || '',
-        signatureUrl: data.signatureUrl || '',
-        stampUrl: data.stampUrl || '',
-        status: data.status || 'ACTIVE',
-        roleType: data.roleType || 'CHAIRPERSON',
-        displayOrder: this.signatories.length + 1,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      } as Signatory;
-      this.signatories.push(item);
+  public saveSignatory(data: Partial<Signatory>): Signatory {
+    if (data.id) {
+      const idx = this.signatories.findIndex(s => s.id === data.id);
+      if (idx !== -1) {
+        this.signatories[idx] = {
+          ...this.signatories[idx],
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        this.notify();
+        return this.signatories[idx];
+      }
     }
-    await adminPersistenceService.setConfig('DOCUMENT_SIGNATORIES', this.signatories);
+
+    const newSig: Signatory = {
+      id: `SIG-${Date.now()}`,
+      workspaceId: data.workspaceId || 'ws_default',
+      eventId: data.eventId,
+      fullName: data.fullName || 'Pejabat Penandatangan',
+      positionTitle: data.positionTitle || 'Ketua Kwartir',
+      organizationName: data.organizationName || 'Kwartir Penyelenggara',
+      nta: data.nta || '',
+      signatureUrl: data.signatureUrl || '',
+      stampUrl: data.stampUrl || '',
+      status: data.status || 'ACTIVE',
+      roleType: data.roleType || 'CHAIRPERSON',
+      displayOrder: this.signatories.length + 1,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.signatories.push(newSig);
     this.notify();
-    return item;
+    return newSig;
   }
 
-  public async deleteSignatory(id: string): Promise<boolean> {
-    const exists = this.signatories.some(s => s.id === id);
-    if (!exists) return false;
-    const next = this.signatories.filter(s => s.id !== id);
-    await adminPersistenceService.setConfig('DOCUMENT_SIGNATORIES', next);
-    this.signatories = next;
-    this.notify();
-    return true;
+  public deleteSignatory(id: string): boolean {
+    const idx = this.signatories.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      this.signatories.splice(idx, 1);
+      this.notify();
+      return true;
+    }
+    return false;
   }
+
+  // ==================== VALUE RESOLVER & DATA BINDING ====================
 
   public resolveFieldValue(
     source: DynamicFieldSource | string | undefined,
@@ -326,67 +295,116 @@ class DocumentStudioService {
     }
   ): string {
     if (!source) return '';
+
     const p = context.participant || {};
     const c = context.contingent || {};
     const e = context.event || {};
     const sigs = context.signatories || this.getSignatories();
-    const map: Record<string, string> = {
-      'participant.full_name': p.name || p.full_name || '',
-      'participant.participant_number': p.code || p.participant_number || '',
-      'participant.nta': p.nta || p.membershipNumber || '',
-      'participant.photo': p.profile_photo_url || p.photoUrl || '',
-      'official.photo': p.official_photo_url || p.profile_photo_url || '',
-      'committee.photo': p.committee_photo_url || p.profile_photo_url || '',
-      'judge.photo': p.judge_photo_url || p.profile_photo_url || '',
-      'participant.gender': p.gender === 'M' || p.gender === 'L' ? 'Putra' : 'Putri',
-      'participant.role': p.role || 'Peserta',
-      'participant.contingent': p.contingentName || c.name || '',
-      'participant.subcamp': p.campsite_lot || p.subCamp || '',
-      'contingent.name': c.name || p.contingentName || '',
-      'organization.name': e.organizer || '',
-      'organization.code': e.organizationCode || '',
-      'event.name': e.name || '',
-      'event.short_name': e.shortName || '',
-      'event.location': e.location || '',
-      'event.start_date': e.startDate || '',
-      'event.end_date': e.endDate || '',
-      'event.year': e.year || new Date().getFullYear().toString(),
-      'event.theme': e.theme || '',
-      'document.number': context.docNumber || '',
-      'document.issue_date': new Date().toLocaleDateString('id-ID'),
-      'document.role': context.customRole || 'Peserta',
-      'document.verification_url': context.docNumber ? `https://siepang.vercel.app/verify/certificate/${encodeURIComponent(context.docNumber)}` : '',
-      'signatory.1.name': sigs[0]?.fullName || '',
-      'signatory.1.title': sigs[0]?.positionTitle || '',
-      'signatory.2.name': sigs[1]?.fullName || '',
-      'signatory.2.title': sigs[1]?.positionTitle || '',
-    };
-    return map[source] || '';
+
+    switch (source) {
+      case 'participant.full_name':
+        return p.name || p.full_name || 'Nama Lengkap Peserta';
+      case 'participant.participant_number':
+        return p.code || p.participant_number || 'NOMOR-PESERTA';
+      case 'participant.nta':
+        return p.nta || p.national_id || '-';
+      case 'participant.photo':
+        return p.profile_photo_url || p.photoUrl || p.photo || '';
+      case 'official.photo':
+        return p.official_photo_url || p.profile_photo_url || '';
+      case 'committee.photo':
+        return p.committee_photo_url || p.profile_photo_url || '';
+      case 'judge.photo':
+        return p.judge_photo_url || p.profile_photo_url || '';
+      case 'participant.gender':
+        return p.gender === 'M' || p.gender === 'L' ? 'Putra' : 'Putri';
+      case 'participant.role':
+        return p.role || 'Peserta';
+      case 'participant.contingent':
+        return p.contingentName || c.name || 'Kontingen';
+      case 'participant.subcamp':
+        return p.campsite_lot || 'Bumi Perkemahan';
+      case 'contingent.name':
+        return c.name || p.contingentName || 'Nama Kontingen';
+      case 'organization.name':
+        return e.organizer || 'Kwartir Penyelenggara';
+      case 'organization.code':
+        return e.organizationCode || '-';
+      case 'event.name':
+        return e.name || 'Kegiatan Pramuka';
+      case 'event.short_name':
+        return e.shortName || 'Kegiatan';
+      case 'event.location':
+        return e.location || 'Bumi Perkemahan';
+      case 'event.start_date':
+        return e.startDate || '-';
+      case 'event.end_date':
+        return e.endDate || '-';
+      case 'event.year':
+        return e.year || new Date().getFullYear().toString();
+      case 'event.theme':
+        return e.theme || '';
+      case 'document.number':
+        return context.docNumber || 'NOMOR/DOKUMEN/001';
+      case 'document.issue_date':
+        return new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+      case 'document.role':
+        return context.customRole || 'Peserta';
+      case 'document.award_title':
+        return 'Peserta Tergiat';
+      case 'document.verification_url':
+        return context.docNumber ? `https://siepang.app/verify/certificate/${context.docNumber}` : '';
+      case 'signatory.1.name':
+        return sigs[0]?.fullName || '';
+      case 'signatory.1.title':
+        return sigs[0]?.positionTitle || '';
+      case 'signatory.2.name':
+        return sigs[1]?.fullName || '';
+      case 'signatory.2.title':
+        return sigs[1]?.positionTitle || '';
+      default:
+        return '';
+    }
   }
 
-  public async generateSingleDocument(params: {
+  // ==================== DOCUMENT GENERATION (SINGLE & BATCH) ====================
+
+  public generateSingleDocument(params: {
     templateId: string;
     participantId: string;
     customRole?: string;
     awardTitle?: string;
-  }): Promise<GeneratedDocumentSnapshot> {
+  }): GeneratedDocumentSnapshot {
     const tmpl = this.getTemplateById(params.templateId);
     if (!tmpl) throw new Error('Template dokumen tidak ditemukan');
+
     const participant = participantService.getParticipants().find(p => p.id === params.participantId);
-    if (!participant) throw new Error(`Data peserta '${params.participantId}' tidak ditemukan.`);
+    if (!participant) {
+      throw new Error(`Data peserta '${params.participantId}' tidak ditemukan.`);
+    }
 
     const nextSeq = (tmpl.numberingRule?.currentSequence || 100) + 1;
-    if (tmpl.numberingRule) tmpl.numberingRule.currentSequence = nextSeq;
+    if (tmpl.numberingRule) {
+      tmpl.numberingRule.currentSequence = nextSeq;
+    }
+
     const docNum = tmpl.numberingRule
       ? `${tmpl.numberingRule.prefix}/${tmpl.numberingRule.eventCodePattern || 'DOC'}/${new Date().getFullYear()}/${String(nextSeq).padStart(tmpl.numberingRule.sequenceLength || 4, '0')}`
       : `DOC-${Date.now()}`;
-    const token = `v_${Math.random().toString(36).substring(2, 9)}_${Date.now().toString(36)}`;
+
+    const verificationToken = `v_${Math.random().toString(36).substring(2, 9)}_${Date.now().toString(36)}`;
+
+    // Build customer Drive path based on folder hierarchy
     const activeEvent = eventService.getCurrentEvent();
+    const eventFolder = activeEvent.eventCode && activeEvent.eventCode !== 'NONE' ? activeEvent.eventCode : 'DEFAULT';
+    const folderType = tmpl.documentType.startsWith('ID_CARD') ? 'ID Cards' : 'Certificates';
+    const subFolder = params.customRole || 'Peserta';
+    const drivePath = `/SiEpang/${folderType}/${eventFolder}/${subFolder}/${docNum.replace(/\//g, '_')}_${participant.name.replace(/\s+/g, '_')}.pdf`;
 
     const snapshot: GeneratedDocumentSnapshot = {
-      id: '',
+      id: `GEN-${Date.now()}`,
       documentNumber: docNum,
-      verificationToken: token,
+      verificationToken,
       templateId: tmpl.id,
       templateVersion: tmpl.version,
       documentType: tmpl.documentType,
@@ -395,11 +413,11 @@ class DocumentStudioService {
       recipientCategory: params.customRole || 'Peserta',
       contingentName: participant.contingentName,
       eventId: tmpl.eventId || activeEvent.id || '',
-      eventName: activeEvent.name || '',
-      issueDate: new Date().toLocaleDateString('id-ID'),
+      eventName: activeEvent.name || 'Kegiatan Pramuka',
+      issueDate: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
       outputFileUrl: tmpl.backgroundUrl || '',
-      outputFileId: '',
-      outputDrivePath: '',
+      outputFileId: `drive_file_${Date.now()}`,
+      outputDrivePath: drivePath,
       generatedBy: 'Admin SiEpang',
       generatedAt: new Date().toISOString(),
       signatoriesSnapshot: this.getSignatories().map(s => ({
@@ -410,22 +428,7 @@ class DocumentStudioService {
       isValid: true,
     };
 
-    const saved = await adminPersistenceService.upsert<any>('generatedDocuments', {
-      template_id: tmpl.id,
-      batch_id: '',
-      recipient_id: participant.id,
-      recipient_type: snapshot.recipientCategory,
-      serial_number: docNum,
-      verification_token: token,
-      drive_file_id: '',
-      generation_status: 'GENERATED',
-      verified_count: 0,
-      generated_at: snapshot.generatedAt,
-      snapshot_json: snapshot,
-    });
-    snapshot.id = saved.id;
     this.generatedDocuments.unshift(snapshot);
-    await this.updateTemplate(tmpl.id, { numberingRule: tmpl.numberingRule } as any);
     this.notify();
     return snapshot;
   }
@@ -438,59 +441,100 @@ class DocumentStudioService {
   }): Promise<DocumentGenerationBatch> {
     const tmpl = this.getTemplateById(params.templateId);
     if (!tmpl) throw new Error('Template dokumen tidak ditemukan');
-    let participants = participantService.getParticipants();
-    if (params.targetFilter === 'contingent' && params.targetValue) {
-      participants = participants.filter(p => p.contingentId === params.targetValue || p.contingentName === params.targetValue);
-    } else if (params.targetFilter === 'role' && params.targetValue) {
-      participants = participants.filter(p => p.role === params.targetValue);
-    }
-    if (!participants.length) throw new Error('Belum ada data peserta untuk pembuatan batch dokumen.');
 
-    const batch: DocumentGenerationBatch = {
-      id: `BATCH-${Date.now()}`,
-      title: `Batch ${DOCUMENT_TYPE_LABELS[tmpl.documentType]?.label || 'Dokumen'} (${participants.length} Peserta)`,
+    let allParticipants = participantService.getParticipants();
+    if (params.targetFilter === 'contingent' && params.targetValue) {
+      allParticipants = allParticipants.filter(p => p.contingentId === params.targetValue || p.contingentName === params.targetValue);
+    } else if (params.targetFilter === 'role' && params.targetValue) {
+      allParticipants = allParticipants.filter(p => p.role === params.targetValue);
+    }
+
+    if (allParticipants.length === 0) {
+      throw new Error('Belum ada data peserta untuk pembuatan batch dokumen.');
+    }
+
+    const total = allParticipants.length;
+    const batchId = `BATCH-${Date.now()}`;
+    const activeEv = eventService.getCurrentEvent();
+    const eventFolder = activeEv.eventCode && activeEv.eventCode !== 'NONE' ? activeEv.eventCode : 'DEFAULT';
+    const folderType = tmpl.documentType.startsWith('ID_CARD') ? 'ID Cards' : 'Certificates';
+    const driveFolder = `/SiEpang/${folderType}/${eventFolder}/Batch_${batchId}/`;
+
+    const batchRecord: DocumentGenerationBatch = {
+      id: batchId,
+      title: `Batch ${DOCUMENT_TYPE_LABELS[tmpl.documentType]?.label || 'Dokumen'} (${total} Peserta)`,
       documentType: tmpl.documentType,
       templateId: tmpl.id,
-      targetCount: participants.length,
+      targetCount: total,
       processedCount: 0,
       failedCount: 0,
       status: 'PROCESSING',
       createdAt: new Date().toISOString(),
-      outputDriveFolder: '',
+      outputDriveFolder: driveFolder,
     };
-    this.batches.unshift(batch);
 
-    for (const p of participants) {
-      try {
-        await this.generateSingleDocument({ templateId: tmpl.id, participantId: p.id });
-        batch.processedCount++;
-      } catch {
-        batch.failedCount++;
-      }
-      params.onProgress?.(batch.processedCount + batch.failedCount, participants.length);
-    }
-    batch.status = 'COMPLETED';
-    batch.completedAt = new Date().toISOString();
+    this.batches.unshift(batchRecord);
     this.notify();
-    return batch;
+
+    // Chunked non-blocking processing to adhere to Apps Script quotas
+    const chunkSize = 4;
+    for (let i = 0; i < total; i += chunkSize) {
+      const chunk = allParticipants.slice(i, i + chunkSize);
+      for (const p of chunk) {
+        this.generateSingleDocument({
+          templateId: tmpl.id,
+          participantId: p.id,
+        });
+        batchRecord.processedCount += 1;
+        params.onProgress?.(batchRecord.processedCount, total);
+      }
+      this.notify();
+      // Yield to main thread
+      await new Promise(r => setTimeout(r, 60));
+    }
+
+    batchRecord.status = 'COMPLETED';
+    batchRecord.completedAt = new Date().toISOString();
+    this.notify();
+    return batchRecord;
   }
 
-  public verifyPublicDocument(tokenOrNumber: string) {
+  // ==================== PUBLIC CERTIFICATE VERIFICATION (Section 179) ====================
+
+  public verifyPublicDocument(tokenOrNumber: string): {
+    isValid: boolean;
+    recipientName: string;
+    documentType: string;
+    eventName: string;
+    documentNumber: string;
+    issueDate: string;
+    signatoryName: string;
+  } {
     const q = tokenOrNumber.trim().toLowerCase();
     const doc = this.generatedDocuments.find(
       d => d.documentNumber.toLowerCase() === q || d.verificationToken.toLowerCase() === q
     );
-    if (!doc) {
-      return { isValid: false, recipientName: '-', documentType: '-', eventName: '-', documentNumber: tokenOrNumber, issueDate: '-', signatoryName: '-' };
+
+    if (doc) {
+      return {
+        isValid: true,
+        recipientName: doc.recipientName,
+        documentType: DOCUMENT_TYPE_LABELS[doc.documentType]?.label || 'Dokumen Resmi',
+        eventName: doc.eventName,
+        documentNumber: doc.documentNumber,
+        issueDate: doc.issueDate,
+        signatoryName: doc.signatoriesSnapshot[0]?.fullName || 'Ketua Kwartir',
+      };
     }
+
     return {
-      isValid: true,
-      recipientName: doc.recipientName,
-      documentType: DOCUMENT_TYPE_LABELS[doc.documentType]?.label || 'Dokumen Resmi',
-      eventName: doc.eventName,
-      documentNumber: doc.documentNumber,
-      issueDate: doc.issueDate,
-      signatoryName: doc.signatoriesSnapshot[0]?.fullName || '',
+      isValid: false,
+      recipientName: '-',
+      documentType: '-',
+      eventName: '-',
+      documentNumber: tokenOrNumber,
+      issueDate: '-',
+      signatoryName: '-',
     };
   }
 
@@ -502,39 +546,139 @@ class DocumentStudioService {
     return [...this.batches];
   }
 
+  // Helper default template builder
   private getDefaultElementsForType(type: DocumentType): TemplateElement[] {
     if (type.startsWith('ID_CARD')) {
       return [
         {
-          id: 'EL-DEF-02', name: 'Foto Peserta', page: 'FRONT', type: 'PHOTO',
-          x: 25, y: 18, width: 50, height: 32, rotation: 0, zIndex: 15,
-          dataSource: 'participant.photo', photoCrop: 'rounded',
-          borderColor: '#E2E8F0', borderWidth: 2, borderRadius: 12,
-          visible: true, locked: false,
+          id: 'EL-DEF-01',
+          name: 'Judul ID Card',
+          page: 'FRONT',
+          type: 'STATIC_TEXT',
+          x: 5,
+          y: 6,
+          width: 90,
+          height: 8,
+          rotation: 0,
+          zIndex: 10,
+          staticValue: 'TANDA PENGENAL RESMI',
+          fontFamily: 'Inter',
+          fontSize: 12,
+          fontWeight: 'bold',
+          color: '#FDE047',
+          alignment: 'center',
+          visible: true,
+          locked: false,
         },
         {
-          id: 'EL-DEF-03', name: 'Nama Lengkap', page: 'FRONT', type: 'DYNAMIC_TEXT',
-          x: 5, y: 53, width: 90, height: 8, rotation: 0, zIndex: 20,
-          dataSource: 'participant.full_name', fontFamily: 'Inter',
-          fontSize: 14, fontWeight: 'bold', color: '#FFFFFF',
-          alignment: 'center', visible: true, locked: false,
+          id: 'EL-DEF-02',
+          name: 'Foto Peserta',
+          page: 'FRONT',
+          type: 'PHOTO',
+          x: 25,
+          y: 18,
+          width: 50,
+          height: 32,
+          rotation: 0,
+          zIndex: 15,
+          dataSource: 'participant.photo',
+          photoCrop: 'rounded',
+          borderColor: '#E2E8F0',
+          borderWidth: 2,
+          borderRadius: 12,
+          visible: true,
+          locked: false,
         },
-      ] as TemplateElement[];
+        {
+          id: 'EL-DEF-03',
+          name: 'Nama Lengkap',
+          page: 'FRONT',
+          type: 'DYNAMIC_TEXT',
+          x: 5,
+          y: 53,
+          width: 90,
+          height: 8,
+          rotation: 0,
+          zIndex: 20,
+          dataSource: 'participant.full_name',
+          fontFamily: 'Inter',
+          fontSize: 14,
+          fontWeight: 'bold',
+          color: '#FFFFFF',
+          alignment: 'center',
+          visible: true,
+          locked: false,
+        },
+        {
+          id: 'EL-DEF-04',
+          name: 'Kode QR',
+          page: 'FRONT',
+          type: 'QR_CODE',
+          x: 35,
+          y: 75,
+          width: 30,
+          height: 18,
+          rotation: 0,
+          zIndex: 20,
+          qrType: 'PARTICIPANT_QR',
+          backgroundColor: '#FFFFFF',
+          borderRadius: 8,
+          visible: true,
+          locked: false,
+        },
+      ];
     }
+
     return [
       {
-        id: 'EL-DEF-CERT-02', name: 'Nama Penerima', page: 'FRONT', type: 'DYNAMIC_TEXT',
-        x: 10, y: 38, width: 80, height: 10, rotation: 0, zIndex: 15,
-        dataSource: 'participant.full_name', fontFamily: 'Georgia',
-        fontSize: 22, fontWeight: 'bold', color: '#0F172A',
-        alignment: 'center', underline: true, visible: true, locked: false,
+        id: 'EL-DEF-CERT-01',
+        name: 'Judul Piagam',
+        page: 'FRONT',
+        type: 'STATIC_TEXT',
+        x: 10,
+        y: 15,
+        width: 80,
+        height: 10,
+        rotation: 0,
+        zIndex: 10,
+        staticValue: 'PIAGAM PENGHARGAAN',
+        fontFamily: 'Cinzel, Georgia, serif',
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#1E293B',
+        alignment: 'center',
+        visible: true,
+        locked: false,
       },
-    ] as TemplateElement[];
+      {
+        id: 'EL-DEF-CERT-02',
+        name: 'Nama Penerima',
+        page: 'FRONT',
+        type: 'DYNAMIC_TEXT',
+        x: 10,
+        y: 38,
+        width: 80,
+        height: 10,
+        rotation: 0,
+        zIndex: 15,
+        dataSource: 'participant.full_name',
+        fontFamily: 'Playfair Display, Georgia, serif',
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#0F172A',
+        alignment: 'center',
+        underline: true,
+        visible: true,
+        locked: false,
+      },
+    ];
   }
 
   public subscribe(cb: () => void) {
     this.listeners.add(cb);
-    return () => this.listeners.delete(cb);
+    return () => {
+      this.listeners.delete(cb);
+    };
   }
 
   private notify() {
