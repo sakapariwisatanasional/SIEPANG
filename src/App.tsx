@@ -151,6 +151,97 @@ export default function App() {
     }
   };
 
+  /**
+   * Canonical authentication readiness check.
+   *
+   * The GAS backend is authoritative. This also hydrates the local installation
+   * record with the canonical public Web App URL so authService/apiTransport do
+   * not depend on a Vercel environment variable or stale browser state.
+   */
+  const ensureAuthBackendReady = async (): Promise<boolean> => {
+    try {
+      const status = await bootstrapService.getStatus();
+
+      if (!status.backend_reachable || !status.installation_ready) {
+        setIsInstallationConfigured(false);
+        setInstallationState(
+          status.backend_reachable ? 'NOT_CONFIGURED' : 'BACKEND_UNREACHABLE'
+        );
+        setAuthError(
+          'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.'
+        );
+        return false;
+      }
+
+      const backendUrl = bootstrapService.getBackendUrl();
+      if (!backendUrl) {
+        setAuthError('Backend Google Apps Script belum dapat dijangkau.');
+        return false;
+      }
+
+      customerInstallationService.updateInstallationRecord({
+        web_app_url: backendUrl,
+        installation_status: 'READY',
+      });
+
+      bootstrapService.setInstallationReady(true);
+      setIsInstallationConfigured(true);
+      setInstallationState('CONFIGURED');
+      setInstallationError(null);
+      return true;
+    } catch {
+      setAuthError(
+        'Sistem autentikasi belum tersedia. Silakan coba kembali beberapa saat lagi.'
+      );
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const syncBootstrapAuthority = async () => {
+      try {
+        const status = await bootstrapService.getStatus();
+        if (!mounted) return;
+
+        if (status.backend_reachable && status.installation_ready) {
+          const backendUrl = bootstrapService.getBackendUrl();
+
+          if (backendUrl) {
+            customerInstallationService.updateInstallationRecord({
+              web_app_url: backendUrl,
+              installation_status: 'READY',
+            });
+          }
+
+          bootstrapService.setInstallationReady(true);
+          setIsInstallationConfigured(true);
+          setInstallationState('CONFIGURED');
+          setInstallationError(null);
+
+          // Bootstrap is one-time only. Once GAS says READY, /bootstrap is no
+          // longer a public setup screen and returns the user to canonical login.
+          try {
+            const path = window.location.pathname;
+            if (path === '/bootstrap' || path === '/bootstrap/') {
+              window.history.replaceState(null, '', '/login');
+              setActiveTab('home');
+            }
+          } catch {}
+        }
+      } catch {
+        // Do not block the public portal. Login actions will retry authoritatively.
+      }
+    };
+
+    syncBootstrapAuthority();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   useEffect(() => {
     // Backward compatibility: redirect any legacy /workspace, /w/:code paths to root "/"
     try {
@@ -320,6 +411,12 @@ export default function App() {
     setAuthSuccess(null);
     setIsSubmittingAuth(true);
 
+    const backendReady = await ensureAuthBackendReady();
+    if (!backendReady) {
+      setIsSubmittingAuth(false);
+      return;
+    }
+
     const res = await authService.requestLoginOtp(email);
     setIsSubmittingAuth(false);
 
@@ -373,6 +470,12 @@ export default function App() {
     setAuthSuccess(null);
     setIsSubmittingAuth(true);
 
+    const backendReady = await ensureAuthBackendReady();
+    if (!backendReady) {
+      setIsSubmittingAuth(false);
+      return;
+    }
+
     const res = await authService.requestRegisterOtp(name, email);
     setIsSubmittingAuth(false);
 
@@ -421,6 +524,12 @@ export default function App() {
     if (resendCooldown > 0 || isSubmittingAuth) return;
     setAuthError(null);
     setIsSubmittingAuth(true);
+
+    const backendReady = await ensureAuthBackendReady();
+    if (!backendReady) {
+      setIsSubmittingAuth(false);
+      return;
+    }
 
     if (authMode === 'LOGIN_OTP') {
       const res = await authService.requestLoginOtp(loginEmail.trim().toLowerCase());
@@ -590,18 +699,6 @@ export default function App() {
                   <span>Portal Publik</span>
                 </button>
 
-                {!bootstrapService.isInstallationReady() && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.history.pushState(null, '', '/bootstrap');
-                      setActiveTab('bootstrap');
-                    }}
-                    className="w-full py-2 px-3 text-center text-[11px] text-[#833AB4] dark:text-[#E1306C] font-semibold hover:underline cursor-pointer"
-                  >
-                    ⚙️ Belum diinisialisasi? Buka First Bootstrap
-                  </button>
-                )}
               </div>
             </form>
           )}
