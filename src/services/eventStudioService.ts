@@ -39,7 +39,23 @@ import {
   RoleScopedSnapshot,
 } from '../types';
 import { apiClient } from './apiClient';
-import { eventService } from './eventService';
+import { apiTransport } from './apiTransport';
+import { EMPTY_EVENT } from './eventService';
+import {
+  INITIAL_SCHEDULE,
+  INITIAL_CAMP_ACTIVITIES,
+  INITIAL_CAMPSITE_LOTS,
+  INITIAL_CAMP_FACILITIES,
+  INITIAL_COMPETITIONS,
+  INITIAL_JUDGING_CRITERIA,
+  INITIAL_COMPETITION_JUDGES,
+  INITIAL_VOTING_CONFIG,
+  INITIAL_REGISTRATION_FIELDS,
+  INITIAL_POINT_RULES,
+  INITIAL_QR_CHECKPOINTS,
+  INITIAL_CUSTOM_PAGES,
+  INITIAL_BADGES,
+} from './mockData';
 
 export type SaveStatusType = 'Saved ✓' | 'Saving…' | 'Unsaved Changes' | 'Save Failed';
 
@@ -51,45 +67,44 @@ export interface StudioSaveState {
 }
 
 class EventStudioService {
-  // Authoritative single-event installation binding
-  private event: ScoutEvent = { ...eventService.getCurrentEvent() };
-  private schedules: ScheduleItem[] = [];
-  private activities: CampActivity[] = [];
+  // Local cache for immediate UI responsiveness and offline hydration
+  private event: ScoutEvent = { ...EMPTY_EVENT };
+  private schedules: ScheduleItem[] = [...INITIAL_SCHEDULE];
+  private activities: CampActivity[] = [...INITIAL_CAMP_ACTIVITIES];
   private activityTypes: ActivityType[] = [];
   private subcamps: CampsiteSubcamp[] = [];
   private zones: CampsiteZone[] = [];
   private blocks: CampsiteBlock[] = [];
-  private lots: CampsiteLot[] = [];
-  private facilities: CampFacility[] = [];
-  private competitions: Competition[] = [];
+  private lots: CampsiteLot[] = [...INITIAL_CAMPSITE_LOTS];
+  private facilities: CampFacility[] = [...INITIAL_CAMP_FACILITIES];
+  private competitions: Competition[] = [...INITIAL_COMPETITIONS];
   private competitionTypes: CompetitionType[] = [];
-  private criteria: JudgingCriterion[] = [];
-  private judges: CompetitionJudge[] = [];
-  private votingConfig: VotingConfig = {
-    votingEnabled: false,
-    votingMode: 'single_choice',
-    votingStart: '',
-    votingEnd: '',
-    maxVotes: 1,
-    allowSelfVote: false,
-    showVoteCounter: true,
-    showLiveRank: false,
-  };
+  private criteria: JudgingCriterion[] = [...INITIAL_JUDGING_CRITERIA];
+  private judges: CompetitionJudge[] = [...INITIAL_COMPETITION_JUDGES];
+  private votingConfig: VotingConfig = { ...INITIAL_VOTING_CONFIG };
   private registrationSettings: RegistrationSettings = {
-    registrationStart: '',
-    registrationEnd: '',
-    maxParticipants: 0,
+    registrationStart: '2026-08-01',
+    registrationEnd: '2026-09-25',
+    maxParticipants: 1500,
     contingentRepresentationLevel: 'KWARRAN',
     maxParticipantsPerContingent: 32,
     maxAdvisorsPerContingent: 4,
     allowSelfRegistration: true,
-    status: 'CLOSED',
+    status: 'OPEN',
   };
-  private dynamicFields: RegistrationFieldConfig[] = [];
-  private pointRules: PointRuleConfig[] = [];
-  private badges: BadgeConfig[] = [];
-  private checkpoints: QrCheckpoint[] = [];
-  private customPages: CustomInfoPage[] = [];
+  private dynamicFields: RegistrationFieldConfig[] = [...INITIAL_REGISTRATION_FIELDS];
+  private pointRules: PointRuleConfig[] = [...INITIAL_POINT_RULES];
+  private badges: BadgeConfig[] = INITIAL_BADGES.map(b => ({
+    id: b.id,
+    name: b.name,
+    icon: b.iconName || b.icon || 'Award',
+    description: b.description,
+    condition: `Raih ${b.xpRequired || 0} XP dalam kegiatan bertema ${b.category}`,
+    xpRequired: b.xpRequired || 0,
+    status: 'active' as const,
+  }));
+  private checkpoints: QrCheckpoint[] = [...INITIAL_QR_CHECKPOINTS];
+  private customPages: CustomInfoPage[] = [...INITIAL_CUSTOM_PAGES];
   private contacts: EventContactItem[] = [];
   private auditLogs: AuditLog[] = [];
   private organizations: Organization[] = [];
@@ -150,7 +165,7 @@ class EventStudioService {
         audRes,
         orgRes,
       ] = await Promise.all([
-        apiClient.request<ScoutEvent>('/api/events/get'),
+        apiTransport.send<ScoutEvent>('events.get', {}, { timeoutMs: 30000 }),
         apiClient.request<ScheduleItem[]>('/api/schedules/list'),
         apiClient.request<CampActivity[]>('/api/activities/list'),
         apiClient.request<ActivityType[]>('/api/activities/types/list'),
@@ -175,7 +190,11 @@ class EventStudioService {
         apiClient.request<Organization[]>('/api/organizations/list'),
       ]);
 
-      if (evRes.success && evRes.data) this.event = evRes.data;
+      if (evRes.ok && evRes.data) {
+        this.event = evRes.data;
+      } else {
+        this.event = { ...EMPTY_EVENT };
+      }
       if (schRes.success && schRes.data) this.schedules = schRes.data;
       if (actRes.success && actRes.data) this.activities = actRes.data;
       if (actTypeRes.success && actTypeRes.data) this.activityTypes = actTypeRes.data;
@@ -229,6 +248,7 @@ class EventStudioService {
 
   public async saveAll(): Promise<boolean> {
     if (this.debounceTimer) clearTimeout(this.debounceTimer);
+
     this.saveState = {
       ...this.saveState,
       status: 'Saving…',
@@ -236,44 +256,57 @@ class EventStudioService {
     this.notify();
 
     try {
-      // Execute save through backend API
-      const res = await apiClient.request<ScoutEvent>('/api/events/update', {
-        data: {
-          eventId: this.event.id,
+      const eventId = String(this.event.id || '').trim();
+
+      if (!eventId) {
+        throw new Error(
+          'Event aktif belum terhubung ke backend. Muat ulang Event Studio lalu coba lagi.'
+        );
+      }
+
+      const res = await apiTransport.send<ScoutEvent>(
+        'events.update',
+        {
+          eventId,
           updates: this.event,
         },
-      });
+        {
+          timeoutMs: 30000,
+        }
+      );
 
-      if (res.success && res.data) {
+      if (res.ok && res.data) {
         this.event = res.data;
-        eventService.setInstallationEvent(res.data);
+        this.pendingDraft = null;
         this.saveState = {
           hasUnsaved: false,
           status: 'Saved ✓',
-          lastSaved: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+          lastSaved: new Date().toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+          }),
         };
-        // Refresh audit logs
-        const auditRes = await apiClient.request<AuditLog[]>('/api/audit/list', { data: { eventId: this.event.id } });
-        if (auditRes.success && auditRes.data) this.auditLogs = auditRes.data;
-
         this.notify();
         return true;
-      } else {
-        this.saveState = {
-          hasUnsaved: true,
-          status: 'Save Failed',
-          lastSaved: this.saveState.lastSaved,
-          errorMessage: res.error || 'Gagal menyimpan ke server SiEpang.',
-        };
-        this.notify();
-        return false;
       }
+
+      this.saveState = {
+        hasUnsaved: true,
+        status: 'Save Failed',
+        lastSaved: this.saveState.lastSaved,
+        errorMessage:
+          res.error?.message || 'Gagal menyimpan ke backend Google Apps Script.',
+      };
+      this.notify();
+      return false;
     } catch (err: any) {
       this.saveState = {
         hasUnsaved: true,
         status: 'Save Failed',
         lastSaved: this.saveState.lastSaved,
-        errorMessage: err.message,
+        errorMessage:
+          err?.message || 'Gagal menyimpan pengaturan event.',
       };
       this.notify();
       return false;
@@ -290,30 +323,60 @@ class EventStudioService {
     this.saveState = { ...this.saveState, status: 'Saving…' };
     this.notify();
 
-    const res = await apiClient.request<ScoutEvent>('/api/events/update', {
-      data: { eventId: this.event.id, updates },
-    });
-
-    if (res.success && res.data) {
-      this.event = res.data;
-      this.saveState = {
-        hasUnsaved: false,
-        status: 'Saved ✓',
-        lastSaved: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-      };
-      await this.refreshAudit();
-      this.notify();
-      return res.data;
-    } else {
+    const eventId = String(this.event.id || '').trim();
+    if (!eventId) {
+      const message =
+        'Event aktif belum terhubung ke backend. Muat ulang Event Studio lalu coba lagi.';
       this.saveState = {
         hasUnsaved: true,
         status: 'Save Failed',
         lastSaved: this.saveState.lastSaved,
-        errorMessage: res.error,
+        errorMessage: message,
       };
       this.notify();
-      throw new Error(res.error || 'Gagal memperbarui event.');
+      throw new Error(message);
     }
+
+    const res = await apiTransport.send<ScoutEvent>(
+      'events.update',
+      {
+        eventId,
+        updates,
+      },
+      {
+        timeoutMs: 30000,
+      }
+    );
+
+    if (res.ok && res.data) {
+      this.event = res.data;
+      this.saveState = {
+        hasUnsaved: false,
+        status: 'Saved ✓',
+        lastSaved: new Date().toLocaleTimeString('id-ID', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      };
+
+      // Audit refresh is intentionally not allowed to turn a successful
+      // event mutation into "Save Failed". GAS event update already records
+      // its authoritative audit entry server-side.
+      this.notify();
+      return res.data;
+    }
+
+    const message =
+      res.error?.message || 'Gagal memperbarui event di backend Google Apps Script.';
+
+    this.saveState = {
+      hasUnsaved: true,
+      status: 'Save Failed',
+      lastSaved: this.saveState.lastSaved,
+      errorMessage: message,
+    };
+    this.notify();
+    throw new Error(message);
   }
 
   public updateGeneralSettings(updates: Partial<ScoutEvent>): Promise<ScoutEvent> {
