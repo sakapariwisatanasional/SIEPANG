@@ -10,7 +10,7 @@
  * - Requirement 13: Participant Bulk Actions (Approve, Assign Contingent, Assign Category, Export, Archive) with impact confirmation
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Filter,
@@ -113,6 +113,8 @@ export const ParticipantList: React.FC = () => {
   } | null>(null);
 
   const [toast, setToast] = useState<string | null>(null);
+  const [isSubmittingRegistration, setIsSubmittingRegistration] = useState(false);
+  const registrationSubmitLock = useRef(false);
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3500);
@@ -213,6 +215,7 @@ export const ParticipantList: React.FC = () => {
   // Step-based Registration submit (Requirement 8, 25, 27)
   const handleFinishStepReg = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (registrationSubmitLock.current) return;
     if (!stepData.name) return;
 
     // Requirement 27: Final submission rule: if photo required, reject submission if no photo
@@ -224,6 +227,8 @@ export const ParticipantList: React.FC = () => {
     }
 
     const defaultPhoto = profilePhotoService.getPlaceholderUrl(stepData.name);
+    registrationSubmitLock.current = true;
+    setIsSubmittingRegistration(true);
 
     try {
       await participantService.addParticipant({
@@ -252,6 +257,9 @@ export const ParticipantList: React.FC = () => {
     } catch (err: any) {
       showToast(`❌ ${err?.message || 'Gagal menyimpan pendaftaran ke GAS.'}`);
       return;
+    } finally {
+      registrationSubmitLock.current = false;
+      setIsSubmittingRegistration(false);
     }
 
     showToast(`✅ Pendaftaran berhasil! Berkas '${stepData.name}' masuk ke antrean verifikasi.`);
@@ -1003,7 +1011,7 @@ export const ParticipantList: React.FC = () => {
                 <span className="text-[10px] text-[#F47743] font-bold font-mono">LANGKAH {regStep} DARI 6</span>
                 <h3 className="text-base font-bold text-[#171717] dark:text-white">Formulir Pendaftaran Peserta</h3>
               </div>
-              <button type="button" onClick={() => setShowStepRegModal(false)} className="p-1 text-[#6B7280] hover:text-[#171717] dark:text-slate-400 dark:hover:text-white cursor-pointer">✕</button>
+              <button type="button" disabled={isSubmittingRegistration} onClick={() => setShowStepRegModal(false)} className="p-1 text-[#6B7280] hover:text-[#171717] dark:text-slate-400 dark:hover:text-white cursor-pointer">✕</button>
             </div>
 
             {/* Stepper Progress Bar */}
@@ -1291,12 +1299,14 @@ export const ParticipantList: React.FC = () => {
               ) : (
                 <button
                   type="submit"
-                  className="px-6 py-2.5 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer"
+                  disabled={isSubmittingRegistration}
+                  aria-busy={isSubmittingRegistration}
+                  className="px-6 py-2.5 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer disabled:opacity-60 disabled:cursor-wait"
                   style={{
                     background: 'linear-gradient(135deg, #833AB4 0%, #C13584 30%, #E1306C 52%, #F77737 78%, #FCAF45 100%)',
                   }}
                 >
-                  Kirim & Daftarkan Peserta
+                  {isSubmittingRegistration ? 'Menyimpan ke GAS…' : 'Kirim & Daftarkan Peserta'}
                 </button>
               )}
             </div>
