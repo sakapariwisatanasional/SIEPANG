@@ -94,4 +94,310 @@ class BootstrapService {
       } else {
         localStorage.removeItem('siepang_bootstrap_ready');
       }
+    } catch {
+      // Browser storage is only a UI cache, never bootstrap authority.
+    }
+  }
 
+  /**
+   * Strictly for automated Node/CLI tests.
+   */
+  public setTestBootstrapToken(token: string | null): void {
+    this.testToken = token;
+  }
+
+  public getTestBootstrapToken(): string | null {
+    return this.testToken;
+  }
+
+  private parseStatusResponse(raw: string): BootstrapStatus | null {
+    try {
+      const parsed = JSON.parse(raw);
+
+      if (!parsed?.ok || !parsed?.data) {
+        return null;
+      }
+
+      const ready = Boolean(parsed.data.installation_ready);
+
+      if (ready && !this.isReady) {
+        this.setInstallationReady(true);
+      }
+
+      return {
+        installation_ready: ready,
+        backend_reachable: true,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Public-safe endpoint: bootstrap.status
+   */
+  public async getStatus(): Promise<BootstrapStatus> {
+    const backendUrl = this.getBackendUrl();
+
+    console.info('[bootstrap] status check start');
+    console.info('[bootstrap] backend URL configured:', Boolean(backendUrl));
+
+    if (!backendUrl) {
+      return {
+        installation_ready: false,
+        backend_reachable: false,
+      };
+    }
+
+    try {
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify({
+          action: 'bootstrap.status',
+          payload: {},
+        }),
+        redirect: 'follow',
+      });
+
+      if (response.ok) {
+        const result = this.parseStatusResponse(await response.text());
+        if (result) return result;
+      }
+    } catch {
+      // Continue to GET fallback.
+    }
+
+    try {
+      const separator = backendUrl.includes('?') ? '&' : '?';
+      const response = await fetch(
+        `${backendUrl}${separator}action=bootstrap.status`,
+        {
+          method: 'GET',
+          redirect: 'follow',
+        },
+      );
+
+      if (response.ok) {
+        const result = this.parseStatusResponse(await response.text());
+        if (result) return result;
+      }
+    } catch {
+      // Final result below.
+    }
+
+    return {
+      installation_ready: false,
+      backend_reachable: false,
+    };
+  }
+
+  /**
+   * Endpoint: bootstrap.initialize
+   * Frontend never validates the production bootstrap token itself.
+   */
+  public async initialize(bootstrapToken: string): Promise<BootstrapInitResult> {
+    const token = String(bootstrapToken || '').trim();
+
+    if (!token) {
+      return {
+        success: false,
+        error: {
+          code: 'INVALID_BOOTSTRAP_TOKEN',
+          message: 'Token bootstrap wajib diisi.',
+        },
+      };
+    }
+
+    const backendUrl = this.getBackendUrl();
+
+    console.info('[bootstrap] initialize request start');
+    console.info('[bootstrap] backend URL configured:', Boolean(backendUrl));
+
+    /**
+     * Automated test-only harness.
+     * Production always has the canonical backend URL.
+     */
+    if (!backendUrl && this.testToken) {
+      if (this.isReady) {
+        return {
+          success: false,
+          error: {
+            code: 'BOOTSTRAP_ALREADY_COMPLETED',
+            message:
+              'Inisialisasi awal sudah selesai. Endpoint bootstrap tidak dapat diakses lagi.',
+          },
+        };
+      }
+
+      if (token !== this.testToken) {
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_BOOTSTRAP_TOKEN',
+            message: 'Token bootstrap tidak valid atau sudah kedaluwarsa.',
+          },
+        };
+      }
+
+      const record = customerInstallationService.getInstallationRecord();
+
+      const testData: BootstrapData = {
+        installation_ready: true,
+        installation_id: String(record?.installation_id || ''),
+        workspace_id: String(record?.workspace_id || ''),
+        event_id: String(record?.active_event_id || ''),
+        superadmin: {
+          email: 'scoutpreneur@gmail.com',
+          role: 'superadmin',
+          status: 'ACTIVE',
+        },
+        otp_ready: true,
+      };
+
+      this.completeBootstrapSuccess(testData);
+
+      return {
+        success: true,
+        data: testData,
+      };
+    }
+
+    if (!backendUrl) {
+      return {
+        success: false,
+        error: {
+          code: 'BACKEND_UNREACHABLE',
+          message: 'Backend Google Apps Script belum dapat dijangkau.',
+        },
+      };
+    }
+
+    try {
+      const response = await fetch(backendUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify({
+          action: 'bootstrap.initialize',
+          payload: {
+            bootstrap_token: token,
+          },
+        }),
+        redirect: 'follow',
+      });
+
+      const text = await response.text();
+
+      let parsed: any;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        return {
+          success: false,
+          error: {
+            code: 'BACKEND_UNREACHABLE',
+            message: 'Respons Google Apps Script bukan JSON yang valid.',
+          },
+        };
+      }
+
+      if (parsed?.ok && parsed?.data) {
+        const data = parsed.data as BootstrapData;
+        this.completeBootstrapSuccess(data);
+
+        return {
+          success: true,
+          data,
+        };
+      }
+
+      const errorCode =
+        parsed?.error?.code ||
+        (response.ok ? 'BOOTSTRAP_FAILED' : 'BACKEND_UNREACHABLE');
+
+      const errorMessage =
+        parsed?.error?.message ||
+        (response.ok
+          ? 'Inisialisasi awal belum berhasil.'
+          : `Server backend merespons dengan HTTP ${response.status}.`);
+
+      return {
+        success: false,
+        error: {
+          code: errorCode,
+          message: errorMessage,
+        },
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: {
+          code: 'BACKEND_UNREACHABLE',
+          message:
+            err?.message ||
+            'Gagal terhubung ke backend Google Apps Script. Periksa koneksi jaringan.',
+        },
+      };
+    }
+  }
+
+  /**
+   * Cache/local installation metadata is hydrated only from a successful
+   * authoritative GAS response. No installation/workspace/event ID is invented.
+   */
+  private completeBootstrapSuccess(data: BootstrapData): void {
+    this.isReady = true;
+
+    try {
+      localStorage.setItem('siepang_bootstrap_ready', 'true');
+      localStorage.removeItem('siepang_bootstrap_local_token');
+      localStorage.removeItem('siepang_bootstrap_token_used');
+    } catch {
+      // Cache cleanup only.
+    }
+
+    const current = customerInstallationService.getInstallationRecord();
+
+    customerInstallationService.updateInstallationRecord({
+      installation_id:
+        String(data?.installation_id || '').trim() ||
+        String(current?.installation_id || '').trim(),
+      workspace_id:
+        String(data?.workspace_id || '').trim() ||
+        String(current?.workspace_id || '').trim(),
+      active_event_id:
+        String(data?.event_id || '').trim() ||
+        String(current?.active_event_id || '').trim(),
+      web_app_url:
+        String(current?.web_app_url || '').trim() || this.getBackendUrl(),
+      installation_status: 'READY',
+      bootstrap_superadmin_email: String(data?.superadmin?.email || '').trim(),
+      bootstrap_superadmin_status: String(
+        data?.superadmin?.status || 'ACTIVE',
+      ).trim(),
+    });
+  }
+
+  /**
+   * Test-only local state reset.
+   * Does not alter GAS Script Properties or production bootstrap state.
+   */
+  public resetForTest(): void {
+    this.isReady = false;
+    this.testToken = null;
+
+    try {
+      localStorage.removeItem('siepang_bootstrap_ready');
+      localStorage.removeItem('siepang_bootstrap_token_used');
+      localStorage.removeItem('siepang_bootstrap_local_token');
+    } catch {
+      // No-op in non-browser test environments.
+    }
+  }
+}
+
+export const bootstrapService = new BootstrapService();
