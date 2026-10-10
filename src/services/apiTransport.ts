@@ -1,13 +1,14 @@
 /**
  * @license
  * SiEpang - Production API Transport Layer
- * Standard transport abstraction for communication between the React/Vite frontend
- * and the customer-owned Google Apps Script Web App over HTTPS.
- * Enforces canonical request/response envelopes, timeout handling, and error normalization.
+ *
+ * Customer-owned Google Apps Script Web App transport.
+ * Zero mock/fallback production backend.
+ * Avoids circular import with authService.
  */
 
+import { SIEPANG_BACKEND_URL } from '../config/backend';
 import { customerInstallationService } from './customerInstallationService';
-import { authService } from './authService';
 import { workspaceService } from './workspaceService';
 import { eventService } from './eventService';
 
@@ -55,14 +56,59 @@ export class ApiTransportError extends Error {
   }
 }
 
+interface StoredAuthContext {
+  sessionToken: string | null;
+  devicePublicId: string | null;
+}
+
 class ApiTransport {
   private defaultTimeoutMs = 20000;
-  private clientVersion = '1.9.0-rc1';
+  private clientVersion = '1.9.1';
 
-  /**
-   * Dispatches a canonical request envelope to the customer's verified GAS Web App.
-   * STRICT: Real HTTPS call to customer-owned Google Apps Script Web App. Zero simulation.
-   */
+  private resolveBackendUrl(overrideUrl?: string): string {
+    if (overrideUrl?.trim()) return overrideUrl.trim();
+
+    const envUrl = (import.meta as any).env?.VITE_SIEPANG_BACKEND_URL;
+    if (typeof envUrl === 'string' && envUrl.trim()) return envUrl.trim();
+
+    const record = customerInstallationService.getInstallationRecord();
+    if (typeof record?.web_app_url === 'string' && record.web_app_url.trim()) {
+      return record.web_app_url.trim();
+    }
+
+    return SIEPANG_BACKEND_URL.trim();
+  }
+
+  private readStoredAuthContext(): StoredAuthContext {
+    let sessionToken: string | null = null;
+    let devicePublicId: string | null = null;
+
+    try {
+      const storedSession = localStorage.getItem('siepang_auth_session');
+      if (storedSession) {
+        const parsed = JSON.parse(storedSession);
+        if (typeof parsed?.session_token === 'string' && parsed.session_token.trim()) {
+          sessionToken = parsed.session_token.trim();
+        }
+      }
+    } catch {}
+
+    try {
+      const storedDevice = localStorage.getItem('siepang_trusted_device');
+      if (storedDevice) {
+        const parsed = JSON.parse(storedDevice);
+        if (
+          typeof parsed?.device_public_id === 'string' &&
+          parsed.device_public_id.trim()
+        ) {
+          devicePublicId = parsed.device_public_id.trim();
+        }
+      }
+    } catch {}
+
+    return { sessionToken, devicePublicId };
+  }
+
   public async send<T = any>(
     action: string,
     payload: any = {},
@@ -76,22 +122,9 @@ class ApiTransport {
   ): Promise<ApiResponseEnvelope<T>> {
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     const record = customerInstallationService.getInstallationRecord();
-    const envUrl = (import.meta as any).env?.VITE_SIEPANG_BACKEND_URL;
-    const targetUrl = options?.overrideUrl || envUrl || record.web_app_url;
+    const targetUrl = this.resolveBackendUrl(options?.overrideUrl);
 
-    // If GAS URL is missing or not configured
-    if (!targetUrl || !targetUrl.trim().startsWith('https://script.google.com/macros/s/')) {
-      if (action === 'bootstrap.status') {
-        return {
-          ok: true,
-          request_id: requestId,
-          data: {
-            installation_ready: false,
-            backend_reachable: false,
-          } as any,
-          error: null,
-        };
-      }
+    if (!targetUrl || !targetUrl.startsWith('https://script.google.com/macros/s/')) {
       return {
         ok: false,
         request_id: requestId,
@@ -105,12 +138,19 @@ class ApiTransport {
 
     const currentWorkspace = workspaceService.getCurrentWorkspace();
     const currentEvent = eventService.getCurrentEvent();
-    const authState = authService.getAuthState();
-    const device = authService.getOrCreateDevicePayload();
+    const storedAuth = this.readStoredAuthContext();
 
-    const resolvedInstId = options?.overrideInstallationId || record.installation_id || null;
-    const resolvedWsId = options?.overrideWorkspaceId || currentWorkspace?.id || record.workspace_id || null;
-    const resolvedEvtId = currentEvent?.id || record.active_event_id || null;
+    const resolvedInstId =
+      options?.overrideInstallationId || record.installation_id || null;
+    const resolvedWsId =
+      options?.overrideWorkspaceId ||
+      currentWorkspace?.id ||
+      record.workspace_id ||
+      null;
+    const resolvedEvtId =
+      currentEvent?.id || record.active_event_id || null;
+
+    const sessionToken = options?.skipAuth ? '' : storedAuth.sessionToken || '';
 
     const envelope: ApiRequestEnvelope = {
       action,
@@ -118,14 +158,14 @@ class ApiTransport {
       context: {
         workspace_id: resolvedWsId,
         event_id: resolvedEvtId,
-        session_token: authState.sessionToken || null,
-        device_public_id: device.device_public_id || null,
+        session_token: sessionToken || null,
+        device_public_id: storedAuth.devicePublicId,
         installation_id: resolvedInstId,
       },
       installation_id: resolvedInstId,
       workspace_id: resolvedWsId,
       event_id: resolvedEvtId,
-      session_token: authState.sessionToken || '',
+      session_token: sessionToken,
       request_id: requestId,
       client_version: this.clientVersion,
       timestamp: new Date().toISOString(),
@@ -136,7 +176,6 @@ class ApiTransport {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      // Use text/plain to avoid browser CORS preflight issues with Google Apps Script Web App redirects
       const response = await fetch(targetUrl, {
         method: 'POST',
         headers: {
@@ -148,24 +187,29 @@ class ApiTransport {
       });
 
       clearTimeout(timeoutId);
+      const text = await response.text();
 
-      if (!response.ok && response.status !== 302) {
+      let parsed: any = null;
+      try {
+        parsed = JSON.parse(text);
+      } catch {}
+
+      if (!response.ok) {
         return {
           ok: false,
           request_id: requestId,
           data: null,
           error: {
-            code: `HTTP_${response.status}`,
-            message: `Server backend merespons dengan kode status HTTP ${response.status}.`,
+            code: parsed?.error?.code || `HTTP_${response.status}`,
+            message:
+              parsed?.error?.message ||
+              `Server backend merespons dengan kode status HTTP ${response.status}.`,
+            details: parsed?.error?.details,
           },
         };
       }
 
-      const text = await response.text();
-      let parsed: any;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
+      if (!parsed) {
         return {
           ok: false,
           request_id: requestId,
@@ -178,7 +222,6 @@ class ApiTransport {
         };
       }
 
-      // Standardize response envelope: supports both { ok, data, error } and legacy { success, data, error }
       if (typeof parsed.ok === 'boolean') {
         return {
           ok: parsed.ok,
@@ -191,13 +234,19 @@ class ApiTransport {
       if (typeof parsed.success === 'boolean') {
         return {
           ok: parsed.success,
-          request_id: requestId,
+          request_id: parsed.request_id || requestId,
           data: parsed.data ?? null,
           error: parsed.success
             ? null
             : {
-                code: typeof parsed.error === 'object' && parsed.error?.code ? parsed.error.code : 'BACKEND_ERROR',
-                message: typeof parsed.error === 'object' && parsed.error?.message ? parsed.error.message : String(parsed.error || 'Operasi backend gagal.'),
+                code:
+                  typeof parsed.error === 'object' && parsed.error?.code
+                    ? parsed.error.code
+                    : 'BACKEND_ERROR',
+                message:
+                  typeof parsed.error === 'object' && parsed.error?.message
+                    ? parsed.error.message
+                    : String(parsed.error || 'Operasi backend gagal.'),
               },
         };
       }
@@ -210,7 +259,8 @@ class ApiTransport {
       };
     } catch (err: any) {
       clearTimeout(timeoutId);
-      if (err.name === 'AbortError') {
+
+      if (err?.name === 'AbortError') {
         return {
           ok: false,
           request_id: requestId,
@@ -228,36 +278,38 @@ class ApiTransport {
         data: null,
         error: {
           code: 'NETWORK_ERROR',
-          message: err.message || 'Gagal terhubung ke URL Google Apps Script customer.',
+          message: err?.message || 'Gagal terhubung ke Google Apps Script.',
           details: String(err),
         },
       };
     }
   }
 
-  /**
-   * Health Check request directly to GAS endpoint
-   */
-  public async checkHealth(url: string, nonce?: string): Promise<{
-    ok: boolean;
-    data?: any;
-    error?: string;
-  }> {
-    const checkNonce = nonce || `nonce_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+  public async checkHealth(
+    url: string,
+    nonce?: string
+  ): Promise<{ ok: boolean; data?: any; error?: string }> {
+    const checkNonce =
+      nonce || `nonce_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+
     try {
-      // 1. Try POST system.health
-      const postRes = await this.send('system.health', { nonce: checkNonce }, {
-        overrideUrl: url,
-        timeoutMs: 12000,
-      });
+      const postRes = await this.send(
+        'system.health',
+        { nonce: checkNonce },
+        {
+          overrideUrl: url,
+          timeoutMs: 12000,
+          skipAuth: true,
+        }
+      );
 
       if (postRes.ok && postRes.data) {
         return { ok: true, data: postRes.data };
       }
 
-      // 2. Fallback to GET ?action=health&nonce=...
       const separator = url.includes('?') ? '&' : '?';
       const getUrl = `${url}${separator}action=health&nonce=${encodeURIComponent(checkNonce)}`;
+
       const res = await fetch(getUrl, {
         method: 'GET',
         redirect: 'follow',
@@ -268,13 +320,23 @@ class ApiTransport {
       }
 
       const json = await res.json();
+
       if (json.success || json.ok) {
         return { ok: true, data: json.data };
       }
 
-      return { ok: false, error: json.error?.message || json.error || 'Health check mengembalikan status gagal' };
+      return {
+        ok: false,
+        error:
+          json.error?.message ||
+          json.error ||
+          'Health check mengembalikan status gagal',
+      };
     } catch (e: any) {
-      return { ok: false, error: e.message || 'Koneksi ke backend Apps Script gagal' };
+      return {
+        ok: false,
+        error: e?.message || 'Koneksi ke backend Apps Script gagal',
+      };
     }
   }
 }

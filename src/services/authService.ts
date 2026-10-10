@@ -278,14 +278,12 @@ class AuthService {
     name: string,
     email: string
   ): Promise<{ success: boolean; challengeId?: string; message?: string; error?: string; devOtp?: string }> {
-    const envUrl = (import.meta as any).env?.VITE_SIEPANG_BACKEND_URL;
-    const record = customerInstallationService.getInstallationRecord();
-    const hasBackendUrl = !!(envUrl?.trim() || record.web_app_url?.trim());
+    const backendUrl = bootstrapService.getBackendUrl();
 
-    if (!hasBackendUrl || !customerInstallationService.isConfigured()) {
+    if (!backendUrl) {
       return {
         success: false,
-        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
+        error: 'Sistem autentikasi belum tersedia. Backend belum dapat dijangkau.',
       };
     }
 
@@ -293,6 +291,10 @@ class AuthService {
       const res = await apiTransport.send('auth.register.requestOtp', {
         name: name.trim(),
         email: email.trim().toLowerCase(),
+      }, {
+        timeoutMs: 60000,
+        skipAuth: true,
+        overrideUrl: backendUrl,
       });
 
       if (!res.ok || !res.data) {
@@ -337,6 +339,11 @@ class AuthService {
     name: string;
   }): Promise<{ success: boolean; user?: User; error?: string }> {
     const device = this.getOrCreateDevicePayload();
+    const backendUrl = bootstrapService.getBackendUrl();
+    if (!backendUrl) {
+      return { success: false, error: 'Backend Google Apps Script belum dapat dijangkau.' };
+    }
+
     try {
       const res = await apiTransport.send('auth.register.verifyOtp', {
         challenge_id: params.challengeId,
@@ -348,6 +355,10 @@ class AuthService {
         device_name: device.device_name,
         browser_family: device.browser_family,
         platform: device.platform,
+      }, {
+        timeoutMs: 60000,
+        skipAuth: true,
+        overrideUrl: backendUrl,
       });
 
       if (!res.ok || !res.data) {
@@ -374,109 +385,67 @@ class AuthService {
     email: string
   ): Promise<{ success: boolean; challengeId?: string; message?: string; error?: string; devOtp?: string }> {
     const cleanEmail = email.trim().toLowerCase();
-    const envUrl = (import.meta as any).env?.VITE_SIEPANG_BACKEND_URL;
-    const record = customerInstallationService.getInstallationRecord();
-    const hasBackendUrl = !!(envUrl?.trim() || record.web_app_url?.trim());
 
-    // Requirements 10 & 11: If backend URL is not available or installation is not configured
-    const isReady = customerInstallationService.isConfigured() || bootstrapService.isInstallationReady();
-    if (!hasBackendUrl && !isReady) {
+    if (!cleanEmail || !cleanEmail.includes('@')) {
       return {
         success: false,
-        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
+        error: 'Format alamat email tidak valid.',
+      };
+    }
+
+    const backendUrl = bootstrapService.getBackendUrl();
+    if (!backendUrl) {
+      return {
+        success: false,
+        error: 'Sistem autentikasi belum tersedia. Backend belum dapat dijangkau.',
       };
     }
 
     try {
-      if (hasBackendUrl) {
-        const res = await apiTransport.send('auth.login.requestOtp', {
-          email: cleanEmail,
-        });
-
-        if (res.ok && res.data) {
-          return {
-            success: true,
-            challengeId: res.data.challenge_id,
-            message: res.data.message || `Kode verifikasi telah dikirim ke ${cleanEmail}.`,
-            devOtp: res.data.dev_otp,
-          };
+      const res = await apiTransport.send<any>(
+        'auth.login.requestOtp',
+        { email: cleanEmail },
+        {
+          timeoutMs: 60000,
+          skipAuth: true,
+          overrideUrl: backendUrl,
         }
+      );
 
-        // Catch backend unconfigured or technical transport errors
-        if (
-          res.error?.code === 'INSTALLATION_NOT_CONFIGURED' ||
-          res.error?.code === 'DATABASE_NOT_CONFIGURED'
-        ) {
-          return {
-            success: false,
-            error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
-          };
-        }
-
-        if (
-          res.error?.code === 'NETWORK_ERROR' ||
-          res.error?.code === 'TIMEOUT' ||
-          res.error?.code?.startsWith('HTTP_') ||
-          res.error?.code === 'INVALID_JSON_RESPONSE'
-        ) {
-          if (!isReady) {
-            return {
-              success: false,
-              error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
-            };
-          }
-        } else {
-          return {
-            success: false,
-            error: res.error?.message || 'Gagal mengirim kode verifikasi.',
-          };
-        }
+      if (!res.ok || !res.data) {
+        return {
+          success: false,
+          error: res.error?.message || 'Gagal mengirim kode verifikasi.',
+        };
       }
 
-      // If backend was initialized/ready but transport unavailable (local/dev test resilience):
-      if (isReady) {
-        let user = userManagementService.getUsers().find(u => u.email.toLowerCase().trim() === cleanEmail);
-        if (!user && cleanEmail === 'scoutpreneur@gmail.com') {
-          user = userManagementService.ensureBootstrapSuperadmin();
-        }
+      const challengeId = String(
+        (res.data as any).challenge_id ??
+        (res.data as any).challengeId ??
+        ''
+      ).trim();
 
-        if (!user) {
-          return {
-            success: false,
-            error: 'Email belum terdaftar. Silakan buat akun baru terlebih dahulu.',
-          };
-        }
-        if (user.status === 'inactive') {
-          return {
-            success: false,
-            error: 'Akun Anda dinonaktifkan oleh Administrator Kwartir.',
-          };
-        }
-
-        const localOtp = String(Math.floor(100000 + Math.random() * 900000));
-        const localChalId = `chal_dev_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-        this.localOtpChallenges.set(localChalId, {
-          email: cleanEmail,
-          otp: localOtp,
-          expiresAt: Date.now() + 10 * 60 * 1000,
-        });
-
+      if (!challengeId) {
         return {
-          success: true,
-          challengeId: localChalId,
-          message: `Kode verifikasi telah dikirim ke ${cleanEmail}.`,
-          devOtp: localOtp,
+          success: false,
+          error: 'Kode berhasil diproses, tetapi ID verifikasi tidak diterima dari server.',
         };
       }
 
       return {
-        success: false,
-        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
+        success: true,
+        challengeId,
+        message:
+          (res.data as any).message ||
+          `Kode verifikasi telah dikirim ke ${cleanEmail}.`,
+        devOtp: import.meta.env.PROD ? undefined : (res.data as any).dev_otp,
       };
-    } catch {
+    } catch (e: any) {
       return {
         success: false,
-        error: 'Sistem autentikasi belum tersedia. Silakan coba kembali setelah administrator menyelesaikan konfigurasi.',
+        error:
+          e?.message ||
+          'Layanan login SiEpang belum dapat dihubungi. Coba lagi beberapa saat.',
       };
     }
   }
@@ -493,86 +462,51 @@ class AuthService {
     const device = this.getOrCreateDevicePayload();
     const cleanEmail = params.email.trim().toLowerCase();
     const cleanOtp = params.otp.trim();
+    const cleanChallengeId = params.challengeId.trim();
 
-    // Check local dev/offline challenge if challengeId matches
-    if (params.challengeId && this.localOtpChallenges.has(params.challengeId)) {
-      const entry = this.localOtpChallenges.get(params.challengeId)!;
-      if (entry.expiresAt < Date.now()) {
-        this.localOtpChallenges.delete(params.challengeId);
-        return { success: false, error: 'Kode verifikasi telah kedaluwarsa. Silakan minta kode baru.' };
-      }
-      if (entry.email !== cleanEmail || entry.otp !== cleanOtp) {
-        return { success: false, error: 'Kode verifikasi salah. Periksa kode 6 digit Anda.' };
-      }
-      this.localOtpChallenges.delete(params.challengeId);
-
-      let user = userManagementService.getUsers().find(u => u.email.toLowerCase().trim() === cleanEmail);
-      if (!user && cleanEmail === 'scoutpreneur@gmail.com') {
-        user = userManagementService.ensureBootstrapSuperadmin();
-      }
-
-      if (!user) {
-        return { success: false, error: 'Pengguna tidak ditemukan.' };
-      }
-
-      const sessionToken = `stok_${Date.now()}_${generateSecureToken(16)}`;
-      const sessionData = {
-        user_id: user.id,
-        display_name: user.name,
-        email: user.email,
-        avatar: user.avatar || '',
-        role: user.role,
-        effective_roles: [user.role],
-        workspace_id: user.workspaceId,
-        session_token: sessionToken,
-        session_expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000,
-        device_public_id: device.device_public_id,
-        device_token: device.device_token,
-        is_trusted_device: true,
+    if (!cleanChallengeId) {
+      return {
+        success: false,
+        error: 'ID verifikasi tidak tersedia. Silakan minta kode OTP baru.',
       };
+    }
 
-      return this.handleAuthSuccess(sessionData);
+    if (!/^\d{6}$/.test(cleanOtp)) {
+      return {
+        success: false,
+        error: 'Masukkan 6 digit kode verifikasi.',
+      };
+    }
+
+    const backendUrl = bootstrapService.getBackendUrl();
+    if (!backendUrl) {
+      return {
+        success: false,
+        error: 'Backend Google Apps Script belum dapat dijangkau.',
+      };
     }
 
     try {
-      const res = await apiTransport.send('auth.login.verifyOtp', {
-        challenge_id: params.challengeId,
-        email: cleanEmail,
-        otp: cleanOtp,
-        device_public_id: device.device_public_id,
-        device_token: device.device_token,
-        device_name: device.device_name,
-        browser_family: device.browser_family,
-        platform: device.platform,
-      });
+      const res = await apiTransport.send<any>(
+        'auth.login.verifyOtp',
+        {
+          challenge_id: cleanChallengeId,
+          email: cleanEmail,
+          otp: cleanOtp,
+          device_public_id: device.device_public_id,
+          device_token: device.device_token,
+          device_name: device.device_name,
+          browser_family: device.browser_family,
+          platform: device.platform,
+        },
+        {
+          timeoutMs: 60000,
+          skipAuth: true,
+          overrideUrl: backendUrl,
+        }
+      );
 
       if (!res.ok || !res.data) {
-        // Fallback for dev mode if backend gave network error
-        if (res.error?.code === 'NETWORK_ERROR' || !import.meta.env.PROD) {
-          let user = userManagementService.getUsers().find(u => u.email.toLowerCase().trim() === cleanEmail);
-          if (!user && cleanEmail === 'scoutpreneur@gmail.com') {
-            user = userManagementService.ensureBootstrapSuperadmin();
-          }
-          if (user && cleanOtp.length === 6) {
-            const sessionToken = `stok_${Date.now()}_${generateSecureToken(16)}`;
-            const sessionData = {
-              user_id: user.id,
-              display_name: user.name,
-              email: user.email,
-              avatar: user.avatar || '',
-              role: user.role,
-              effective_roles: [user.role],
-              workspace_id: user.workspaceId,
-              session_token: sessionToken,
-              session_expires_at: Date.now() + 30 * 24 * 60 * 60 * 1000,
-              device_public_id: device.device_public_id,
-              device_token: device.device_token,
-              is_trusted_device: true,
-            };
-            return this.handleAuthSuccess(sessionData);
-          }
-        }
-
         return {
           success: false,
           error: res.error?.message || 'Verifikasi kode gagal.',
@@ -583,7 +517,7 @@ class AuthService {
     } catch (e: any) {
       return {
         success: false,
-        error: e.message || 'Gagal memverifikasi kode OTP.',
+        error: e?.message || 'Gagal memverifikasi kode OTP.',
       };
     }
   }
