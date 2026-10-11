@@ -81,6 +81,7 @@ class AuthService {
   private isInitializing: boolean = true;
   private localOtpChallenges = new Map<string, { email: string; otp: string; expiresAt: number }>();
   private listeners: Set<(state: AuthState) => void> = new Set();
+  private pendingLoginOtpVerification: Promise<{ success: boolean; user?: User; error?: string }> | null = null;
 
   constructor() {
     this.initDeviceIdentity();
@@ -438,6 +439,9 @@ class AuthService {
 
       if ((res.data as any).authenticated === true && (res.data as any).session_token) {
         const loginResult = this.handleAuthSuccess(res.data);
+        if (!loginResult.success) {
+          return { success: false, error: loginResult.error || 'Sesi perangkat tepercaya tidak lengkap.' };
+        }
         return {
           success: true,
           authenticated: true,
@@ -486,34 +490,46 @@ class AuthService {
     email: string;
     otp: string;
   }): Promise<{ success: boolean; user?: User; error?: string }> {
-    const device = this.getOrCreateDevicePayload();
+    // A single in-flight request per AuthService instance prevents accidental
+    // double consumption of a one-time code (including simultaneous callers).
+    if (this.pendingLoginOtpVerification) {
+      return this.pendingLoginOtpVerification;
+    }
+
+    const task = this.performLoginOtpVerification(params);
+    this.pendingLoginOtpVerification = task;
+    try {
+      return await task;
+    } finally {
+      this.pendingLoginOtpVerification = null;
+    }
+  }
+
+  private async performLoginOtpVerification(params: {
+    challengeId: string;
+    email: string;
+    otp: string;
+  }): Promise<{ success: boolean; user?: User; error?: string }> {
     const cleanEmail = params.email.trim().toLowerCase();
     const cleanOtp = params.otp.trim();
     const cleanChallengeId = params.challengeId.trim();
 
     if (!cleanChallengeId) {
-      return {
-        success: false,
-        error: 'ID verifikasi tidak tersedia. Silakan minta kode OTP baru.',
-      };
+      return { success: false, error: 'ID verifikasi tidak tersedia. Silakan minta kode OTP baru.' };
     }
-
     if (!/^\d{6}$/.test(cleanOtp)) {
-      return {
-        success: false,
-        error: 'Masukkan 6 digit kode verifikasi.',
-      };
+      return { success: false, error: 'Masukkan 6 digit kode verifikasi.' };
     }
 
     const backendUrl = bootstrapService.getBackendUrl();
     if (!backendUrl) {
-      return {
-        success: false,
-        error: 'Backend Google Apps Script belum dapat dijangkau.',
-      };
+      return { success: false, error: 'URL backend Google Apps Script belum tersedia.' };
     }
 
+    // Never automatically retry an OTP verification on a network error:
+    // GAS may already have consumed the one-time code.
     try {
+      const device = this.getOrCreateDevicePayload();
       const res = await apiTransport.send<any>(
         'auth.login.verifyOtp',
         {
@@ -526,25 +542,25 @@ class AuthService {
           browser_family: device.browser_family,
           platform: device.platform,
         },
-        {
-          timeoutMs: 60000,
-          skipAuth: true,
-          overrideUrl: backendUrl,
-        }
+        { timeoutMs: 60000, skipAuth: true, overrideUrl: backendUrl }
       );
 
       if (!res.ok || !res.data) {
-        return {
-          success: false,
-          error: res.error?.message || 'Verifikasi kode gagal.',
-        };
+        const code = String(res.error?.code || '');
+        if (code === 'NETWORK_ERROR' || code === 'TIMEOUT' || code.startsWith('HTTP_') || code === 'INVALID_JSON_RESPONSE') {
+          return {
+            success: false,
+            error: 'Respons verifikasi dari GAS tidak diterima (' + (code || 'jaringan') + '). Kode mungkin sudah diproses. Jangan tekan Verifikasi berulang; periksa apakah sesi telah aktif dengan membuka ulang SiEpang. Jika belum masuk, minta OTP baru.',
+          };
+        }
+        return { success: false, error: res.error?.message || 'Verifikasi kode gagal.' };
       }
 
       return this.handleAuthSuccess(res.data);
     } catch (e: any) {
       return {
         success: false,
-        error: e?.message || 'Gagal memverifikasi kode OTP.',
+        error: 'Proses verifikasi tidak selesai: ' + (e?.message || 'kesalahan tidak diketahui') + '. Jangan kirim OTP yang sama berulang kali.',
       };
     }
   }
@@ -552,7 +568,26 @@ class AuthService {
   /**
    * Stores session context and triggers reactive update upon successful authentication
    */
-  private handleAuthSuccess(sessionData: any): { success: boolean; user: User } {
+  private handleAuthSuccess(sessionData: any): { success: boolean; user?: User; error?: string } {
+    // A backend success flag alone is insufficient to authenticate a user.
+    // Require a real session token and a server-assigned identity/role.
+    if (
+      !sessionData ||
+      typeof sessionData.session_token !== 'string' ||
+      !sessionData.session_token.trim() ||
+      typeof sessionData.user_id !== 'string' ||
+      !sessionData.user_id.trim() ||
+      typeof sessionData.email !== 'string' ||
+      !sessionData.email.trim() ||
+      typeof sessionData.role !== 'string' ||
+      !sessionData.role.trim()
+    ) {
+      return {
+        success: false,
+        error: 'GAS melaporkan berhasil, tetapi data sesi login tidak lengkap. Periksa respons auth.login.verifyOtp dan versi deployment GAS.',
+      };
+    }
+
     const user: User = {
       id: sessionData.user_id,
       name: sessionData.display_name || 'Pengguna Pramuka',
@@ -563,6 +598,16 @@ class AuthService {
       eventId: sessionData.event_id,
     };
 
+    const rawExpiry = sessionData.session_expires_at;
+    const parsedExpiry = typeof rawExpiry === 'number'
+      ? rawExpiry
+      : typeof rawExpiry === 'string'
+        ? (Number(rawExpiry) || Date.parse(rawExpiry))
+        : NaN;
+    const expiresAt = Number.isFinite(parsedExpiry) && parsedExpiry > Date.now()
+      ? parsedExpiry
+      : Date.now() + 60 * 24 * 60 * 60 * 1000;
+
     const payload: StoredSessionPayload = {
       session_token: sessionData.session_token,
       user_id: user.id,
@@ -570,17 +615,27 @@ class AuthService {
       avatar: user.avatar,
       email: user.email,
       role: user.role,
-      effective_roles: (sessionData.effective_roles as UserRole[]) || [user.role],
+      effective_roles: (Array.isArray(sessionData.effective_roles) && sessionData.effective_roles.length
+        ? sessionData.effective_roles as UserRole[]
+        : [user.role]),
       workspace_id: user.workspaceId,
       event_id: user.eventId,
-      expires_at: sessionData.session_expires_at || (Date.now() + 60 * 24 * 60 * 60 * 1000),
+      expires_at: expiresAt,
     };
 
-    localStorage.setItem('siepang_auth_session', JSON.stringify(payload));
+    // Persist first, then publish an authenticated state to the UI.
+    try {
+      localStorage.setItem('siepang_auth_session', JSON.stringify(payload));
+    } catch {
+      return {
+        success: false,
+        error: 'Sesi sudah diberikan oleh GAS, tetapi browser tidak dapat menyimpannya. Periksa izin penyimpanan situs pada browser.',
+      };
+    }
 
     this.currentUser = user;
-    this.effectiveRoles = (sessionData.effective_roles as UserRole[]) || [user.role];
-    this.sessionToken = sessionData.session_token;
+    this.effectiveRoles = payload.effective_roles;
+    this.sessionToken = payload.session_token;
     this.sessionExpiresAt = payload.expires_at;
     this.authenticationMode = 'CLOUD';
     this.offlineSession = null;
