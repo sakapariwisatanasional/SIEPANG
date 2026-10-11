@@ -5,7 +5,7 @@
  * and robust peer-appreciation anti-abuse validation (no self-appreciation, daily quota, duplicates).
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Zap,
@@ -45,6 +45,14 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
   onSuccessFeedback,
 }) => {
   const [flashlightOn, setFlashlightOn] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraRetry, setCameraRetry] = useState(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const scanHandlerRef = useRef<(code: string) => Promise<void>>(async () => {});
+  const processingScanRef = useRef(false);
+
   const [scannedParticipant, setScannedParticipant] = useState<Participant | null>(null);
   const [scannedActivityResult, setScannedActivityResult] = useState<ScanResult | null>(null);
   const [scannedVisitor, setScannedVisitor] = useState<{ visitor: VisitorRegistration; action: 'ENTRY' | 'EXIT' } | null>(null);
@@ -65,11 +73,16 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
   const canCheckIn = currentRole === 'registration_officer' || currentRole === 'workspace_admin' || currentRole === 'superadmin';
   const canTakeAttendance = currentRole === 'attendance_officer' || currentRole === 'committee' || currentRole === 'workspace_admin' || currentRole === 'superadmin';
 
-  if (!isOpen) return null;
-
   const handleScanCode = async (rawCode: string) => {
     setActionErrorMessage(null);
-    const code = rawCode.trim();
+    let code = rawCode.trim();
+    // Kompatibel dengan QR yang berisi ID langsung maupun URL /scan?p=ID.
+    try {
+      if (/^https?:\/\//i.test(code)) {
+        const url = new URL(code);
+        code = url.searchParams.get('p') || url.searchParams.get('participant_id') || code;
+      }
+    } catch { /* Gunakan token QR asli bila bukan URL valid. */ }
 
     // 1. Check if Activity QR or Checkpoint QR token (Requirements 8-10)
     const actConfig = activityQrService.getConfigByToken(code);
@@ -108,6 +121,94 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
       setActionErrorMessage(`Kode QR / Token '${code}' tidak ditemukan atau tidak valid dalam sistem.`);
     }
   };
+
+  // Scanner global sebelumnya hanya simulasi. Hidupkan kamera asli saat modal terbuka.
+  scanHandlerRef.current = handleScanCode;
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    let timer: number | undefined;
+    let detector: { detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue?: string }>> } | null = null;
+    processingScanRef.current = false;
+    setCameraReady(false);
+    setCameraError(null);
+
+    const closeCamera = () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+      const video = videoRef.current;
+      if (video) { video.pause(); video.srcObject = null; }
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    };
+
+    const scanFrame = async () => {
+      if (cancelled) return;
+      const video = videoRef.current;
+      if (detector && video && video.readyState >= 2 && !processingScanRef.current) {
+        try {
+          const results = await detector.detect(video);
+          const value = results.find(result => result.rawValue?.trim())?.rawValue?.trim();
+          if (value) {
+            processingScanRef.current = true;
+            closeCamera();
+            setCameraReady(false);
+            await scanHandlerRef.current(value);
+            return;
+          }
+        } catch (error) { console.debug('QR frame belum dapat dibaca:', error); }
+      }
+      if (!cancelled) timer = window.setTimeout(scanFrame, 180);
+    };
+
+    const startCamera = async () => {
+      if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) {
+        setCameraError('Kamera membutuhkan browser HTTPS dan izin kamera. Gunakan Chrome Android atau input manual.');
+        return;
+      }
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+        if (cancelled) { stream.getTracks().forEach(track => track.stop()); return; }
+        streamRef.current = stream;
+        const video = videoRef.current;
+        if (!video) { closeCamera(); return; }
+        video.srcObject = stream;
+        await video.play();
+        if (cancelled) { closeCamera(); return; }
+        setCameraReady(true);
+        type QRDetectorClass = new (options: { formats: string[] }) => typeof detector;
+        const Detector = (window as Window & { BarcodeDetector?: QRDetectorClass }).BarcodeDetector;
+        if (!Detector) {
+          setCameraError('Kamera aktif, tetapi browser ini belum mendukung pembacaan QR otomatis (BarcodeDetector). Gunakan Chrome Android terbaru atau masukkan kode manual.');
+          return;
+        }
+        detector = new Detector({ formats: ['qr_code'] });
+        void scanFrame();
+      } catch (error: unknown) {
+        const name = error instanceof DOMException ? error.name : '';
+        setCameraError(name === 'NotAllowedError'
+          ? 'Izin kamera ditolak. Izinkan Kamera pada pengaturan situs browser, lalu tekan Coba Lagi.'
+          : name === 'NotFoundError'
+            ? 'Kamera tidak ditemukan pada perangkat ini.'
+            : 'Tidak dapat membuka kamera. Pastikan tidak dipakai aplikasi lain, lalu coba lagi.');
+      }
+    };
+    void startCamera();
+    return () => { cancelled = true; closeCamera(); };
+  }, [isOpen, cameraRetry]);
+
+  useEffect(() => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track || !cameraReady) return;
+    const constraint = { advanced: [{ torch: flashlightOn }] } as unknown as MediaTrackConstraints;
+    void track.applyConstraints(constraint).catch(() => {
+      if (flashlightOn) setCameraError('Senter tidak didukung kamera ini. Pemindaian tetap bisa dilakukan.');
+    });
+  }, [flashlightOn, cameraReady]);
+
+  if (!isOpen) return null;
 
   const handleCheckIn = async () => {
     if (!scannedParticipant) return;
@@ -212,24 +313,33 @@ export const QrScannerModal: React.FC<QrScannerModalProps> = ({
         </button>
       </div>
 
-      {/* Camera Viewport Simulation */}
+      {/* Pratinjau kamera nyata, bukan animasi simulasi */}
       <div className="flex-1 relative flex items-center justify-center p-4 sm:p-6 overflow-hidden">
-        {/* Animated Viewport Frame */}
-        <div className="relative w-56 h-56 min-[360px]:w-64 min-[360px]:h-64 sm:w-80 sm:h-80 rounded-3xl border-2 border-emerald-500/60 shadow-[0_0_50px_rgba(16,185,129,0.25)] flex items-center justify-center overflow-hidden">
-          {/* Corner brackets */}
-          <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl" />
-          <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl" />
-          <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl" />
-          <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-2xl" />
-
-          {/* Laser scanning line */}
-          <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_15px_#10b981] animate-bounce duration-1000" />
-
-          <div className="text-center px-4 text-xs text-slate-400 pointer-events-none">
-            <div className="text-2xl mb-2 opacity-50">📱</div>
-            Posisikan QR di dalam kotak
+        <div className="relative w-full max-w-sm aspect-square rounded-3xl border-2 border-emerald-500/60 shadow-[0_0_50px_rgba(16,185,129,0.25)] overflow-hidden bg-slate-950">
+          <video ref={videoRef} autoPlay muted playsInline className="absolute inset-0 w-full h-full object-cover" aria-label="Pratinjau kamera untuk membaca QR" />
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-emerald-400 rounded-tl-2xl" />
+            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-emerald-400 rounded-tr-2xl" />
+            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-emerald-400 rounded-bl-2xl" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-emerald-400 rounded-br-2xl" />
           </div>
+          {!cameraReady && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/85 text-center px-6 text-sm text-white">
+              {cameraError ? 'Kamera belum aktif' : 'Mengaktifkan kamera…'}
+            </div>
+          )}
+          {cameraReady && !cameraError && (
+            <div className="absolute bottom-3 inset-x-3 text-center text-xs rounded-lg bg-black/70 px-3 py-2 text-white pointer-events-none">
+              Arahkan QR ke dalam bingkai
+            </div>
+          )}
         </div>
+        {cameraError && (
+          <div className="absolute bottom-4 left-4 right-4 max-w-sm mx-auto rounded-xl border border-amber-500/40 bg-slate-950/95 p-3 text-xs text-amber-100 text-center z-10">
+            <div>{cameraError}</div>
+            <button type="button" onClick={() => setCameraRetry(value => value + 1)} className="mt-2 rounded-lg bg-emerald-600 px-4 py-2 font-bold text-white">Coba Lagi Kamera</button>
+          </div>
+        )}
       </div>
 
       {/* Manual Input Bar */}
