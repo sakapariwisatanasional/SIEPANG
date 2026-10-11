@@ -370,6 +370,61 @@ export default function App() {
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+  // Only a challenge ID actually returned by GAS can be used for OTP verification.
+  // sessionStorage is tab-scoped; never store the OTP code itself.
+  const OTP_CHALLENGE_STORAGE_KEY = 'siepang_login_otp_challenge_v1';
+  const OTP_ATTEMPT_STORAGE_KEY = 'siepang_login_otp_attempt_v1';
+  const rememberLoginChallenge = (email: string, id: string, cooldownSeconds = 60) => {
+    const record = { email, challengeId: id, expiresAt: Date.now() + 10 * 60 * 1000, resendAt: Date.now() + cooldownSeconds * 1000 };
+    try { sessionStorage.setItem(OTP_CHALLENGE_STORAGE_KEY, JSON.stringify(record)); } catch { /* blocked storage */ }
+  };
+  const clearLoginChallenge = () => {
+    try {
+      sessionStorage.removeItem(OTP_CHALLENGE_STORAGE_KEY);
+      sessionStorage.removeItem(OTP_ATTEMPT_STORAGE_KEY);
+    } catch { /* blocked storage */ }
+  };
+  const getSavedLoginChallenge = (email: string): { challengeId: string; resendAt: number } | null => {
+    try {
+      const raw = sessionStorage.getItem(OTP_CHALLENGE_STORAGE_KEY);
+      if (!raw) return null;
+      const saved = JSON.parse(raw);
+      if (saved.email === email && typeof saved.challengeId === 'string' &&
+          saved.challengeId && Number(saved.expiresAt) > Date.now()) {
+        return { challengeId: saved.challengeId, resendAt: Number(saved.resendAt) || 0 };
+      }
+    } catch { /* corrupted or blocked storage */ }
+    return null;
+  };
+  const recordOtpAttempt = (email: string) => {
+    try { sessionStorage.setItem(OTP_ATTEMPT_STORAGE_KEY, JSON.stringify({ email, until: Date.now() + 60_000 })); } catch { /* blocked storage */ }
+  };
+  const remainingOtpAttemptSeconds = (email: string): number => {
+    try {
+      const raw = sessionStorage.getItem(OTP_ATTEMPT_STORAGE_KEY);
+      if (!raw) return 0;
+      const saved = JSON.parse(raw);
+      if (saved.email !== email) return 0;
+      return Math.max(0, Math.ceil((Number(saved.until) - Date.now()) / 1000));
+    } catch { return 0; }
+  };
+  useEffect(() => {
+    const email = loginEmail.trim().toLowerCase();
+    if (!email) return;
+    const saved = getSavedLoginChallenge(email);
+    if (saved) {
+      setChallengeId(saved.challengeId);
+      setAuthMode('LOGIN_OTP');
+      setResendCooldown(Math.max(0, Math.ceil((saved.resendAt - Date.now()) / 1000)));
+      setAuthSuccess('Kode sebelumnya masih dapat digunakan selama belum kedaluwarsa. Masukkan kode terbaru dari email.');
+    } else {
+      const remain = remainingOtpAttemptSeconds(email);
+      if (remain > 0) setResendCooldown(remain);
+    }
+  // Restore only when this login view is first mounted.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Synchronous guard against duplicate submit events before React has time
   // to render the disabled button state.
   const loginOtpRequestLockRef = useRef(false);
@@ -417,6 +472,23 @@ export default function App() {
     const email = loginEmail.trim().toLowerCase();
     if (!email) return;
 
+    // Reuse a confirmed, unexpired challenge rather than requesting another email.
+    const savedChallenge = getSavedLoginChallenge(email);
+    if (savedChallenge) {
+      setChallengeId(savedChallenge.challengeId);
+      setAuthMode('LOGIN_OTP');
+      setResendCooldown(Math.max(0, Math.ceil((savedChallenge.resendAt - Date.now()) / 1000)));
+      setAuthError(null);
+      setAuthSuccess('Silakan masukkan kode OTP yang sudah dikirim ke email Anda.');
+      return;
+    }
+    const waitSeconds = remainingOtpAttemptSeconds(email);
+    if (waitSeconds > 0) {
+      setResendCooldown(waitSeconds);
+      setAuthError(`Permintaan kode baru saja dikirim. Periksa email Anda dan tunggu sekitar ${waitSeconds} detik. Jika halaman kode belum muncul, respons GAS mungkin terputus; jangan klik Lanjut berulang kali.`);
+      return;
+    }
+
     loginOtpRequestLockRef.current = true;
     setAuthError(null);
     setAuthSuccess(null);
@@ -428,13 +500,19 @@ export default function App() {
         return;
       }
 
+      recordOtpAttempt(email);
       const res = await authService.requestLoginOtp(email);
 
       if (!res.success) {
-        setAuthError(
-          res.error ||
-            'Email belum terdaftar. Silakan buat akun baru terlebih dahulu.'
-        );
+        const message = res.error || 'Permintaan kode belum berhasil dikonfirmasi.';
+        const possiblyDelivered = /fetch|network|jaringan|timeout|waktu|terhubung|dijangkau|detik|tunggu/i.test(message);
+        if (possiblyDelivered) {
+          setResendCooldown(Math.max(remainingOtpAttemptSeconds(email), 1));
+          setAuthError(`Respons pengiriman OTP belum dapat dipastikan: ${message} Jika email sudah masuk, jangan meminta kode lagi sebelum masa tunggu selesai. Halaman verifikasi membutuhkan ID yang diterima dari GAS.`);
+        } else {
+          setAuthError(message);
+          try { sessionStorage.removeItem(OTP_ATTEMPT_STORAGE_KEY); } catch {}
+        }
         return;
       }
 
@@ -456,6 +534,7 @@ export default function App() {
         return;
       }
 
+      rememberLoginChallenge(email, nextChallengeId);
       setChallengeId(nextChallengeId);
       setAuthMode('LOGIN_OTP');
       setResendCooldown(60);
@@ -510,6 +589,7 @@ export default function App() {
         '✓ Berhasil masuk. Perangkat terdaftar sebagai perangkat tepercaya.'
       );
 
+      clearLoginChallenge();
       // Authentication state has already been persisted by authService.
       // Move to the dashboard immediately so no second submit can consume
       // the same one-time OTP challenge.
@@ -614,8 +694,10 @@ export default function App() {
     if (authMode === 'LOGIN_OTP') {
       const res = await authService.requestLoginOtp(loginEmail.trim().toLowerCase());
       setIsSubmittingAuth(false);
-      if (res.success) {
-        setChallengeId(res.challengeId || '');
+      if (res.success && res.challengeId) {
+        rememberLoginChallenge(loginEmail.trim().toLowerCase(), res.challengeId);
+        recordOtpAttempt(loginEmail.trim().toLowerCase());
+        setChallengeId(res.challengeId);
         setDevOtpHint(res.devOtp || null);
         setOtpInput('');
         setAuthError(null);
@@ -641,6 +723,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    clearLoginChallenge();
     authService.logout();
     setIsLoggedIn(false);
     setActiveTab('public_home');
@@ -829,6 +912,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => {
+                    clearLoginChallenge();
                     setAuthError(null);
                     setAuthSuccess(null);
                     setAuthMode('LOGIN');
